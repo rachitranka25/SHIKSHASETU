@@ -11,7 +11,8 @@ Active Services:
 - cultural_context.py: Cultural context adaptation for Indian regions
 - ocr.py: Document text extraction (GOT-OCR2)
 - rag.py: Retrieval augmented generation (BGE-M3)
-- speech_generator.py, speech_processor.py: Speech processing
+- ingestion/: NCERT curriculum ingestion into the RAG store
+- stt.py: Speech to text (Whisper)
 - translate/: Translation services (IndicTrans2)
 - tts/: Text-to-speech (MMS-TTS, Edge-TTS)
 - validate/: Curriculum validation
