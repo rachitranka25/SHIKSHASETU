@@ -233,11 +233,36 @@ section describes what is currently verified, so you can tell the two apart.
 
 pgvector is not optional if you want retrieval: without it the app still boots
 and logs `Could not enable pgvector extension`, but RAG and Q&A fall back to
-degraded behaviour. On macOS:
+degraded behaviour.
 
 ```bash
 brew install pgvector
 psql -d shiksha_setu -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+```
+
+**Check which PostgreSQL the extension landed in.** Homebrew's pgvector formula
+builds only against the PostgreSQL versions it currently supports, so on a
+machine running an older server the install succeeds and the extension is still
+missing — `CREATE EXTENSION` then fails with `could not open extension control
+file .../postgresql@14/extension/vector.control`, which reads like pgvector is
+absent when it is merely installed elsewhere.
+
+```bash
+# Where did the extension actually go?
+find /opt/homebrew -name vector.control
+
+# Which server is running?
+psql --version
+```
+
+If those disagree, either point `DATABASE_URL` at a server version pgvector
+supports, or build the extension against your own:
+
+```bash
+git clone --branch v0.8.2 https://github.com/pgvector/pgvector.git
+cd pgvector
+make PG_CONFIG=/opt/homebrew/opt/postgresql@14/bin/pg_config
+make install PG_CONFIG=/opt/homebrew/opt/postgresql@14/bin/pg_config
 ```
 
 ### Setup
