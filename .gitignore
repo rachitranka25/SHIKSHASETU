@@ -132,3 +132,6 @@ data/models/
 data/uploads/
 # Stray runtime logs at repo root
 *.log
+
+# NCERT corpus: large and re-downloadable. The catalog JSON is kept.
+data/ncert/

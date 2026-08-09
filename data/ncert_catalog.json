@@ -1,0 +1,3354 @@
+{
+  "source": "https://ncert.nic.in/textbook.php",
+  "count": 558,
+  "books": [
+    {
+      "code": "aeen1",
+      "title": "Marigold",
+      "grade": 1,
+      "medium": "English"
+    },
+    {
+      "code": "aejm1",
+      "title": "Joyful-Mathematics (English)",
+      "grade": 1,
+      "medium": "English"
+    },
+    {
+      "code": "aemh1",
+      "title": "Math-Magic",
+      "grade": 1,
+      "medium": "English"
+    },
+    {
+      "code": "aemr1",
+      "title": "Mridang",
+      "grade": 1,
+      "medium": "English"
+    },
+    {
+      "code": "ahhn1",
+      "title": "Rimjhim",
+      "grade": 1,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ahjm1",
+      "title": "Joyful-Mathematics (Hindi)",
+      "grade": 1,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ahmh1",
+      "title": "Ganit ka Jadu",
+      "grade": 1,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ahsr1",
+      "title": "Sarangi",
+      "grade": 1,
+      "medium": "Hindi"
+    },
+    {
+      "code": "aujm1",
+      "title": "Joyful-Mathematics (Urdu)",
+      "grade": 1,
+      "medium": "Urdu"
+    },
+    {
+      "code": "aulb1",
+      "title": "Ibtedai Urdu-I",
+      "grade": 1,
+      "medium": "Urdu"
+    },
+    {
+      "code": "auri1",
+      "title": "Riyazi",
+      "grade": 1,
+      "medium": "Urdu"
+    },
+    {
+      "code": "aush1",
+      "title": "Shahnai",
+      "grade": 1,
+      "medium": "Urdu"
+    },
+    {
+      "code": "been1",
+      "title": "Marigold",
+      "grade": 2,
+      "medium": "English"
+    },
+    {
+      "code": "bejm1",
+      "title": "Joyful-Mathematics (English)",
+      "grade": 2,
+      "medium": "English"
+    },
+    {
+      "code": "bemh1",
+      "title": "Math-Magic",
+      "grade": 2,
+      "medium": "English"
+    },
+    {
+      "code": "bemr1",
+      "title": "Mridang",
+      "grade": 2,
+      "medium": "English"
+    },
+    {
+      "code": "bhhn1",
+      "title": "Rimjhim",
+      "grade": 2,
+      "medium": "Hindi"
+    },
+    {
+      "code": "bhjm1",
+      "title": "Joyful-Mathematics (Hindi)",
+      "grade": 2,
+      "medium": "Hindi"
+    },
+    {
+      "code": "bhmh1",
+      "title": "Ganit ka Jadu",
+      "grade": 2,
+      "medium": "Hindi"
+    },
+    {
+      "code": "bhsr1",
+      "title": "Sarangi",
+      "grade": 2,
+      "medium": "Hindi"
+    },
+    {
+      "code": "buib1",
+      "title": "Ibtedai Urdu-II",
+      "grade": 2,
+      "medium": "Urdu"
+    },
+    {
+      "code": "bujm1",
+      "title": "Joyful-Mathematics (Urdu)",
+      "grade": 2,
+      "medium": "Urdu"
+    },
+    {
+      "code": "buri1",
+      "title": "Riyazi ka Jadu",
+      "grade": 2,
+      "medium": "Urdu"
+    },
+    {
+      "code": "bush1",
+      "title": "Shahnai",
+      "grade": 2,
+      "medium": "Urdu"
+    },
+    {
+      "code": "ceap1",
+      "title": "Looking Arround",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "cebu1",
+      "title": "Bansuri - I",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "ceen1",
+      "title": "Marigold",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "ceev1",
+      "title": "Our Wondrous World",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "ceky1",
+      "title": "Khel Yoga",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "cemh1",
+      "title": "Math-Magic",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "cemm1",
+      "title": "Maths Mela",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "cesa1",
+      "title": "Santoor",
+      "grade": 3,
+      "medium": "English"
+    },
+    {
+      "code": "chap1",
+      "title": "Ass-Pass",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "chbu1",
+      "title": "Bansuri - I (Hindi)",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "chev1",
+      "title": "Hamara Adhbhut Sansar",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "chhn1",
+      "title": "Rimjhim",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "chky1",
+      "title": "Khel Yoga (Hindi)",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "chmh1",
+      "title": "Ganit ka Jadu",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "chmm1",
+      "title": "Ganit Mela",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "chve1",
+      "title": "Veena",
+      "grade": 3,
+      "medium": "Hindi"
+    },
+    {
+      "code": "cuap1",
+      "title": "Aas Pass (Urdu)",
+      "grade": 3,
+      "medium": "Urdu"
+    },
+    {
+      "code": "cuev1",
+      "title": "Hamari Hairat Angez Duniya",
+      "grade": 3,
+      "medium": "Urdu"
+    },
+    {
+      "code": "cuky1",
+      "title": "Khel Yoga (Urdu)",
+      "grade": 3,
+      "medium": "Urdu"
+    },
+    {
+      "code": "culb1",
+      "title": "Ibtedai Urdu",
+      "grade": 3,
+      "medium": "Urdu"
+    },
+    {
+      "code": "cumm1",
+      "title": "Riyazi Mela",
+      "grade": 3,
+      "medium": "Urdu"
+    },
+    {
+      "code": "curi1",
+      "title": "Riyazi-III",
+      "grade": 3,
+      "medium": "Urdu"
+    },
+    {
+      "code": "cust1",
+      "title": "Sitar",
+      "grade": 3,
+      "medium": "Urdu"
+    },
+    {
+      "code": "deap1",
+      "title": "Looking Arround",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "debu1",
+      "title": "Bansuri",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "deen1",
+      "title": "Marigold",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "deev1",
+      "title": "Our Wonderous World",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "deky1",
+      "title": "Khel Yoga",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "demh1",
+      "title": "Math-Magic",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "demm1",
+      "title": "Math-Mela",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "desa1",
+      "title": "Santoor",
+      "grade": 4,
+      "medium": "English"
+    },
+    {
+      "code": "dhap1",
+      "title": "Ass-Pass",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "dhbu1",
+      "title": "Bansuri (Hindi)",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "dhev1",
+      "title": "Hamara Adhbhut Sansar",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "dhhn1",
+      "title": "Rimjhim",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "dhky1",
+      "title": "Khel Yoga(Hindi)",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "dhmh1",
+      "title": "Ganit Ka Jadu",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "dhmm1",
+      "title": "Ganit-Mela",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "dhve1",
+      "title": "Veena",
+      "grade": 4,
+      "medium": "Hindi"
+    },
+    {
+      "code": "duap1",
+      "title": "Aas-Paas Urdu",
+      "grade": 4,
+      "medium": "Urdu"
+    },
+    {
+      "code": "dubu1",
+      "title": "Bansuri (Urdu)",
+      "grade": 4,
+      "medium": "Urdu"
+    },
+    {
+      "code": "duev1",
+      "title": "Hamari Hairatangez Duniya",
+      "grade": 4,
+      "medium": "Urdu"
+    },
+    {
+      "code": "dulb1",
+      "title": "Ibtedai Urdu-IV",
+      "grade": 4,
+      "medium": "Urdu"
+    },
+    {
+      "code": "dumm1",
+      "title": "Riyazi Mela",
+      "grade": 4,
+      "medium": "Urdu"
+    },
+    {
+      "code": "duri1",
+      "title": "Riyazi Ka Jadu",
+      "grade": 4,
+      "medium": "Urdu"
+    },
+    {
+      "code": "dust1",
+      "title": "Sitaar",
+      "grade": 4,
+      "medium": "Urdu"
+    },
+    {
+      "code": "eeap1",
+      "title": "Looking Arround",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "eebu1",
+      "title": "Bansuri",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "eeen1",
+      "title": "Marigold",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "eeev1",
+      "title": "Our Wondrous World",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "eeky1",
+      "title": "Khel Yoga",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "eemh1",
+      "title": "Math-Magic",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "eemm1",
+      "title": "Math Mela",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "eesa1",
+      "title": "Santoor",
+      "grade": 5,
+      "medium": "English"
+    },
+    {
+      "code": "ehap1",
+      "title": "Ass-Pass",
+      "grade": 5,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ehbu1",
+      "title": "Bansuri (Hindi)",
+      "grade": 5,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ehev1",
+      "title": "Hamara Adbhut Sansar",
+      "grade": 5,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ehhn1",
+      "title": "Rimjhim",
+      "grade": 5,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ehmh1",
+      "title": "Ganit",
+      "grade": 5,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ehmm1",
+      "title": "Ganit Mela",
+      "grade": 5,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ehve1",
+      "title": "Veena",
+      "grade": 5,
+      "medium": "Hindi"
+    },
+    {
+      "code": "eubu1",
+      "title": "Bansuri (Urdu)",
+      "grade": 5,
+      "medium": "Urdu"
+    },
+    {
+      "code": "euev1",
+      "title": "EVS-V (Urdu)",
+      "grade": 5,
+      "medium": "Urdu"
+    },
+    {
+      "code": "eulb1",
+      "title": "Ibtedai Urdu Class-V",
+      "grade": 5,
+      "medium": "Urdu"
+    },
+    {
+      "code": "euma1",
+      "title": "math-magic-V",
+      "grade": 5,
+      "medium": "Urdu"
+    },
+    {
+      "code": "eumm1",
+      "title": "Riyazi Mela",
+      "grade": 5,
+      "medium": "Urdu"
+    },
+    {
+      "code": "eust1",
+      "title": "Sitaar",
+      "grade": 5,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fecu1",
+      "title": "Curiosity",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "feep1",
+      "title": "Exemplar Problem(English)",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "feep2",
+      "title": "Exemplar Problem",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fees1",
+      "title": "Exploring Society India and Beyond",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fegp1",
+      "title": "Ganita Prakash",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fehl1",
+      "title": "Honeysuckle",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fekb1",
+      "title": "Kaushal Bodh",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fekr1",
+      "title": "Kriti-I",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "feky1",
+      "title": "Khel Yatra",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "femh1",
+      "title": "Mathematics",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fepr1",
+      "title": "Poorvi",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fepw1",
+      "title": "A Pact with the Sun",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fesc1",
+      "title": "Science",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fess1",
+      "title": "History-Our Past I",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fess2",
+      "title": "The Earth: Our Habitat",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fess3",
+      "title": "Social and Political Life-I",
+      "grade": 6,
+      "medium": "English"
+    },
+    {
+      "code": "fhbr1",
+      "title": "Bal Ram Katha",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhcu1",
+      "title": "Jigyasa",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhdv1",
+      "title": "Durva",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhep1",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhes1",
+      "title": "Samaj ka Aadhyan: Bharat or uske aage",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhgp1",
+      "title": "Ganita Prakash (Hindi)",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhkb1",
+      "title": "Kaushal Bodh (Hindi)",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhkr1",
+      "title": "Kriti-I (Hindi)",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhky1",
+      "title": "Khel Yatra (Hindi)",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhmh1",
+      "title": "Ganit",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhml1",
+      "title": "Malhar",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhsc1",
+      "title": "Vigyan",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhsk1",
+      "title": "Ruchira",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhss1",
+      "title": "Itihas-Hamare Atit I",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhss2",
+      "title": "Prithvi: Hamara Avas",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhss3",
+      "title": "Samajik Evam Rajnitik Jeevan",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fhvs1",
+      "title": "Vasant",
+      "grade": 6,
+      "medium": "Hindi"
+    },
+    {
+      "code": "fuaz1",
+      "title": "Apni Zuban-VI",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fucu1",
+      "title": "Tajassus",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fues1",
+      "title": "Muashre Ki Daryaft Hindustan Aur Us Se Aage",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fugp1",
+      "title": "Ganita Prakash(Urdu)",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fuhm1",
+      "title": "Hamare Mazi",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fujp1",
+      "title": "Jaan Pahechan",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fukl1",
+      "title": "Jismani Taleem aur Tandurusti",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fuky1",
+      "title": "Khayal",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "furi1",
+      "title": "Riyazi-VI",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fuse1",
+      "title": "science-VI",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fuss1",
+      "title": "Samazi Aur Siyasi Zindagi",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fuug1",
+      "title": "Urdu Guldasta",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "fuzm1",
+      "title": "Zameen Hamara Maskan",
+      "grade": 6,
+      "medium": "Urdu"
+    },
+    {
+      "code": "geah1",
+      "title": "The Alien Hand Supplementry",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gecu1",
+      "title": "Curiosity",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gees1",
+      "title": "Exploring Society India and Beyond",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gees2",
+      "title": "Exploring Society India and Beyond Part 2",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gegp1",
+      "title": "Ganita Prakash",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gegp2",
+      "title": "Ganita Prakash II",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gehc1",
+      "title": "Honeycomb",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gekb1",
+      "title": "Kaushal Bodh",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gekr1",
+      "title": "Kriti",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "geky1",
+      "title": "Khel Yatra",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gemp1",
+      "title": "Exemplar Problems (English)",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "geof1",
+      "title": "Organic Farming",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gepr1",
+      "title": "Poorvi",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gesc1",
+      "title": "Science",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gess1",
+      "title": "History-Our Pasts II",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gess2",
+      "title": "Geography-Our Environment",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "gess3",
+      "title": "Social and Political Life-2",
+      "grade": 7,
+      "medium": "English"
+    },
+    {
+      "code": "ghcu1",
+      "title": "Jigyasa",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghdv1",
+      "title": "Durva Bhag-2",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghes1",
+      "title": "Samaj ka Aadhyan: Bharat or uske aage",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghes2",
+      "title": "Samaj Ka Aadhyan: Bharat or uske aage Part-II",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghgp1",
+      "title": "Ganita Prakash(Hindi)",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghkb1",
+      "title": "Kaushal Bodh(Hindi)",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghkr1",
+      "title": "Kriti-I (Hindi)",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghky1",
+      "title": "Khel Yatra (Hindi)",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghmb1",
+      "title": "Bal Mahabharat Katha",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghmh1",
+      "title": "Ganit",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghml1",
+      "title": "Malhar",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghsc1",
+      "title": "Vigyan",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghsk1",
+      "title": "Ruchira",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghss1",
+      "title": "Itihas-Hamare Atit II",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghss2",
+      "title": "Bhugol-Hamare Paryavaran",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghss3",
+      "title": "Samkalin aur Rajniti Jeevan-2",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ghvs1",
+      "title": "Vasant",
+      "grade": 7,
+      "medium": "Hindi"
+    },
+    {
+      "code": "guaz1",
+      "title": "Apni Zaban",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "gucu1",
+      "title": "Tazassus",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "gudp1",
+      "title": "Door-Pass",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "gues1",
+      "title": "Muashrey ki Daryaft - Hindustan aur Uske age",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "gues2",
+      "title": "Muashrey ki Daryaft - Hindustan aur Uske age Part-II",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "gugp1",
+      "title": "Ganita Prakash(Urdu)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "gugu1",
+      "title": "Urdu Guldasta-Suppl",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guha1",
+      "title": "Hamare Mahol (Geography)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guhm1",
+      "title": "Hamare Mazi (History)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guhs1",
+      "title": "HISTORY-VIII PART-I (Urdu)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guhs2",
+      "title": "HISTORY-VIII PART-II (Urdu)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "gukl1",
+      "title": "Khel Yatra(Urdu)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guky1",
+      "title": "Khayal",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guma1",
+      "title": "Math (Urdu)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guse1",
+      "title": "SCIENCE (Urdu)",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "guss3",
+      "title": "Samajik Aur Siyasi Zindagi",
+      "grade": 7,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hecu1",
+      "title": "Curiosity",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "heep2",
+      "title": "Exemplar Problems",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hees1",
+      "title": "Exploring Society India and Beyond Part-I",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hees2",
+      "title": "Exploring Society India and Beyond Part-II",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hegp1",
+      "title": "Ganita Prakash",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hegp2",
+      "title": "Ganita Prakash II",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hehd1",
+      "title": "Honeydew",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "heih1",
+      "title": "It So Happened",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hekb1",
+      "title": "Kaushal Bodh",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hekr1",
+      "title": "Kriti",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "heky1",
+      "title": "Khel Yatra",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hemh1",
+      "title": "Mathematics",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hepr1",
+      "title": "Poorvi",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hesc1",
+      "title": "Science",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hess1",
+      "title": "Our Past III (Part I)",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hess2",
+      "title": "Our Past III",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hess3",
+      "title": "Social and Political Life",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hess4",
+      "title": "Resourse and Developement (Geography)",
+      "grade": 8,
+      "medium": "English"
+    },
+    {
+      "code": "hhbk1",
+      "title": "Bharat ki Khoj",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhcu1",
+      "title": "Jigyasa",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhdv1",
+      "title": "Durva",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhep2",
+      "title": "Exemplar Problems",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhes1",
+      "title": "Samaj Ka Aadhyan: Bharat or uske aage Part-I",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhgp1",
+      "title": "Ganita Prakash (Hindi)",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhkb1",
+      "title": "Kaushal Bodh (Hindi)",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhkr1",
+      "title": "Kriti (Hindi)",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhky1",
+      "title": "Khel Yatra (Hindi)",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhmh1",
+      "title": "Ganit",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhml1",
+      "title": "Malhar",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhsb1",
+      "title": "Sanshipt Budhcharit",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhsc1",
+      "title": "Vigyan",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhsk1",
+      "title": "Ruchira",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhss1",
+      "title": "Hamare Atit III (Itihas)",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhss2",
+      "title": "Hamare Atit III (Bhag-II)",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhss3",
+      "title": "Samajik avam Rajnitik Jeevan",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhss4",
+      "title": "Sansadhan aur Vikas (Bhugol)",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "hhvs1",
+      "title": "Vasant",
+      "grade": 8,
+      "medium": "Hindi"
+    },
+    {
+      "code": "huaz1",
+      "title": "Apni Zaban",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hucu1",
+      "title": "Tajassus",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hudp1",
+      "title": "Door Pass",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hues1",
+      "title": "Muashrey ki Daryaft - Hindustan Aur Uske Age Part-I",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hugp1",
+      "title": "Ganita Prakash (Urdu)",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hugy1",
+      "title": "Wasayel aur Taraqqui(Urdu)",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "huhi1",
+      "title": "Riyazi",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "huhm1",
+      "title": "Hamare Mazi-III",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hujp1",
+      "title": "Jaan Pahechan",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hukl1",
+      "title": "Khayal",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "hukr1",
+      "title": "Kriti (Urdu)",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "huky1",
+      "title": "Khel Yatra (Urdu)",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "huse1",
+      "title": "Science",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "huss1",
+      "title": "Samaji Aur Siyasi Zindagi",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "huug1",
+      "title": "Urdu Guldasta (Supl)",
+      "grade": 8,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iebe1",
+      "title": "Kaveri",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ieeo1",
+      "title": "IT Domestic Data Entry Operator",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ieep1",
+      "title": "Exemplar Problem(English)",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ieep2",
+      "title": "Exemplar Problem(English)",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iees1",
+      "title": "Employability Skill",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iehp1",
+      "title": "Khel Praveen",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ielm1",
+      "title": "Lab Manual(English)",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iemh1",
+      "title": "Ganita Manjari",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iemo1",
+      "title": "Moments Supplementary Reader",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iemr1",
+      "title": "Madhurima",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iepg1",
+      "title": "Plumber General",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iesc1",
+      "title": "Exploration",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iess1",
+      "title": "Contemporary India",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iess2",
+      "title": "Economics",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iess3",
+      "title": "India and the Contemporary World-I",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iess4",
+      "title": "Democratic Politics",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iest1",
+      "title": "Understanding Society India and Beyond PART-I",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ieva1",
+      "title": "Store Operations Assistant",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ievc1",
+      "title": "Cashier",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ieve1",
+      "title": "Health Embroiderer (Addawala)",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ievh1",
+      "title": "Health Embroiderer",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ievs1",
+      "title": "Solanceous Crop Cultivator",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ievt1",
+      "title": "Assistant Beauty Therapist",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ievw1",
+      "title": "Animal Health Worker (Agriculture)",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "iewe1",
+      "title": "Words and Expressions",
+      "grade": 9,
+      "medium": "English"
+    },
+    {
+      "code": "ihep1",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihep2",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihga1",
+      "title": "Ganga",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihkr1",
+      "title": "Kritika",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihks1",
+      "title": "Kshitij",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihlm1",
+      "title": "Lab Manual(Hindi)",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihmh1",
+      "title": "Ganita Manjari (Hindi)",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihsa1",
+      "title": "Sanchayan",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihsc1",
+      "title": "Anveshan",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihsh1",
+      "title": "Sharada",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihsp1",
+      "title": "Sprash",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihss1",
+      "title": "Samkalin Bharat",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihss2",
+      "title": "Arthashastra",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihss3",
+      "title": "Bharat Aur Samkalin Vishwa-I",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "ihss4",
+      "title": "Loktantrik Rajniti",
+      "grade": 9,
+      "medium": "Hindi"
+    },
+    {
+      "code": "iuau1",
+      "title": "Urdu ki Adabi Asnaf",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iudp1",
+      "title": "Door Pass",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iuge1",
+      "title": "Geographia(Urdu)",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iugu1",
+      "title": "Gulzare-e-urdu",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iuhi1",
+      "title": "Hindustan Aur Asri Dunia-I(Urdu)",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iujp1",
+      "title": "Jaan Pahechan",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iuju1",
+      "title": "Jamuna",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iumh1",
+      "title": "Reyazi (Urdu)",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iuna1",
+      "title": "Nawa-e-urdu",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iusc1",
+      "title": "Science (Urdu)",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iusr1",
+      "title": "Sab Rang",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iuss1",
+      "title": "Aasri Hindustan (Urdu)",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iuss2",
+      "title": "Mashiyat (Urdu)",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "iuss4",
+      "title": "Jamhuri Syasat(Urdu)",
+      "grade": 9,
+      "medium": "Urdu"
+    },
+    {
+      "code": "jeep1",
+      "title": "Exemplar Problem(English)",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jeep2",
+      "title": "Exemplar Problem(English)",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jeff1",
+      "title": "First Flight",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jefp1",
+      "title": "Footprints without Feet",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jehp1",
+      "title": "Health and Physical Education",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jelm1",
+      "title": "Lab Manual(English)",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jemh1",
+      "title": "Mathematics",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jesc1",
+      "title": "Science",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jess1",
+      "title": "Contemporary India",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jess2",
+      "title": "Understanding Economic Development",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jess3",
+      "title": "India and the Contemporary World-II",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jess4",
+      "title": "Democratic Politics",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jewe2",
+      "title": "Words and Expressions -II",
+      "grade": 10,
+      "medium": "English"
+    },
+    {
+      "code": "jhep1",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhep2",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhkr1",
+      "title": "Kritika",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhks1",
+      "title": "Kshitij-2",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhlm1",
+      "title": "Lab Manual(Hindi)",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhmh1",
+      "title": "Ganit",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhsc1",
+      "title": "Vigyan",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhsk1",
+      "title": "Shemushi",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhsp1",
+      "title": "Sparsh",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhss1",
+      "title": "Samkalin Bharat",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhss2",
+      "title": "Arthik Vikas ki Samajh",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhss3",
+      "title": "Bharat Aur Samakalin Vishav-2",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhss4",
+      "title": "Loktantrik Rajniti",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhsy1",
+      "title": "Sanchayan Bhag-2",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "jhva1",
+      "title": "Vyakaranavithi",
+      "grade": 10,
+      "medium": "Hindi"
+    },
+    {
+      "code": "judp1",
+      "title": "Door-Paas",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "juge1",
+      "title": "Gulzar-e-Urdu",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "jujp1",
+      "title": "Jaan Pahechan",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "jumh1",
+      "title": "Riyazi",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "june1",
+      "title": "Nawa-e-Urdu",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "jusc1",
+      "title": "Science (Urdu)",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "jusr1",
+      "title": "Sab Rang",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "juss1",
+      "title": "Aasri Hindustan-II",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "juss2",
+      "title": "Maashi Taraqqui Ki Samajh",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "juss3",
+      "title": "Hindustan Aur Asri Duniya",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "juss4",
+      "title": "Jamhuri Siyasat-II",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "juuq1",
+      "title": "Urdu Qwaid aur Insha",
+      "grade": 10,
+      "medium": "Urdu"
+    },
+    {
+      "code": "keac1",
+      "title": "Financial Accounting-I",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keac2",
+      "title": "Accountancy-II",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kebo1",
+      "title": "Biology",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kebs1",
+      "title": "Business Studies",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kebt1",
+      "title": "Biotechnology",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kech1",
+      "title": "Chemistry Part-I\");\t\n\t\t\t\n\t\t}\n\t\tif(pm==\"khch1\")\n\t\t{\n\t\tdocument.write(\"Rasayan Vigyan bhag-I",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kect1",
+      "title": "Computers and Communication Technology",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kect2",
+      "title": "Computers and Communication Technology",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keda1",
+      "title": "General Duty Assistant",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kedf1",
+      "title": "Dair Farmer Enterpreneur",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keec1",
+      "title": "Indian Economic Development",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keep2",
+      "title": "Exemplar Problem(English)",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keep3",
+      "title": "Exemplar Problem(English)",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keep4",
+      "title": "Exemplar Problem(English)",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keep5",
+      "title": "Exemplar Problem(English)",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kefa1",
+      "title": "An Introduction to Indian Art Part-I",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kefc1",
+      "title": "Floriculturist",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kegd1",
+      "title": "The Story of Graphic Design",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kegy1",
+      "title": "India Physical Environment",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kegy2",
+      "title": "Fundamental of Physical Geography",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kegy3",
+      "title": "Pratical Work in Geography",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kehb1",
+      "title": "Hornbill",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kehc1",
+      "title": "Living Craft Tradition of India",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kehe1",
+      "title": "Human Ecology and Family Sciences Part I",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kehe2",
+      "title": "Human Ecology and Family Sciences Part II",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kehp1",
+      "title": "Health and Physical Education",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keip1",
+      "title": "Informatics Practices",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keks1",
+      "title": "Knowledge Traditions and Practices of India",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kelm1",
+      "title": "Lab Manual(English)",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kelm2",
+      "title": "Lab Manual(English)",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kelm3",
+      "title": "Lab Manual(English)",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kemh1",
+      "title": "Mathematics",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keoc1",
+      "title": "Floriculturist",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keph1",
+      "title": "Physics Part-I",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keph2",
+      "title": "Physics Part-II",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keps1",
+      "title": "Political Theory",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keps2",
+      "title": "India Constitution at Work",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kepy1",
+      "title": "Psychology",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kesp1",
+      "title": "Snapshots Suppl.Reader English",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kest1",
+      "title": "Statistics for Economics",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kesy1",
+      "title": "Introducing Sociology",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kesy2",
+      "title": "Understanding Society",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "keww1",
+      "title": "Woven Words",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "khac1",
+      "title": "Lekhashastra-I",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khac2",
+      "title": "Lekhashastra-II",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "kham1",
+      "title": "Abhivyakti Aur Madhyam",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khan1",
+      "title": "Antral",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khar1",
+      "title": "Aroh",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khat1",
+      "title": "Antra",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khbo1",
+      "title": "Jeev Vigyan",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khbs1",
+      "title": "Vyavsay Adhyanan",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khch2",
+      "title": "Rasayan Vigyan bhag-II",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khct1",
+      "title": "Computer Aur Sanchaar Prodhogiki -I",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khct2",
+      "title": "Computer Aur Sanchaar Prodhogiki -II",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khec1",
+      "title": "Bhartiya Airthvavstha Ka Vikash",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khep2",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khep3",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khep4",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khep5",
+      "title": "Exemplar Problem(Hindi)",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khfa1",
+      "title": "Bhartiya kala ek parichay",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khgd1",
+      "title": "Graphics Design ek Kahani",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khgv1",
+      "title": "Hindustani Sangeet Gayan Evam Vadan",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khgy1",
+      "title": "Bhart Bhautik Paryabaran",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khgy2",
+      "title": "Bhutiq Bhugol ke Mul Sidhant",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khgy3",
+      "title": "Bhugol Main Prayogatmak Karya",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khhc1",
+      "title": "Bhartiya Hastkala Parmparaon ki Khoj",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khlm2",
+      "title": "Lab Manual(Hindi)",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khmh1",
+      "title": "Ganit",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khph1",
+      "title": "Bhautiki-I",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khph2",
+      "title": "Bhautiki-II",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khps1",
+      "title": "Raajneeti Sidhant",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khps2",
+      "title": "Bharat ka Samvidhan Sidhant aur Vavhar",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khpy1",
+      "title": "Manovigyan",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khsk1",
+      "title": "Bhaswati",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khsk2",
+      "title": "Shashwati",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khsr1",
+      "title": "Srijan",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khst1",
+      "title": "Sankhyiki",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khsy1",
+      "title": "Samaj Shastra Parichay-I",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khsy2",
+      "title": "Samaj ka Bodh",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khtp1",
+      "title": "Tabla evam Pakhawaj",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "khvt1",
+      "title": "Vitan",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
+      "code": "kuac1",
+      "title": "Khatadari-I",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuac2",
+      "title": "Khatadari-II",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kubo1",
+      "title": "Hayatiyaat",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kubs1",
+      "title": "Karobari Mutalah I",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuch1",
+      "title": "Keemiya I\");\t\n\t\t\t\n\t\t}\n\t\tif(pm==\"kech2\")\n\t\t{\n\t\tdocument.write(\"Chemistry Part II",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuch2",
+      "title": "Keemiya II",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuct1",
+      "title": "Computer Aur Muwaslati Technology I",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuct2",
+      "title": "Computer Aur Muwaslati Technology II",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kucw1",
+      "title": "Takhleequi Jauhar",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kudh1",
+      "title": "Dhanak",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuec1",
+      "title": "Hindustan ki Masshi Tarraqiu",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuga1",
+      "title": "Gulzar-e-Adab",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kugm1",
+      "title": "Tabi'i Jughraiya Ka Mubadiyat (Urdu)",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kugy1",
+      "title": "Hindustan Tabi'i Mahaul (Urdu)",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kugy2",
+      "title": "Tabai Gugraphiya ke Mubadiyat",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kugy3",
+      "title": "Jughrafia Mein Aamli Kam (Urdu)",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuhc1",
+      "title": "Hindustan me Dastkari Ki Riwayat",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuhc2",
+      "title": "Dastakari",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuic1",
+      "title": "Indian Constitution at Work",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuiz1",
+      "title": "Izhar Aur Zara-e-Izhar",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuku1",
+      "title": "Khyabane Urdu",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kumh1",
+      "title": "Riyazi I",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuna1",
+      "title": "Nai Awaz",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuph1",
+      "title": "Tabiyaat-I",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuph2",
+      "title": "Tabiyaat-II",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kups1",
+      "title": "Hindustan Aain Aur Kam",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kups2",
+      "title": "Siyasi Nazaria",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kupy1",
+      "title": "Nafsiyaat",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kusc1",
+      "title": "Shumariyaat bar-e-Mushiyat",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kusy1",
+      "title": "Samajiyaat Ka Tarf",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kusy2",
+      "title": "Mutala-e-Muashira",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "kuta1",
+      "title": "Tareekh-e-Alam per Mabni Mauzuaat Part I",
+      "grade": 11,
+      "medium": "Urdu"
+    },
+    {
+      "code": "leac1",
+      "title": "Accountancy Part I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leac2",
+      "title": "Accountancy Part II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lebo1",
+      "title": "Biology",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lebs1",
+      "title": "Business Studies I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lebs2",
+      "title": "Business Studies II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leca1",
+      "title": "Computerised Accounting System",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lech1",
+      "title": "chemistry I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lech2",
+      "title": "chemistry II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lecs1",
+      "title": "Computer Science",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leec1",
+      "title": "Introductory Macroeconomics",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leec2",
+      "title": "Introductory Microeconomics",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leep2",
+      "title": "Exemplar Problems(English)",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leep4",
+      "title": "Exemplar Problems",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leep5",
+      "title": "Exemplar Problems",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leep6",
+      "title": "Exemplar Problems(English)",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lefa1",
+      "title": "An Introduction to Indian Art Part-II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lefl1",
+      "title": "Flamingo",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "legd1",
+      "title": "New Age Graphics Design",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "legy1",
+      "title": "Fundamentals of Human Geography",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "legy2",
+      "title": "India -People And Economy",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "legy3",
+      "title": "Practical Work in Geography Part II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehc1",
+      "title": "Craft Tradition of India",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehe1",
+      "title": "Human Ecology and Family Sciences Part I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehe2",
+      "title": "Human Ecology and Family Sciences Part II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehh1",
+      "title": "Manav Paristhitiki avam Parivar Vigyan Bhag - I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehh2",
+      "title": "Manav Paristhitiki avam Parivar Vigyan Bhag - II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehs1",
+      "title": "Themes in Indian History-I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehs2",
+      "title": "Themes in Indian History-II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lehs3",
+      "title": "Themes in Indian History-III",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leip1",
+      "title": "Informatics Practices",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lekl1",
+      "title": "Kaliedoscope",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lelm1",
+      "title": "Lab Manual(English)",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lelm2",
+      "title": "Lab Manual(English)",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lelm3",
+      "title": "Lab Manual(English)",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lemh1",
+      "title": "Mathematics Part-I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lemh2",
+      "title": "Mathematics Part-II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leph1",
+      "title": "Physics Part-I",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leph2",
+      "title": "Physics Part-II",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leps1",
+      "title": "Contemporary World Politics",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "leps2",
+      "title": "Politics in India Since Independence",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lepy1",
+      "title": "Psychology",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lesy1",
+      "title": "Indian Society",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lesy2",
+      "title": "Social Change and Development in India",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "levt1",
+      "title": "Vistas",
+      "grade": 12,
+      "medium": "English"
+    },
+    {
+      "code": "lhac1",
+      "title": "Lekhashastra Part I",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhac2",
+      "title": "Lekhashastra Part II",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lham1",
+      "title": "Abhivyakti Aur Madhyam",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhan1",
+      "title": "Antral Bhag 2",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhar1",
+      "title": "Aroh",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhat1",
+      "title": "Antra",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhbo1",
+      "title": "Jeev Vigyan",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhbs1",
+      "title": "Vyavasai Adhyan I",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhbs2",
+      "title": "Vyavasai Adhyan II",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhch1",
+      "title": "Rasayan Vigyan I",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhch2",
+      "title": "Rasayan Vigyan II",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhec1",
+      "title": "Samashty Arthshastra Ek Parichay",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhec2",
+      "title": "Vyashthi Arthashastra- Ek Parichay",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhep2",
+      "title": "Exemplar Problems(Hindi)",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhep4",
+      "title": "Exemplar Problems(Hindi)",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhep6",
+      "title": "Exemplar Problems(Hindi)",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhfa1",
+      "title": "Bhartiya Kala ka Itihaas Bhag 2",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhgy1",
+      "title": "Manav Bhugol Ke Mool Sidhant",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhgy2",
+      "title": "Bharat log aur arthvyasastha(Bhugol)",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhgy3",
+      "title": "Bhugol main pryogatmak karye",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhhc1",
+      "title": "Bharatiya Hastkla Ki Paramparayen",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhhs1",
+      "title": "Bharatiya Itihas ke kuchh Vishay-I",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhhs2",
+      "title": "Bharatiya Itihas ke kuchh Vishay-II",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhhs3",
+      "title": "Bharatiya Itihas ke kuchh Vishay-III",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhlm1",
+      "title": "Lab Manual(Hindi)",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhlm3",
+      "title": "Lab Manual(Hindi)",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhmh1",
+      "title": "Ganit-I",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhmh2",
+      "title": "Ganit-II",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhph1",
+      "title": "Bhautiki-I",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhph2",
+      "title": "Bhautiki-II",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhps1",
+      "title": "Samkalin Vishwa Rajniti",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhps2",
+      "title": "Swatantra Bharat Mein Rajniti-II",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhpy1",
+      "title": "Manovigyan",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhsk1",
+      "title": "Bhaswati",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhsk2",
+      "title": "Shaswati",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhsy1",
+      "title": "Bhartiya Samaj",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhsy2",
+      "title": "Bharat main Samajik Parivartan aur Vikas",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "lhvt1",
+      "title": "Vitan",
+      "grade": 12,
+      "medium": "Hindi"
+    },
+    {
+      "code": "luab1",
+      "title": "Azadi Ke Baad Hindustan Ki Siyasat",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luac1",
+      "title": "Khatadari-I",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luac2",
+      "title": "Khatadari-II",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lubo1",
+      "title": "Hayatiyaat",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lubs1",
+      "title": "Karobari Uloom I",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lubs2",
+      "title": "Karobari Uloom II",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luch1",
+      "title": "Keemiya I",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luch2",
+      "title": "Keemiya II",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "ludh1",
+      "title": "Dhanak",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lufh1",
+      "title": "Insani Geographia ke Mubadiyaat",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luga1",
+      "title": "Gulistan-e- Adab",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lugy1",
+      "title": "Hindustan Awam Aur Maishat",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lugy3",
+      "title": "Jughrafia Mein Aamli Kam",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luhc1",
+      "title": "Hindustan me Dastkari Ki Riwayat",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luis1",
+      "title": "Hindustani Samaj",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luku1",
+      "title": "Khayaban-e-Urdu",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lume1",
+      "title": "Juzvi Maashiyat Ka Taruf",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lume2",
+      "title": "Kulli Maashiyat Ka Taruf",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lumh1",
+      "title": "Riyazi-I",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lumh2",
+      "title": "Riyazi-II",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luna1",
+      "title": "Nai Awaz",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luph1",
+      "title": "Tabiyaat-I",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luph2",
+      "title": "Tabiyaat-II",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lups1",
+      "title": "Aasri Alami Siyasat",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lups2",
+      "title": "Short Stories",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lupy1",
+      "title": "Nafsiat(Psychology)",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "lusy2",
+      "title": "Hindustan Mein Samaji Tabdili Aur Taraqqi",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luth1",
+      "title": "Tareekh-e-Hind ke Mauzuaat-I",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luth2",
+      "title": "Tareekh-e-Hind ke Mauzuaat-II",
+      "grade": 12,
+      "medium": "Urdu"
+    },
+    {
+      "code": "luth3",
+      "title": "Tareekh-e-Hind ke Mauzuaat-III",
+      "grade": 12,
+      "medium": "Urdu"
+    }
+  ]
+}
