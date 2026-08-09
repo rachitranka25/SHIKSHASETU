@@ -12,6 +12,7 @@ const Chat = lazy(() => import('./pages/Chat'));
 const Auth = lazy(() => import('./pages/Auth'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Library = lazy(() => import('./pages/Library'));
 
 // Lightweight loading fallback - no heavy components
 const PageLoader = memo(function PageLoader() {
@@ -80,6 +81,12 @@ const App = memo(function App() {
                   <Route
                     path="/chat"
                     element={<Chat />}
+                  />
+                  {/* Public: shared curriculum belongs to no school, so
+                      browsing it needs no account. */}
+                  <Route
+                    path="/library"
+                    element={<Library />}
                   />
                   <Route
                     path="/settings"

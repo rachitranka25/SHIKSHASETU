@@ -1061,18 +1061,24 @@ input, textarea {
   border: 0;
 }
 
-/* For screen reader announcements */
-[aria-live="polite"],
-[aria-live="assertive"] {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
+/* Deliberately no [aria-live] rule here.
+ *
+ * There used to be one applying the .sr-only treatment — position:absolute,
+ * 1px box, clip — to every [aria-live="polite"] and [aria-live="assertive"]
+ * element on the page.
+ *
+ * aria-live marks a region whose *updates* should be announced. It does not
+ * mean the region is for screen readers only, and most live regions are
+ * ordinary visible content: search results, a chat transcript, a status line.
+ * Collapsing all of them hid that content from everyone who can see.
+ *
+ * It did exactly that to the curriculum search results, which rendered into a
+ * box 1px tall around 22,000px of content. Chat.tsx marks its message list
+ * with role="log" aria-live="polite" and would meet the same fate once the
+ * list is non-empty.
+ *
+ * A region that really is announcement-only should say so itself, with the
+ * .sr-only class above. */
 
 /* Bounce animation for thinking dots */
 @keyframes bounce {
