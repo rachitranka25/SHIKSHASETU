@@ -6,6 +6,7 @@ All endpoints organized by domain:
 - content.py: Content processing, TTS, OCR, embeddings
 - batch.py: Hardware-optimized batch processing
 - health_routes.py: Health, monitoring, admin, profile
+- library.py: Browse and search the ingested NCERT curriculum
 
 Optimized for:
 - Native Apple Silicon (M4) with MPS/ANE acceleration
@@ -20,6 +21,7 @@ from .batch import router as batch_router
 from .chat import router as chat_router
 from .content import router as content_router
 from .health_routes import router as health_router
+from .library import router as library_router
 from .voice import router as voice_router
 
 # Create main router that includes all modular routers
@@ -31,6 +33,7 @@ router.include_router(chat_router)
 router.include_router(content_router)
 router.include_router(batch_router)
 router.include_router(health_router)
+router.include_router(library_router)
 router.include_router(voice_router)
 
 # Backwards compatibility alias

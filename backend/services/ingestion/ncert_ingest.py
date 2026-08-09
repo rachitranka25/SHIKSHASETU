@@ -144,6 +144,14 @@ def download_book(
         logger.debug("%s already downloaded", book.code)
         return target
 
+    # Roughly a quarter of catalogued books have no zip published. Without a
+    # record of that, every run re-requests all of them — which for a batched
+    # run over 558 books means the same wasted round trips on every batch.
+    missing_marker = download_dir / f"{book.code}.unavailable"
+    if missing_marker.exists():
+        logger.debug("%s known to have no zip, skipping", book.code)
+        return None
+
     owns_client = client is None
     client = client or httpx.Client(
         timeout=DOWNLOAD_TIMEOUT,
@@ -158,6 +166,7 @@ def download_book(
 
                 if response.status_code == 404:
                     logger.info("%s: no zip published (404)", book.code)
+                    missing_marker.touch()
                     return None
                 response.raise_for_status()
 

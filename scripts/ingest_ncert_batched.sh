@@ -1,0 +1,127 @@
+#!/bin/bash
+# Ingest the NCERT catalog in small batches, one process per batch.
+#
+# WHY BATCHES
+#
+# A single process cannot finish the catalog on a machine with 8 GB of RAM.
+# BGE-M3 holds ~2.5 GB resident, a textbook zip is up to 70 MB expanded across
+# 20-odd PDFs, and Postgres wants its share. Attempting all 558 books in one
+# process reached book 8 and then wedged: swap hit 11.4 GB of 12.2 GB, the
+# process dropped into uninterruptible I/O wait with its resident set paged
+# entirely out, and it made no further progress for eleven minutes. It does not
+# recover on its own.
+#
+# Exiting between batches is what fixes it. The embedder is reloaded each time,
+# which costs about 20 seconds, and in exchange every page of the previous
+# batch's working set is genuinely returned to the OS.
+#
+# Resuming is free: books already in the database are skipped by a query, not by
+# any on-disk state, so re-running this script continues where it stopped and
+# interrupting it costs at most the batch in flight.
+#
+# USAGE
+#     scripts/ingest_ncert_batched.sh [batch_size] [max_batches]
+#
+#     scripts/ingest_ncert_batched.sh            # 5 at a time, until done
+#     scripts/ingest_ncert_batched.sh 3          # smaller batches
+#     scripts/ingest_ncert_batched.sh 5 10       # stop after 10 batches
+set -uo pipefail
+
+BATCH_SIZE="${1:-5}"
+MAX_BATCHES="${2:-0}"   # 0 means keep going until the catalog is exhausted
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
+
+PYTHON="venv/bin/python"
+# Shared curriculum is stored with no organization, and row-level security only
+# lets the table owner create such rows.
+export INGEST_DATABASE_URL="${INGEST_DATABASE_URL:-postgresql://postgres@localhost:5432/shiksha_setu}"
+
+# Refuse to start if swap is already close to full; a batch would simply wedge
+# the way the single-process run did.
+swap_free_mb() {
+    sysctl vm.swapusage 2>/dev/null \
+        | sed -n 's/.*free = \([0-9.]*\)M.*/\1/p' \
+        | cut -d. -f1
+}
+
+batch=0
+while :; do
+    batch=$((batch + 1))
+    if [ "$MAX_BATCHES" -gt 0 ] && [ "$batch" -gt "$MAX_BATCHES" ]; then
+        echo "Reached the requested batch limit."
+        break
+    fi
+
+    free_mb="$(swap_free_mb)"
+    if [ -n "$free_mb" ] && [ "$free_mb" -lt 1500 ]; then
+        echo "Only ${free_mb} MB of swap free — pausing 120s to let the system settle."
+        sleep 120
+        free_mb="$(swap_free_mb)"
+        if [ -n "$free_mb" ] && [ "$free_mb" -lt 1000 ]; then
+            echo "Still ${free_mb} MB free. Stopping rather than wedging the machine."
+            echo "Close other applications, or reboot, then run this again — progress is kept."
+            exit 1
+        fi
+    fi
+
+    # Pick the next books that are genuinely outstanding.
+    #
+    # --limit takes the first N of the catalog, which does not advance: the
+    # first slots are permanently occupied by books already ingested and by
+    # books NCERT never published a zip for. A trial run with --limit reported
+    # "0 books ingested, 8 skipped" twice in a row for exactly that reason.
+    # Selecting the pending codes explicitly is what makes each batch do work.
+    pending=$($PYTHON - "$BATCH_SIZE" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+from sqlalchemy import create_engine, text
+
+sys.path.insert(0, str(Path.cwd()))
+from backend.services.ingestion import load_catalog
+from backend.services.ingestion.ncert_ingest import DOWNLOAD_DIR
+
+wanted = int(sys.argv[1])
+
+engine = create_engine(os.environ["INGEST_DATABASE_URL"])
+with engine.connect() as connection:
+    done = {
+        row[0]
+        for row in connection.execute(
+            text(
+                "SELECT DISTINCT metadata->>'book_code' FROM processed_content"
+                " WHERE metadata->>'source' = 'NCERT'"
+            )
+        )
+        if row[0]
+    }
+
+unavailable = {p.stem for p in DOWNLOAD_DIR.glob("*.unavailable")}
+skip = done | unavailable
+
+remaining = [b.code for b in load_catalog() if b.code not in skip]
+print(" ".join(remaining[:wanted]))
+print(len(done), len(unavailable), len(remaining), file=sys.stderr)
+PY
+) || { echo "Could not determine pending books."; exit 1; }
+
+    if [ -z "$pending" ]; then
+        echo "Nothing left to ingest."
+        break
+    fi
+
+    echo
+    echo "──── batch $batch — $(echo "$pending" | wc -w | tr -d ' ') books: $pending ────"
+
+    $PYTHON scripts/ingest_ncert.py --codes $pending --discard-downloads
+    status=$?
+
+    if [ "$status" -ne 0 ]; then
+        echo "Batch $batch exited $status. Continuing — a failed book is recorded and skipped."
+    fi
+
+    # Let the page cache and Postgres settle before loading the model again.
+    sleep 10
+done
