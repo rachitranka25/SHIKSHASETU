@@ -2,11 +2,15 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
-[![Tests](https://img.shields.io/badge/tests-298%20passing-brightgreen.svg)](#project-status)
+[![Tests](https://img.shields.io/badge/tests-329%20passing-brightgreen.svg)](#project-status)
 
-**Safe, Open AI for Education & Noble Purposes**
+**Open AI for Education & Noble Purposes**
 
-A local-first, unrestricted AI platform that empowers learning, research, creativity, and noble causes—while maintaining essential safety guardrails.
+A local-first, unrestricted AI platform that empowers learning, research, creativity, and noble causes.
+
+> **Content policy:** this platform ships **unrestricted**. Output filtering is
+> off by default. See [Content Policy](#content-policy) before deploying it to
+> students.
 
 ---
 
@@ -20,9 +24,56 @@ Shiksha Setu is evolving beyond education into a **general-purpose AI** that:
 
 ### Philosophy
 
-> **Safe without being restricted. Powerful without being harmful.**
+> **Open by default. Restriction is a deployment decision, not a default.**
 
-We block only genuinely dangerous content (weapons, malware, real harm) while trusting users with good intent for everything else.
+---
+
+## Content Policy
+
+Read this before putting the platform in front of students. It describes what
+the code does, not what would be reassuring.
+
+**Nothing is filtered out of the box.** The policy engine starts in `research`
+mode — "maximum freedom" — with `POLICY_FILTERS_ENABLED=false` and
+`SENSITIVE_RESPONSE_BLOCKING=false`. Model output reaches the student
+unchanged.
+
+**The age gate does nothing.** `AgeConsentMiddleware` reads an `X-Age-Consent`
+header into `request.state.age_consent` and deliberately does not block. It is
+never registered on the app, and no route reads the flag. Its own docstring
+calls it "the ONLY content restriction in Universal Mode", which makes the
+overall position clear enough.
+
+**Curriculum enforcement and grade-level adaptation cannot be switched on while
+`UNIVERSAL_MODE=true`.** The configuration reads
+`not universal_mode and os.getenv(...)`, so the environment variables for both
+are ignored, whatever they are set to. Both appear in the capability table
+above. To reach them, set `UNIVERSAL_MODE=false`.
+
+**The safety pipeline runs, but it is a keyword filter.** Three verification
+passes execute on chat responses; pass 3 scores toxicity with regexes, adding
+0.2 per match against a 0.3 threshold. Consequences worth knowing:
+
+- A single occurrence of a flagged word scores 0.2 and passes. Two are needed
+  to trip anything.
+- Phrasing outside the word list is not matched at all — `bomb` is listed,
+  `explosive device` is not.
+- The list contains `kill`, `die`, `hate`, and `bomb`, which are ordinary words
+  in a history or chemistry lesson. "Gandhi was killed", "the hydrogen bomb",
+  and "cells die" are all flagged by the same mechanism that misses the
+  paragraph above it.
+
+So it under-blocks real harm and over-blocks legitimate coursework. Treat it as
+a placeholder rather than a control you can rely on.
+
+**If you need real filtering**, the NVIDIA endpoint this project can already
+talk to (see [LLM Provider](#llm-provider)) serves purpose-built classifiers —
+`nvidia/llama-3.1-nemotron-safety-guard-8b-v3` and
+`nvidia/nemotron-3.5-content-safety` — which are a far better foundation than
+the regex list. Wiring one in is not done.
+
+**Unauthenticated surface:** `/api/v2/chat/guest` and `/api/v2/stt/guest`
+require no credentials, so everything above applies to anonymous callers.
 
 ---
 
@@ -34,10 +85,10 @@ Shiksha Setu is a production-grade AI platform that runs entirely locally on App
 
 | Feature | Description |
 |---------|-------------|
-| **Text Simplification** | Grade-level adaptation using Qwen2.5-3B-Instruct |
+| **Text Simplification** | Grade-level adaptation using Qwen2.5-3B-Instruct — grade adaptation requires `UNIVERSAL_MODE=false`, see [Content Policy](#content-policy) |
 | **Translation** | 10 Indian languages via IndicTrans2-1B |
 | **OCR** | Document extraction with GOT-OCR2.0 (95%+ accuracy on Indian scripts) |
-| **Validation** | NCERT curriculum alignment using Gemma-2-2B-IT (≥80% threshold) |
+| **Validation** | NCERT curriculum alignment using Gemma-2-2B-IT (≥80% threshold) — requires `UNIVERSAL_MODE=false`, see [Content Policy](#content-policy) |
 | **Text-to-Speech** | Dual TTS: Edge TTS (online) + MMS-TTS (offline, 1100+ languages) |
 | **Speech-to-Text** | Whisper Large V3 Turbo (8x faster, 99 languages) |
 | **RAG Q&A** | Intelligent question answering with BGE-M3 embeddings |
@@ -136,7 +187,7 @@ section describes what is currently verified, so you can tell the two apart.
 **Verified**
 
 - 72 routes register and the app boots.
-- 298 tests, no failures. Roughly 33 skip themselves when a prerequisite is
+- 329 tests, no failures. Roughly 33 skip themselves when a prerequisite is
   absent — no running server for the e2e suite, no loaded model for the
   benchmarks, no greenlet for the async-database tests.
 - Auth: bcrypt hashing at 12 rounds, JWT access/refresh with the token type
@@ -165,6 +216,9 @@ section describes what is currently verified, so you can tell the two apart.
   `detail=str(e)`, which leaks paths and driver errors.
 - Rate limiting is off in the shipped `.env`. Startup now refuses to run that
   way in production, but local defaults remain permissive.
+- Output filtering is off and the age gate is inert. This is deliberate — see
+  [Content Policy](#content-policy) — but it is a gap if you are deploying to
+  minors.
 
 ---
 
