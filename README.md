@@ -1,5 +1,9 @@
 # Shiksha Setu
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![Tests](https://img.shields.io/badge/tests-298%20passing-brightgreen.svg)](#project-status)
+
 **Safe, Open AI for Education & Noble Purposes**
 
 A local-first, unrestricted AI platform that empowers learning, research, creativity, and noble causes—while maintaining essential safety guardrails.
@@ -124,6 +128,46 @@ Hindi • Tamil • Telugu • Bengali • Marathi • Gujarati • Kannada • 
 
 ---
 
+## Project Status
+
+The capability table above describes what the codebase is built to do. This
+section describes what is currently verified, so you can tell the two apart.
+
+**Verified**
+
+- 72 routes register and the app boots.
+- 298 tests, no failures. Roughly 33 skip themselves when a prerequisite is
+  absent — no running server for the e2e suite, no loaded model for the
+  benchmarks, no greenlet for the async-database tests.
+- Auth: bcrypt hashing at 12 rounds, JWT access/refresh with the token type
+  enforced in both directions, forged signatures and expired tokens rejected.
+- Response caching and per-route metrics across the v2 API, keyed per caller
+  so no response crosses between users.
+- Upload endpoints enforce a 100 MB cap and a file-type allowlist.
+- Production startup refuses to boot on a missing JWT secret, a missing
+  `DATABASE_URL`, disabled rate limiting, or a wildcard CORS origin combined
+  with credentials.
+
+**Not yet implemented** — referenced in tests or docs, absent from the API:
+
+- `/api/v2/content/` CRUD. Content goes through `/api/v2/content/process`.
+- `/api/v2/experiments/` (the A/B testing surface).
+- `/api/v2/admin/backup/*`.
+- `/api/v2/library`.
+
+**Known gaps**
+
+- The database is empty. No NCERT or CBSE content has been ingested, so
+  curriculum validation and RAG have nothing to retrieve against.
+- `WriteBehindQueue.put` is synchronous while `cache.set` awaits it; four
+  cache tests are skipped pending that refactor.
+- 33 handlers return internal exception text to the client via
+  `detail=str(e)`, which leaks paths and driver errors.
+- Rate limiting is off in the shipped `.env`. Startup now refuses to run that
+  way in production, but local defaults remain permissive.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -131,13 +175,22 @@ Hindi • Tamil • Telugu • Bengali • Marathi • Gujarati • Kannada • 
 - **Python 3.11** (recommended) — See [Python Version Note](#python-version-note) below
 - Node.js 20+
 - Redis 7+
-- PostgreSQL 17+ (or Supabase)
+- PostgreSQL 17+ (or Supabase), with the **pgvector** extension
+
+pgvector is not optional if you want retrieval: without it the app still boots
+and logs `Could not enable pgvector extension`, but RAG and Q&A fall back to
+degraded behaviour. On macOS:
+
+```bash
+brew install pgvector
+psql -d shiksha_setu -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+```
 
 ### Setup
 
 ```bash
 git clone https://github.com/rachitranka25/SHIKSHASETU.git
-cd shiksha_setu
+cd SHIKSHASETU
 ./setup.sh
 ```
 
@@ -258,14 +311,19 @@ curl -X POST http://localhost:8000/api/v2/content/simplify \
 ### Validation & Testing
 
 ```bash
-# Run tests
-./bin/test                    # Full test suite
-./bin/smoke-test              # Quick smoke tests
+# Full test suite
+venv/bin/python -m pytest
 
-# Validate system
-./bin/validate                # System validation
-./bin/validate-production     # Production readiness check
+# One area, with names
+venv/bin/python -m pytest tests/unit -v
+
+# Coverage (pytest.ini requires 70%)
+venv/bin/python -m pytest --cov=backend
 ```
+
+Suites live under `tests/`: `unit/`, `integration/`, `e2e/`, `performance/`,
+`manual/`. The e2e suite skips itself unless a backend is already serving on
+`localhost:8000`, so start the app first if you want it to run.
 
 ---
 
@@ -499,7 +557,10 @@ cd frontend && npm test
 
 ## License
 
-MIT License — see [LICENSE](LICENSE)
+MIT — see [LICENSE](LICENSE). Third-party component and model licences are
+listed in [NOTICE.md](NOTICE.md); model weights are downloaded at runtime and
+several carry terms more restrictive than this repository's, so check them
+before deploying commercially.
 
 ---
 

@@ -19,6 +19,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from ...cache import get_unified_cache
+from ...core.constants import DEFAULT_MAX_UPLOAD_SIZE_MB
 from ...utils.memory_guard import require_memory
 
 # OPTIMIZATION: Lazy-loaded singletons to avoid repeated imports in hot paths
@@ -152,6 +153,72 @@ def _save_upload_to_temp(content: bytes, suffix: str) -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(content)
         return tmp.name
+
+
+# Uploads are held in memory for the whole request, so this cap is the only
+# thing between one POST and the process running out of RAM. The constant was
+# already defined in core.constants and wired to nothing.
+MAX_UPLOAD_BYTES = DEFAULT_MAX_UPLOAD_SIZE_MB * 1024 * 1024
+_UPLOAD_CHUNK_BYTES = 64 * 1024
+
+_AUDIO_SUFFIXES = frozenset(
+    {
+        ".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac", ".wma",
+        ".webm", ".mp4", ".mov", ".avi", ".mkv",
+    }
+)
+_DOCUMENT_SUFFIXES = frozenset(
+    {
+        ".pdf", ".docx", ".txt", ".md",
+        ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".webp", ".gif", ".heic",
+    }
+)
+
+
+async def _read_upload(
+    file: UploadFile,
+    allowed_suffixes: frozenset[str],
+    default_suffix: str,
+    max_bytes: int = MAX_UPLOAD_BYTES,
+) -> tuple[bytes, str]:
+    """
+    Read an upload under a hard size cap, with an extension allowlist.
+
+    Reads in chunks and bails the moment the cap is passed, so an oversized
+    body is refused without ever being buffered whole. The suffix comes from
+    the client's filename but is validated, because it decides which decoder
+    downstream code reaches for.
+
+    Returns:
+        (content, validated suffix)
+
+    Raises:
+        HTTPException: 415 for a disallowed type, 413 for an oversized body.
+    """
+    suffix = os.path.splitext(file.filename or "")[1].lower() or default_suffix
+
+    if suffix not in allowed_suffixes:
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                f"Unsupported file type '{suffix}'. "
+                f"Allowed: {', '.join(sorted(allowed_suffixes))}"
+            ),
+        )
+
+    chunks: list[bytes] = []
+    size = 0
+
+    while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+        size += len(chunk)
+        if size > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File exceeds the {max_bytes // (1024 * 1024)} MB upload limit",
+            )
+        chunks.append(chunk)
+
+    return b"".join(chunks), suffix
 
 
 def _extract_docx_content(content: bytes, start_time: float) -> dict[str, Any] | None:
@@ -522,8 +589,7 @@ async def transcribe_audio(
         # OPTIMIZATION: Use cached pipeline singleton
         pipeline = _get_pipeline()
 
-        content = await file.read()
-        suffix = os.path.splitext(file.filename)[1] if file.filename else ".wav"
+        content, suffix = await _read_upload(file, _AUDIO_SUFFIXES, ".wav")
         tmp_path = _save_upload_to_temp(content, suffix)
 
         try:
@@ -543,6 +609,9 @@ async def transcribe_audio(
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+    except HTTPException:
+        # 413/415 from _read_upload are the answer, not a server error.
+        raise
     except Exception as e:
         logger.error(f"STT transcription error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -581,8 +650,7 @@ async def transcribe_audio_guest(
         # OPTIMIZATION: Use cached pipeline singleton
         pipeline = _get_pipeline()
 
-        content = await file.read()
-        suffix = os.path.splitext(file.filename)[1] if file.filename else ".webm"
+        content, suffix = await _read_upload(file, _AUDIO_SUFFIXES, ".webm")
         tmp_path = _save_upload_to_temp(content, suffix)
 
         try:
@@ -602,6 +670,10 @@ async def transcribe_audio_guest(
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+    except HTTPException:
+        # Oversized or unsupported uploads get a real status code, not a 200
+        # carrying an error string.
+        raise
     except Exception as e:
         logger.error(f"Guest STT error: {e}")
         return {"success": False, "text": "", "error": str(e)}
@@ -625,16 +697,16 @@ async def extract_text_from_document(
 
         ocr_service = get_ocr_service()
 
-        filename = file.filename or "document"
-        suffix = os.path.splitext(filename)[1].lower() if filename else ".png"
+        # Read once. This used to call file.read() a second time when DOCX
+        # extraction returned nothing, and the stream was already drained by
+        # then, so the fallback OCR'd an empty temp file.
+        content, suffix = await _read_upload(file, _DOCUMENT_SUFFIXES, ".png")
 
         if suffix == ".docx":
-            content = await file.read()
             result = _extract_docx_content(content, start_time)
             if result:
                 return result
 
-        content = await file.read()
         tmp_path = _save_upload_to_temp(content, suffix)
 
         try:
@@ -668,6 +740,9 @@ async def extract_text_from_document(
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+    except HTTPException:
+        # 413/415 from _read_upload are the answer, not a server error.
+        raise
     except Exception as e:
         logger.error(f"Document extraction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
