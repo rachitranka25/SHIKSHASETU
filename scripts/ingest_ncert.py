@@ -69,7 +69,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--ocr",
-        action="store_true",
+        choices=["local", "nvidia"],
+        nargs="?",
+        const="nvidia",
         help=(
             "Re-read untrustworthy pages with GOT-OCR2. NCERT sets equations as "
             "images and the PDF text layer drops the glyphs: 'a != 0' arrives as "
@@ -143,8 +145,16 @@ def main() -> int:
     embedder = BGEM3Embedder()
 
     ocr_engine = None
-    if args.ocr:
-        logger.info("Loading OCR engine (%s) ...", settings.OCR_MODEL_ID)
+    if args.ocr == "nvidia":
+        from backend.services.ingestion.nvidia_ocr import NvidiaVisionOCR
+
+        ocr_engine = NvidiaVisionOCR()
+        if not ocr_engine.is_configured:
+            logger.error("--ocr nvidia needs NVIDIA_API_KEY in .env")
+            return 1
+        logger.info("OCR via NVIDIA NIM (%s)", ocr_engine.model)
+    elif args.ocr == "local":
+        logger.info("Loading local OCR engine (%s) ...", settings.OCR_MODEL_ID)
         from backend.services.ocr import get_ocr_service
 
         ocr_engine = get_ocr_service().ocr
