@@ -200,7 +200,7 @@ class AIEngine:
             # 4. Safety Pipeline - 3-pass verification
             try:
                 print("AIEngine._ensure_initialized: init safety pipeline", flush=True)
-                from ..safety import get_safety_pipeline
+                from ..safety_pipeline import get_safety_pipeline
 
                 self._safety_pipeline = get_safety_pipeline(mode="balanced")
                 components_loaded.append("SafetyPipeline")
@@ -365,7 +365,7 @@ class AIEngine:
                 return self._safety_pipeline
 
             try:
-                from ..safety import get_safety_pipeline
+                from ..safety_pipeline import get_safety_pipeline
 
                 self._safety_pipeline = get_safety_pipeline(mode="balanced")
             except Exception as e:

@@ -100,23 +100,48 @@ def test_add_breadcrumb(mock_sentry):
 
 
 @pytest.mark.unit
-def test_set_user_context(mock_sentry):
-    """Test user context setting."""
+def test_set_user_context_sends_only_an_opaque_id(mock_sentry):
+    """
+    Most users here are school students. An explicit set_user() call ignores
+    send_default_pii=False, so this test previously asserted that the email,
+    username, and IP were all forwarded to Sentry — it pinned the leak in
+    place. Only the account id may leave.
+    """
     set_user_context(
         user_id="123",
-        email="test@example.com",
-        username="testuser",
+        email="student@example.com",
+        username="student1",
         ip_address="192.168.1.1",
     )
 
-    mock_sentry.set_user.assert_called_once_with(
-        {
-            "id": "123",
-            "email": "test@example.com",
-            "username": "testuser",
-            "ip_address": "192.168.1.1",
-        }
-    )
+    sent = mock_sentry.set_user.call_args[0][0]
+
+    assert sent["id"] == "123"
+    assert "student@example.com" not in str(sent)
+    assert "student1" not in str(sent)
+    assert "192.168.1.1" not in str(sent)
+
+
+@pytest.mark.unit
+def test_set_user_context_hashes_email_consistently(mock_sentry):
+    """Same student, same hash — so two errors can still be correlated."""
+    set_user_context(user_id="123", email="student@example.com")
+    first = mock_sentry.set_user.call_args[0][0]["email_hash"]
+
+    set_user_context(user_id="123", email="  STUDENT@Example.com  ")
+    second = mock_sentry.set_user.call_args[0][0]["email_hash"]
+
+    assert first == second
+
+    set_user_context(user_id="456", email="other@example.com")
+    assert mock_sentry.set_user.call_args[0][0]["email_hash"] != first
+
+
+@pytest.mark.unit
+def test_set_user_context_omits_email_hash_when_absent(mock_sentry):
+    set_user_context(user_id="123")
+
+    assert mock_sentry.set_user.call_args[0][0] == {"id": "123"}
 
 
 @pytest.mark.unit
@@ -259,6 +284,83 @@ def test_before_send_hook_removes_sensitive_headers():
         assert headers["cookie"] == "[FILTERED]"
         assert headers["x-api-key"] == "[FILTERED]"
         assert headers["content-type"] == "application/json"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "header_name",
+    ["Authorization", "AUTHORIZATION", "authorization", "Cookie", "X-Api-Key"],
+)
+def test_before_send_hook_filters_headers_whatever_their_case(header_name):
+    """
+    The filter compared lowercase names against the event's keys directly, so
+    an event carrying "Authorization" walked past it and shipped a live bearer
+    token to Sentry. Which case arrives depends on the integration that built
+    the event, so matching has to be case-insensitive.
+    """
+    from backend.services.error_tracking import before_send_hook
+
+    event = {"request": {"headers": {header_name: "Bearer secret-token-value"}}}
+
+    result = before_send_hook(event, {})
+
+    assert result is not None
+    assert result["request"]["headers"][header_name] == "[FILTERED]"
+    assert "secret-token-value" not in str(result)
+
+
+@pytest.mark.unit
+def test_before_send_hook_filters_the_request_body():
+    """A login body holds a plaintext password."""
+    from backend.services.error_tracking import before_send_hook
+
+    event = {
+        "request": {
+            "data": {
+                "email": "student@example.com",
+                "password": "SuperSecret123!",
+                "grade": "8",
+            }
+        }
+    }
+
+    result = before_send_hook(event, {})
+
+    data = result["request"]["data"]
+    assert data["password"] == "[FILTERED]"
+    assert "SuperSecret123!" not in str(result)
+    assert data["grade"] == "8"  # non-sensitive fields survive for debugging
+
+
+@pytest.mark.unit
+def test_before_send_hook_filters_a_sensitive_query_string():
+    from backend.services.error_tracking import before_send_hook
+
+    event = {"request": {"query_string": "page=2&api_key=live-key-value"}}
+
+    result = before_send_hook(event, {})
+
+    assert result["request"]["query_string"] == "[FILTERED]"
+    assert "live-key-value" not in str(result)
+
+
+@pytest.mark.unit
+def test_before_send_hook_leaves_a_harmless_query_string_alone():
+    from backend.services.error_tracking import before_send_hook
+
+    event = {"request": {"query_string": "page=2&limit=10"}}
+
+    assert before_send_hook(event, {})["request"]["query_string"] == "page=2&limit=10"
+
+
+@pytest.mark.unit
+def test_before_send_hook_tolerates_a_request_without_the_usual_keys():
+    """Events vary by integration; a missing key must not raise inside Sentry."""
+    from backend.services.error_tracking import before_send_hook
+
+    assert before_send_hook({"request": {}}, {}) is not None
+    assert before_send_hook({}, {}) is not None
+    assert before_send_hook({"request": {"headers": None, "data": None}}, {}) is not None
 
 
 @pytest.mark.unit

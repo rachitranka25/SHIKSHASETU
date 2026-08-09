@@ -7,6 +7,7 @@ Problem: No error tracking system (Sentry SDK installed but not configured)
 Solution: Comprehensive Sentry integration with context capture
 """
 
+import hashlib
 import logging
 import os
 from functools import wraps
@@ -86,6 +87,15 @@ def init_sentry():
     logger.info(f"Sentry initialized for environment: {environment}")
 
 
+# Compared case-insensitively against header names.
+_SENSITIVE_HEADERS = frozenset(
+    {"authorization", "cookie", "set-cookie", "x-api-key", "x-auth-token", "proxy-authorization"}
+)
+
+# Matched as substrings of query-parameter and body-field names.
+_SENSITIVE_FIELDS = ("password", "passwd", "token", "api_key", "apikey", "secret", "credential")
+
+
 def before_send_hook(
     event: dict[str, Any], hint: dict[str, Any]
 ) -> dict[str, Any] | None:
@@ -118,20 +128,36 @@ def before_send_hook(
     if "request" in event:
         request = event["request"]
 
-        # Remove sensitive headers
-        if "headers" in request:
-            sensitive_headers = ["authorization", "cookie", "x-api-key"]
-            for header in sensitive_headers:
-                if header in request["headers"]:
-                    request["headers"][header] = "[FILTERED]"
+        # Remove sensitive headers.
+        #
+        # Matching is case-insensitive on purpose. This used to compare
+        # lowercase names against the event's header keys directly, so an event
+        # carrying "Authorization" rather than "authorization" sailed straight
+        # past the filter and shipped a live bearer token to a third party.
+        # Whether the keys arrive lowercased depends on which integration built
+        # the event, which is not a thing to bet a credential on.
+        headers = request.get("headers")
+        if isinstance(headers, dict):
+            for key in list(headers):
+                if key.lower() in _SENSITIVE_HEADERS:
+                    headers[key] = "[FILTERED]"
 
-        # Remove sensitive query params
+        # Remove sensitive query params.
+        # Coarse: one sensitive name blanks the whole string. That costs
+        # debugging detail and never leaks, which is the right way round.
         if "query_string" in request:
-            sensitive_params = ["password", "token", "api_key", "secret"]
-            # Simple filtering (production should use proper URL parsing)
-            for param in sensitive_params:
-                if param in str(request["query_string"]).lower():
-                    request["query_string"] = "[FILTERED]"
+            query = str(request["query_string"]).lower()
+            if any(param in query for param in _SENSITIVE_FIELDS):
+                request["query_string"] = "[FILTERED]"
+
+        # Scrub the body. send_default_pii=False normally keeps bodies out of
+        # events, but anything attached explicitly bypasses that, and a login
+        # body holds a plaintext password.
+        data = request.get("data")
+        if isinstance(data, dict):
+            for key in list(data):
+                if any(field in key.lower() for field in _SENSITIVE_FIELDS):
+                    data[key] = "[FILTERED]"
 
     return event
 
@@ -232,10 +258,33 @@ def set_user_context(
     username: str | None = None,
     ip_address: str | None = None,
 ):
-    """Set user context for error tracking."""
-    sentry_sdk.set_user(
-        {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
-    )
+    """
+    Attach the acting user to error events, by opaque id only.
+
+    An explicit sentry_sdk.set_user() call sends whatever it is handed
+    regardless of send_default_pii=False, so this used to forward a student's
+    email address, username, and IP to a third-party service the moment
+    anything threw. Most of this platform's users are minors.
+
+    `user_id` is enough to correlate an error with an account through the
+    application's own database, so that is all that leaves. The remaining
+    arguments are accepted and dropped, keeping existing call sites working
+    without letting them leak; email is reduced to an unlinkable hash so
+    "is this the same user as that other error?" is still answerable.
+
+    Args:
+        user_id: Opaque account identifier. The only value transmitted as-is.
+        email: Hashed, never sent in the clear.
+        username: Dropped.
+        ip_address: Dropped.
+    """
+    context: dict[str, Any] = {"id": user_id}
+
+    if email:
+        # Stable across events, useless to anyone reading the dashboard.
+        context["email_hash"] = hashlib.sha256(email.strip().lower().encode()).hexdigest()[:16]
+
+    sentry_sdk.set_user(context)
 
 
 def set_tag(key: str, value: str):
