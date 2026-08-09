@@ -8,7 +8,6 @@ Structure:
 - config.py: Application settings and environment configuration
 - exceptions.py: Custom exception classes with retry decorators
 - constants.py: Application-wide constants
-- security.py: Security utilities
 - storage.py: Redis/Memory storage backends
 - policy.py: Content policy engine
 - model_config.py: Hot-reloadable model configuration
