@@ -16,6 +16,8 @@ Fallback: Tesseract OCR with Indian language packs
 import logging
 import os
 import re
+import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -517,6 +519,27 @@ class GOTOCR2:
 
         return img
 
+    @staticmethod
+    @contextmanager
+    def _as_file(img: Image.Image):
+        """
+        Hand GOT-OCR2 a path, because that is what it accepts.
+
+        Its chat() implementation calls .startswith() on this argument, so a
+        PIL Image raises "'Image' object has no attribute 'startswith'". Every
+        call site below preprocesses into an Image first, and the broad
+        `except Exception: return ""` underneath turned the resulting failure
+        into an empty result — so GOT-OCR2 returned nothing for every request
+        ever made of it, without reporting an error.
+        """
+        handle = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        try:
+            img.save(handle, format="PNG")
+            handle.close()
+            yield handle.name
+        finally:
+            Path(handle.name).unlink(missing_ok=True)
+
     def ocr_image(
         self,
         image: str | Path | Image.Image,
@@ -543,13 +566,14 @@ class GOTOCR2:
             ocr_type = self.OCR_MODES.get(mode, "format")
 
             # Use model's chat method
-            result = self._model.chat(
-                self._tokenizer,
-                img,
-                ocr_type=ocr_type,
-                ocr_box="",
-                ocr_color="",
-            )
+            with self._as_file(img) as image_path:
+                result = self._model.chat(
+                    self._tokenizer,
+                    image_path,
+                    ocr_type=ocr_type,
+                    ocr_box="",
+                    ocr_color="",
+                )
 
             return result.strip()
 
@@ -571,13 +595,14 @@ class GOTOCR2:
 
         try:
             # Use fine-grained mode for formula extraction
-            result = self._model.chat(
-                self._tokenizer,
-                img,
-                ocr_type="format",
-                ocr_box="",
-                ocr_color="",
-            )
+            with self._as_file(img) as image_path:
+                result = self._model.chat(
+                    self._tokenizer,
+                    image_path,
+                    ocr_type="format",
+                    ocr_box="",
+                    ocr_color="",
+                )
 
             # Parse formulas from result
             formulas = []
@@ -621,13 +646,14 @@ class GOTOCR2:
 
         try:
             # Use format mode for table extraction
-            result = self._model.chat(
-                self._tokenizer,
-                img,
-                ocr_type="format",
-                ocr_box="",
-                ocr_color="",
-            )
+            with self._as_file(img) as image_path:
+                result = self._model.chat(
+                    self._tokenizer,
+                    image_path,
+                    ocr_type="format",
+                    ocr_box="",
+                    ocr_color="",
+                )
 
             tables = []
 
