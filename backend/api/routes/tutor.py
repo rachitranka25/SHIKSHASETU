@@ -85,6 +85,14 @@ class ExplainRequest(BaseModel):
     grade: int | None = Field(default=None, ge=1, le=12, description="Omit to detect")
     answer_language: AnswerLanguage = "English"
     diagram: bool = Field(default=False, description="Attempt an illustrative drawing")
+    reading_support: bool = Field(
+        default=False,
+        description=(
+            "Write for a reader who finds decoding hard: short sentences, common "
+            "words, one idea at a time. Returns readability measurements and "
+            "syllable or akshara breakdowns for the difficult words."
+        ),
+    )
 
 
 class Source(BaseModel):
@@ -95,6 +103,21 @@ class Source(BaseModel):
     similarity: float
 
 
+class ReadabilityReport(BaseModel):
+    """
+    Decoding load of the source material against the adapted answer.
+
+    Both are reported so the adaptation can be checked rather than trusted. The
+    units are the script's own — syllables for Latin, aksharas for Devanagari
+    and the other Brahmic scripts — and a grade estimate appears only for
+    English, where Flesch-Kincaid is actually defined.
+    """
+
+    source: dict
+    answer: dict
+    segmented_words: dict[str, list[str]]
+
+
 class ExplainResponse(BaseModel):
     answer: str
     answer_language: str
@@ -103,6 +126,7 @@ class ExplainResponse(BaseModel):
     sources: list[Source]
     diagram: str | None = None
     diagram_note: str | None = None
+    readability: ReadabilityReport | None = None
 
 
 REWRITE_PROMPT = """Rewrite this student's question as a short English search query for a textbook index.
@@ -235,13 +259,29 @@ def detect_grade(rows) -> int | None:
     return max(by_grade, key=score)
 
 
-def build_prompt(question: str, rows, grade: int | None, language: str) -> str:
+# Written for a reader whose decoding is effortful, not for a younger reader.
+# The distinction matters: a dyslexic class 10 student needs the class 10 idea
+# delivered in sentences that cost less to read, not a class 3 explanation.
+READING_SUPPORT_RULES = """
+- This student finds reading effortful. Do not simplify the idea — simplify the reading.
+- One idea per sentence. Aim for twelve words a sentence, never more than eighteen.
+- Prefer short, everyday words. When a technical term is needed, use it, then explain it in a sentence of its own.
+- Active voice. Say who does what.
+- No nested clauses, no semicolons, no parenthetical asides.
+- Put a blank line between steps so the eye can find its place again.
+- Keep every fact and every technical term the curriculum requires. This is the same lesson, not a smaller one."""
+
+
+def build_prompt(
+    question: str, rows, grade: int | None, language: str, reading_support: bool = False
+) -> str:
     """Assemble the grounded teaching prompt."""
     context = "\n\n".join(
         f"[From the Class {row.grade} {row.subject} textbook, chapter {row.chapter}]\n{row.passage}"
         for row in rows
     )
     audience = f"a Class {grade} student" if grade else "a school student"
+    support = READING_SUPPORT_RULES if reading_support else ""
 
     return f"""You are a patient Indian school teacher. Teach {audience} using only the NCERT textbook material below.
 
@@ -257,7 +297,43 @@ HOW TO ANSWER
 - Stay within the material above. If it does not cover part of the question, say so plainly instead of inventing content.
 - Pitch it at {audience} — simple sentences, familiar examples from Indian life.
 - Keep mathematical notation and formulae exact.
-- No preamble. Begin with the explanation."""
+- No preamble. Begin with the explanation.{support}"""
+
+
+SIMPLIFY_PROMPT = """Rewrite this explanation so it is easier to decode. Keep every fact.
+
+EXPLANATION
+{answer}
+
+Rules:
+- Write in {language}. Do not change the language.
+- Every sentence under fourteen words. Split the long ones.
+- Replace long words with short everyday ones — except technical terms the curriculum requires. Keep those, and explain each in its own short sentence.
+- Active voice. No semicolons, no nested clauses, no asides in brackets.
+- Leave a blank line between steps.
+- Same facts, same terms, same worked example. Only the sentences change.
+- Output only the rewritten explanation."""
+
+# Targets for the rewrite. Twelve to fourteen words a sentence is where
+# readability guidance for struggling readers converges; the unit figure stands
+# in for word length in whichever script is being read.
+TARGET_WORDS_PER_SENTENCE = 14.0
+TARGET_UNITS_PER_WORD = 2.0
+
+
+def reading_load(metrics) -> float:
+    """
+    One number for decoding difficulty, comparable across scripts.
+
+    Sentence length and word length both drive effort and can be traded against
+    each other, so a scalar is what a rewrite can actually be judged against.
+    Each term is normalised by its target, so neither dominates merely because
+    its unit is larger.
+    """
+    return (
+        metrics.words_per_sentence / TARGET_WORDS_PER_SENTENCE
+        + metrics.units_per_word / TARGET_UNITS_PER_WORD
+    )
 
 
 DIAGRAM_PROMPT = """Draw one small, clean SVG diagram illustrating this concept for a school textbook.
@@ -355,7 +431,13 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
 
     try:
         answer = await engine.generate(
-            build_prompt(request.question, usable, grade, request.answer_language),
+            build_prompt(
+                request.question,
+                usable,
+                grade,
+                request.answer_language,
+                request.reading_support,
+            ),
             GenerationConfig(max_tokens=1200, temperature=0.3, use_cache=False),
         )
     except Exception as exc:
@@ -385,6 +467,63 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
                 "images inside the textbook PDFs and are not part of the corpus."
             )
 
+    readability = None
+    if request.reading_support:
+        from ...services.accessibility import measure, segment_hard_words
+
+        # Asking the model to write simply is not enough. Measured against the
+        # NCERT source it was built from, the first version of this feature
+        # produced an answer that scored *harder* than the textbook — grade 8.2
+        # against 7.0 — because instructions buried among a dozen other rules
+        # get diluted. So the answer is measured, rewritten with readability as
+        # the only goal, measured again, and the easier of the two is kept.
+        #
+        # Keeping the better one matters: a rewrite can lose as easily as win,
+        # and shipping a regression while claiming reading support would be
+        # worse than not offering it.
+        answer = answer.strip()
+        before = measure(answer)
+
+        if reading_load(before) > 2.0:  # both targets exceeded on average
+            try:
+                rewritten = (
+                    await engine.generate(
+                        SIMPLIFY_PROMPT.format(
+                            answer=answer,
+                            language=ANSWER_LANGUAGES[request.answer_language],
+                        ),
+                        GenerationConfig(max_tokens=1400, temperature=0.2, use_cache=False),
+                    )
+                ).strip()
+
+                after = measure(rewritten)
+                improved = reading_load(after) < reading_load(before)
+                # A rewrite that drops half the lesson is not a simplification.
+                substantial = len(rewritten) > len(answer) * 0.5
+
+                if improved and substantial:
+                    logger.info(
+                        "Reading support: load %.2f -> %.2f",
+                        reading_load(before), reading_load(after),
+                    )
+                    answer = rewritten
+                else:
+                    logger.info(
+                        "Reading support: rewrite rejected (load %.2f -> %.2f, "
+                        "length ratio %.2f)",
+                        reading_load(before), reading_load(after),
+                        len(rewritten) / max(len(answer), 1),
+                    )
+            except Exception as exc:  # noqa: BLE001 - keep the lesson
+                logger.warning("Readability rewrite failed: %s", exc)
+
+        source_text = " ".join(row.passage for row in usable)
+        readability = ReadabilityReport(
+            source=measure(source_text).as_dict(),
+            answer=measure(answer).as_dict(),
+            segmented_words=segment_hard_words(answer),
+        )
+
     return ExplainResponse(
         answer=answer.strip(),
         answer_language=request.answer_language,
@@ -402,6 +541,7 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
         ],
         diagram=diagram,
         diagram_note=diagram_note,
+        readability=readability,
     )
 
 
