@@ -64,7 +64,7 @@ class TestMultiTierCache:
     @pytest.mark.asyncio
     async def test_cache_set_get(self):
         """Test basic cache operations."""
-        from backend.cache.unified import UnifiedCache
+        from backend.cache import UnifiedCache
 
         cache = UnifiedCache()
 
@@ -83,7 +83,7 @@ class TestMultiTierCache:
     @pytest.mark.asyncio
     async def test_cache_tier_promotion(self):
         """Test that frequently accessed items get promoted."""
-        from backend.cache.unified import UnifiedCache
+        from backend.cache import UnifiedCache
 
         cache = UnifiedCache()
 
@@ -104,7 +104,7 @@ class TestMultiTierCache:
     @pytest.mark.asyncio
     async def test_cache_stats(self):
         """Test cache statistics."""
-        from backend.cache.unified import UnifiedCache
+        from backend.cache import UnifiedCache
 
         cache = UnifiedCache()
 
@@ -190,7 +190,7 @@ class TestPerformanceBaselines:
     @pytest.mark.asyncio
     async def test_cache_latency(self):
         """Test cache operation latency."""
-        from backend.cache.unified import UnifiedCache
+        from backend.cache import UnifiedCache
 
         cache = UnifiedCache()
 
@@ -249,7 +249,7 @@ def test_quick_validation():
 
     # Unified cache
     try:
-        from backend.cache.unified import EmbeddingCache, ResponseCache, UnifiedCache
+        from backend.cache import EmbeddingCache, ResponseCache, UnifiedCache
 
         print("  ✓ Unified cache modules")
     except ImportError as e:
@@ -273,7 +273,7 @@ def test_quick_validation():
 
     # API routes - use the v2 modular API
     try:
-        from backend.api.routes.v2 import router
+        from backend.api.routes import router
 
         print("  ✓ V2 API routes (modular)")
     except ImportError as e:

@@ -276,7 +276,7 @@ async def run_cache_benchmarks():
     print("5. UNIFIED CACHE BENCHMARK")
     print("=" * 60)
 
-    from backend.cache.unified import get_unified_cache
+    from backend.cache import get_unified_cache
 
     cache = get_unified_cache()
 

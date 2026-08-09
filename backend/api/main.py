@@ -42,6 +42,7 @@ from .middleware import (
     exception_handler,
     generic_exception_handler,
 )
+from .optimization_middleware import OptimizationMiddleware
 from .unified_middleware import UnifiedMiddleware
 from .validation_middleware import register_validation_handlers
 
@@ -236,6 +237,13 @@ from starlette.middleware.gzip import GZipMiddleware
 
 app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 
+# ROUTE OPTIMIZATION: response caching + AI device-routing hints + per-route metrics
+# Registered here on purpose. add_middleware() wraps outermost-last, so the
+# resulting order is UnifiedMiddleware -> CORS -> Optimization -> GZip -> app:
+# cached responses are still served behind rate limiting, and GZip stays inside
+# so a replayed body is encoded exactly like a fresh one.
+app.add_middleware(OptimizationMiddleware)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -260,7 +268,10 @@ app.add_middleware(
     rate_limit_per_minute=getattr(settings, "RATE_LIMIT_CALLS", 100),
 )
 
-logger.info("Optimized middleware configured (GZip + CORS + UnifiedMiddleware)")
+logger.info(
+    "Optimized middleware configured "
+    "(GZip + CORS + UnifiedMiddleware + OptimizationMiddleware)"
+)
 
 # ==================== EXCEPTION HANDLERS ====================
 app.add_exception_handler(ShikshaSetuException, exception_handler)

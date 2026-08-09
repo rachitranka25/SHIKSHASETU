@@ -118,7 +118,7 @@ class OptimizedPipelineTests:
         """Test multi-tier caching."""
         start = time.perf_counter()
         try:
-            from backend.cache.unified import UnifiedCache
+            from backend.cache import UnifiedCache
 
             cache = UnifiedCache()
 

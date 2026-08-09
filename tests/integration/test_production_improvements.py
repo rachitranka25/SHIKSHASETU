@@ -8,7 +8,7 @@ These tests validate:
 - Device routing optimization
 
 Updated to use new optimized backend modules:
-- backend.cache.unified (replaces cache_manager)
+- backend.cache (replaces cache_manager)
 - backend.core.optimized (replaces hardware_optimizer)
 """
 
@@ -134,7 +134,7 @@ async def test_pipeline_circuit_breaker():
 @pytest.fixture
 def unified_cache():
     """Provide unified cache for testing."""
-    from backend.cache.unified import CacheConfig, get_unified_cache
+    from backend.cache import CacheConfig, get_unified_cache
 
     # Use test configuration
     config = CacheConfig(
@@ -148,7 +148,7 @@ def unified_cache():
 @pytest.mark.asyncio
 async def test_cache_enforcement():
     """Verify multi-tier caching is properly configured."""
-    from backend.cache.unified import CacheTier, get_unified_cache
+    from backend.cache import CacheTier, get_unified_cache
 
     cache = get_unified_cache()
     assert cache is not None
@@ -161,7 +161,7 @@ async def test_cache_enforcement():
 @pytest.mark.asyncio
 async def test_cache_hierarchical_keys():
     """Verify hierarchical cache key structure with multi-tier cache."""
-    from backend.cache.unified import CacheTier, get_unified_cache
+    from backend.cache import CacheTier, get_unified_cache
 
     cache = get_unified_cache()
 
@@ -183,7 +183,7 @@ async def test_cache_hierarchical_keys():
 @pytest.mark.asyncio
 async def test_cache_tier_promotion():
     """Verify cache tier promotion on repeated access."""
-    from backend.cache.unified import CacheTier, get_unified_cache
+    from backend.cache import CacheTier, get_unified_cache
 
     cache = get_unified_cache()
 
@@ -319,7 +319,7 @@ async def test_graceful_degradation_on_model_timeout():
 @pytest.mark.asyncio
 async def test_cache_fallback_on_redis_failure():
     """Verify system continues when cache operations fail."""
-    from backend.cache.unified import CacheTier, get_unified_cache
+    from backend.cache import CacheTier, get_unified_cache
 
     cache = get_unified_cache()
 
@@ -345,7 +345,7 @@ async def test_cache_fallback_on_redis_failure():
 @pytest.mark.asyncio
 async def test_full_pipeline_with_caching():
     """Integration test: Full pipeline with caching enabled."""
-    from backend.cache.unified import get_unified_cache
+    from backend.cache import get_unified_cache
     from backend.services.pipeline.orchestrator_v2 import ConcurrentPipelineOrchestrator
 
     # Get cache instance
