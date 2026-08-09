@@ -76,10 +76,34 @@ def pytest_configure(config):
 # =============================================================================
 
 
+def _ensure_pgvector(engine) -> None:
+    """
+    Enable pgvector on the test database before creating tables.
+
+    embeddings.embedding is a vector(1024), so create_all() fails outright with
+    `type "vector" does not exist` without this. Skipping the affected tests
+    instead would hide exactly the schema this project's search depends on.
+    """
+    from sqlalchemy import text
+
+    with engine.begin() as connection:
+        try:
+            connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        except Exception as exc:  # noqa: BLE001 - surfaced as a skip below
+            pytest.skip(
+                "pgvector is not available on the test database "
+                f"({TEST_DATABASE_URL}): {exc}\n"
+                "Install it for the running PostgreSQL version — see the "
+                "pgvector notes in README.md.",
+                allow_module_level=True,
+            )
+
+
 @pytest.fixture(scope="session")
 def test_engine():
     """Create test database engine."""
     engine = create_engine(TEST_DATABASE_URL, echo=False)
+    _ensure_pgvector(engine)
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
@@ -225,7 +249,8 @@ def clean_database():
     # Drop all tables
     Base.metadata.drop_all(bind=engine)
 
-    # Recreate all tables
+    # Recreate all tables. The vector column needs the extension present.
+    _ensure_pgvector(engine)
     Base.metadata.create_all(bind=engine)
 
     yield

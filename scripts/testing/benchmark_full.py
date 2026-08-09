@@ -239,7 +239,7 @@ def benchmark_database(suite: BenchmarkSuite):
             for i in range(100):
                 vec = [random.random() for _ in range(1024)]
                 conn.execute(
-                    text("INSERT INTO bench_vectors (embedding) VALUES (:vec::vector)"),
+                    text("INSERT INTO bench_vectors (embedding) VALUES (CAST(:vec AS vector))"),
                     {"vec": str(vec)},
                 )
             conn.commit()
@@ -261,7 +261,7 @@ def benchmark_database(suite: BenchmarkSuite):
             for _ in range(10):
                 conn.execute(
                     text("""
-                    SELECT id, embedding <-> :query::vector as distance
+                    SELECT id, embedding <-> CAST(:query AS vector) as distance
                     FROM bench_vectors
                     ORDER BY distance
                     LIMIT 5

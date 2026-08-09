@@ -1017,16 +1017,21 @@ class RAGService:
         ef_search = int(HNSW_EF_SEARCH)  # Ensure int type for SQL injection prevention
         db.execute(text(f"SET LOCAL hnsw.ef_search = {ef_search}"))
 
+        # CAST(:vector AS vector), not :vector::vector. SQLAlchemy's text()
+        # will not let a bind parameter be followed by a colon, so it parsed
+        # ":vector::vector" as a parameter named "vecto" — leaving the real
+        # "vector" value unbound and failing every search with
+        # "A value is required for bind parameter 'vecto'".
         return db.execute(
             text("""
                 SELECT
                     dc.id,
                     dc.chunk_text as text,
                     dc.chunk_metadata as metadata,
-                    1 - (e.embedding <=> :vector::vector) as similarity
+                    1 - (e.embedding <=> CAST(:vector AS vector)) as similarity
                 FROM document_chunks dc
                 JOIN embeddings e ON e.chunk_id = dc.id
-                ORDER BY e.embedding <=> :vector::vector
+                ORDER BY e.embedding <=> CAST(:vector AS vector)
                 LIMIT :limit
             """),
             {
