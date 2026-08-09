@@ -1288,7 +1288,7 @@ class AIEngine:
             )
 
         if is_unrestricted:
-            # General-purpose AI assistant prompt (like ChatGPT/the assistant)
+            # General-purpose assistant prompt, not education-scoped
             base_prompt = (
                 "You are a helpful, knowledgeable AI assistant. "
                 "You can help with any topic the user asks about.\n\n"
