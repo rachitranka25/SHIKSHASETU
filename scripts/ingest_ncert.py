@@ -58,6 +58,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true", help="Re-ingest books already in the database")
     parser.add_argument("--dry-run", action="store_true", help="List the selection and exit")
     parser.add_argument(
+        "--discard-downloads",
+        action="store_true",
+        help=(
+            "Delete each book's zip once its chapters are committed. The full "
+            "catalog is 15-25 GB of archives; this keeps only one on disk at a "
+            "time. Re-running still skips ingested books, but a book that has "
+            "to be redone will be downloaded again."
+        ),
+    )
+    parser.add_argument(
         "--ocr",
         action="store_true",
         help=(
@@ -157,7 +167,7 @@ def main() -> int:
     with Session(engine) as db:
         stats = ingest_books(
             db, books, embedder, force=args.force, on_progress=report,
-            ocr_engine=ocr_engine,
+            ocr_engine=ocr_engine, discard_downloads=args.discard_downloads,
         )
 
     print()

@@ -497,6 +497,7 @@ def ingest_book(
     client: httpx.Client | None = None,
     force: bool = False,
     ocr_engine=None,
+    discard_download: bool = False,
 ) -> tuple[int, int]:
     """
     Ingest one textbook end to end.
@@ -522,6 +523,13 @@ def ingest_book(
         total_chunks += store_chapter(db, book, chapter, embedder)
 
     db.commit()
+
+    # Only after the commit: the zip is the resume point, so it must outlive
+    # any chance of the transaction failing. The full catalog is 15-25 GB of
+    # archives, which will not fit on most machines alongside the model cache.
+    if discard_download:
+        zip_path.unlink(missing_ok=True)
+
     logger.info(
         "%s (class %s %s, %s): %s chapters, %s chunks",
         book.code, book.grade, book.medium, book.title, len(chapters), total_chunks,
@@ -537,6 +545,7 @@ def ingest_books(
     force: bool = False,
     on_progress=None,
     ocr_engine=None,
+    discard_downloads: bool = False,
 ) -> IngestStats:
     """
     Ingest a list of textbooks, continuing past individual failures.
@@ -554,7 +563,8 @@ def ingest_books(
         for position, book in enumerate(books, 1):
             try:
                 chapters, chunks = ingest_book(
-                    db, book, embedder, download_dir, client, force, ocr_engine
+                    db, book, embedder, download_dir, client, force, ocr_engine,
+                    discard_downloads,
                 )
                 if chapters:
                     stats.books_done += 1
