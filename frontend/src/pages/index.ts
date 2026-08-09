@@ -3,3 +3,4 @@ export { default as Auth } from './Auth';
 export { default as LandingPage } from './LandingPage';
 export { default as Settings } from './Settings';
 export { default as Library } from './Library';
+export { default as Learn } from './Learn';

@@ -13,6 +13,7 @@ const Auth = lazy(() => import('./pages/Auth'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Library = lazy(() => import('./pages/Library'));
+const Learn = lazy(() => import('./pages/Learn'));
 
 // Lightweight loading fallback - no heavy components
 const PageLoader = memo(function PageLoader() {
@@ -87,6 +88,10 @@ const App = memo(function App() {
                   <Route
                     path="/library"
                     element={<Library />}
+                  />
+                  <Route
+                    path="/learn"
+                    element={<Learn />}
                   />
                   <Route
                     path="/settings"

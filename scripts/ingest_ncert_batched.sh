@@ -37,12 +37,32 @@ PYTHON="venv/bin/python"
 # lets the table owner create such rows.
 export INGEST_DATABASE_URL="${INGEST_DATABASE_URL:-postgresql://postgres@localhost:5432/shiksha_setu}"
 
-# Refuse to start if swap is already close to full; a batch would simply wedge
-# the way the single-process run did.
+# Refuse to start a batch when memory is genuinely exhausted.
+#
+# Free swap alone is the wrong signal, and using it stopped a healthy run dead:
+# macOS keeps swap allocated after it has been used and grows the file on
+# demand, so "937 MB free" was reported while 65% of RAM was idle. What
+# actually preceded the wedge was both numbers being bad at once — free memory
+# down to 18% with swap nearly full — so both are required now.
+memory_free_pct() {
+    memory_pressure 2>/dev/null \
+        | sed -n 's/.*System-wide memory free percentage: \([0-9]*\)%.*/\1/p'
+}
+
 swap_free_mb() {
     sysctl vm.swapusage 2>/dev/null \
         | sed -n 's/.*free = \([0-9.]*\)M.*/\1/p' \
         | cut -d. -f1
+}
+
+memory_is_exhausted() {
+    local mem swap
+    mem="$(memory_free_pct)"
+    swap="$(swap_free_mb)"
+
+    [ -z "$mem" ] || [ -z "$swap" ] && return 1          # cannot tell: proceed
+    [ "$mem" -lt 20 ] && [ "$swap" -lt 800 ] && return 0 # both bad: stop
+    return 1
 }
 
 batch=0
@@ -53,14 +73,14 @@ while :; do
         break
     fi
 
-    free_mb="$(swap_free_mb)"
-    if [ -n "$free_mb" ] && [ "$free_mb" -lt 1500 ]; then
-        echo "Only ${free_mb} MB of swap free — pausing 120s to let the system settle."
-        sleep 120
-        free_mb="$(swap_free_mb)"
-        if [ -n "$free_mb" ] && [ "$free_mb" -lt 1000 ]; then
-            echo "Still ${free_mb} MB free. Stopping rather than wedging the machine."
-            echo "Close other applications, or reboot, then run this again — progress is kept."
+    if memory_is_exhausted; then
+        echo "Memory is exhausted ($(memory_free_pct)% free, $(swap_free_mb) MB swap)."
+        echo "Pausing 180s to let the system settle."
+        sleep 180
+
+        if memory_is_exhausted; then
+            echo "Still exhausted. Stopping rather than wedging the machine."
+            echo "Close other applications, then run this again — progress is kept."
             exit 1
         fi
     fi
