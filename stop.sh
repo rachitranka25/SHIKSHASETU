@@ -23,7 +23,7 @@
 #   ./stop.sh --status     # Show V2 API status before stopping
 #   ./stop.sh --help       # Show help
 #
-# Created by: K Dhiraj (TITAN-PROTOCOL)
+# Created by: Rachit Ranka
 # Updated: 2025-01-07 (v4.0 UNIVERSAL_MODE + Self-Optimizer)
 # ============================================================================
 

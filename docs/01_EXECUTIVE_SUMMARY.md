@@ -2,8 +2,8 @@
 
 ---
 
-**Author:** K Dhiraj
-**Email:** k.dhiraj.srihari@gmail.com
+**Author:** Rachit Ranka
+**Email:** rankarachit5@gmail.com
 **Version:** 4.0.0 (Universal Mode)
 **Last Updated:** December 5, 2025
 
@@ -143,5 +143,5 @@ Shiksha Setu occupies a unique position in the market:
 
 ---
 
-**K Dhiraj**
-k.dhiraj.srihari@gmail.com
+**Rachit Ranka**
+rankarachit5@gmail.com

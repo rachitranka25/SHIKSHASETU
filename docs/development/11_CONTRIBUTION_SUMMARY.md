@@ -2,8 +2,8 @@
 
 ---
 
-**Author:** K Dhiraj
-**Email:** k.dhiraj.srihari@gmail.com
+**Author:** Rachit Ranka
+**Email:** rankarachit5@gmail.com
 **Version:** 4.0.0 (Universal Mode)
 **Last Updated:** December 5, 2025
 
@@ -11,12 +11,11 @@
 
 ## About the Author
 
-I am K Dhiraj, the architect and primary developer of Shiksha Setu. This project represents my vision for democratizing quality education across India through AI technology. Every architectural decision, model selection, and optimization reflects lessons learned from building production AI systems at scale.
+I am Rachit Ranka, the architect and primary developer of Shiksha Setu. This project represents my vision for democratizing quality education across India through AI technology. Every architectural decision, model selection, and optimization reflects lessons learned from building production AI systems at scale.
 
 **Contact:**
-- **Email:** k.dhiraj.srihari@gmail.com
-- **GitHub:** github.com/kdhiraj152
-- **LinkedIn:** linkedin.com/in/kdhiraj
+- **Email:** rankarachit5@gmail.com
+- **GitHub:** github.com/rachitranka25
 
 ---
 
@@ -433,8 +432,8 @@ This project builds on the work of many open-source contributors:
 
 For questions, collaboration opportunities, or feedback:
 
-**K Dhiraj**
-k.dhiraj.srihari@gmail.com
+**Rachit Ranka**
+rankarachit5@gmail.com
 
 ---
 

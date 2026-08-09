@@ -1,6 +1,10 @@
 #!/bin/bash
 # Integration test script for frontend-backend communication
 
+# Derive the project root from this script's own location, so the hints below
+# point at wherever the checkout actually lives.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 echo "🔍 Shiksha Setu Integration Test"
 echo "================================"
 echo ""
@@ -11,7 +15,7 @@ if curl -s http://localhost:8000/health > /dev/null 2>&1; then
     echo "   ✅ Backend is running (V2 API)"
 else
     echo "   ❌ Backend is NOT running"
-    echo "   Run: cd /Users/kdhiraj_152/Downloads/shiksha_setu && ./start.sh"
+    echo "   Run: cd \"$PROJECT_ROOT\" && ./start.sh"
     exit 1
 fi
 
@@ -22,7 +26,7 @@ if curl -s http://localhost:5173 > /dev/null 2>&1; then
     echo "   ✅ Frontend is running"
 else
     echo "   ❌ Frontend is NOT running"
-    echo "   Run: cd /Users/kdhiraj_152/Downloads/shiksha_setu/frontend && npm run dev"
+    echo "   Run: cd \"$PROJECT_ROOT/frontend\" && npm run dev"
     exit 1
 fi
 

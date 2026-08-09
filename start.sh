@@ -43,7 +43,7 @@
 #   ./start.sh --monitoring # Start with Prometheus+Grafana
 #   ./start.sh --help       # Show help
 #
-# Created by: K Dhiraj (TITAN-PROTOCOL)
+# Created by: Rachit Ranka
 # Updated: 2025-12-04 (v4.0 Production Mode)
 # ============================================================================
 

@@ -84,7 +84,7 @@ Content processing flow:
 
 - **Documentation**: https://docs.shiksha-setu.com
 - **Email**: support@shiksha-setu.com
-- **GitHub**: https://github.com/KDhiraj152/Siksha-Setu
+- **GitHub**: https://github.com/rachitranka25/SHIKSHASETU
         """,
         routes=app.routes,
         tags=[

@@ -136,7 +136,7 @@ Hindi • Tamil • Telugu • Bengali • Marathi • Gujarati • Kannada • 
 ### Setup
 
 ```bash
-git clone https://github.com/KDhiraj152/Siksha-Setu.git
+git clone https://github.com/rachitranka25/SHIKSHASETU.git
 cd shiksha_setu
 ./setup.sh
 ```
@@ -505,7 +505,7 @@ MIT License — see [LICENSE](LICENSE)
 
 ⸻
 
-Created by: **K Dhiraj**
-Email: k.dhiraj.srihari@gmail.com
+Created by: **Rachit Ranka**
+Email: rankarachit5@gmail.com
 
 

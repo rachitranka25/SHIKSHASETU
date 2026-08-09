@@ -7,7 +7,7 @@
 #
 # Usage: ./scripts/smoke_test.sh [--verbose]
 #
-# Created by: K Dhiraj (TITAN-PROTOCOL)
+# Created by: Rachit Ranka
 # ============================================================================
 
 set -e

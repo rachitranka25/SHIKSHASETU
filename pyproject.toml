@@ -17,7 +17,7 @@ readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
 authors = [
-    {name = "K Dhiraj", email = "kdhiraj@example.com"}
+    {name = "Rachit Ranka", email = "rankarachit5@gmail.com"}
 ]
 keywords = ["education", "ai", "llm", "translation", "india", "ncert"]
 classifiers = [
@@ -33,9 +33,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/KDhiraj152/shiksha_setu"
-Documentation = "https://github.com/KDhiraj152/shiksha_setu/docs"
-Repository = "https://github.com/KDhiraj152/shiksha_setu"
+Homepage = "https://github.com/rachitranka25/SHIKSHASETU"
+Documentation = "https://github.com/rachitranka25/SHIKSHASETU/tree/main/docs"
+Repository = "https://github.com/rachitranka25/SHIKSHASETU"
 
 # ============================================================================
 # RUFF - Linting & Formatting

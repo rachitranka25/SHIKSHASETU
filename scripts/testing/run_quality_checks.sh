@@ -11,7 +11,7 @@
 #   ./run_quality_checks.sh --lint    # Linting only
 #   ./run_quality_checks.sh --security # Security only
 #
-# Created by: K Dhiraj (TITAN-PROTOCOL)
+# Created by: Rachit Ranka
 # ============================================================================
 
 set -euo pipefail

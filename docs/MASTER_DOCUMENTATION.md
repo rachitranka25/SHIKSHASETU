@@ -2,8 +2,8 @@
 
 ---
 
-**Author:** K Dhiraj
-**Email:** k.dhiraj.srihari@gmail.com
+**Author:** Rachit Ranka
+**Email:** rankarachit5@gmail.com
 **Version:** 4.0.0 (Universal Mode)
 **Last Updated:** December 5, 2025
 
@@ -37,7 +37,7 @@ Shiksha Setu is an AI-powered universal education platform designed for India. T
 
 ```bash
 # Clone and setup
-git clone https://github.com/kdhiraj/shiksha-setu.git
+git clone https://github.com/rachitranka25/SHIKSHASETU.git
 cd shiksha-setu
 
 # Run setup script
@@ -338,8 +338,8 @@ docker-compose up -d --scale backend=3
 
 For questions or issues:
 
-**K Dhiraj**
-k.dhiraj.srihari@gmail.com
+**Rachit Ranka**
+rankarachit5@gmail.com
 
 ---
 
