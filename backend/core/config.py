@@ -117,6 +117,30 @@ class Settings:
     RERANKER_MODEL_ID: str = os.getenv("RERANKER_MODEL_ID", "BAAI/bge-reranker-v2-m3")
     RERANKER_TOP_K: int = int(os.getenv("RERANKER_TOP_K", "10"))
 
+    # --- LLM provider: on-device or NVIDIA NIM ---
+    # "local" runs Qwen2.5-3B through MLX/MPS on this machine. "nvidia" sends
+    # text generation to NVIDIA NIM and falls back to local when it fails.
+    # Only text generation is affected: translation, OCR, TTS, STT and
+    # embeddings stay on-device either way.
+    #
+    # Prompts leave the machine under "nvidia". Default to local so that is
+    # always a decision someone made, never one they inherited.
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "local")  # local | nvidia
+    NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")
+    NVIDIA_BASE_URL: str = os.getenv(
+        "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"
+    )
+    # Measured against this endpoint, same prompt, ~70 completion tokens:
+    #   meta/llama-3.1-8b-instruct        0.9s   <- default
+    #   nvidia/nvidia-nemotron-nano-9b-v2 2.5s
+    #   meta/llama-3.3-70b-instruct       17-125s, highly variable
+    # A student waiting on a chat reply needs the first number. Override for
+    # batch work where quality matters more than latency.
+    NVIDIA_LLM_MODEL: str = os.getenv(
+        "NVIDIA_LLM_MODEL", "meta/llama-3.1-8b-instruct"
+    )
+    NVIDIA_TIMEOUT_SECONDS: float = float(os.getenv("NVIDIA_TIMEOUT_SECONDS", "60"))
+
     # --- TTS: MMS-TTS (Facebook) - Best for Indian languages ---
     # Primary: facebook/mms-tts-{lang} | Fallback: edge_tts
     TTS_BACKEND: str = os.getenv("TTS_BACKEND", "mms_tts")  # mms_tts | edge_tts
@@ -429,6 +453,13 @@ class Settings:
             issues.append(
                 "ERROR: RATE_LIMIT_ENABLED=false in production "
                 "(leaves login open to brute force)"
+            )
+
+        # Asking for the hosted provider without a key means every generation
+        # silently degrades to the local model. Better to say so at boot.
+        if self.LLM_PROVIDER == "nvidia" and not self.NVIDIA_API_KEY:
+            issues.append(
+                "ERROR: LLM_PROVIDER=nvidia but NVIDIA_API_KEY is not set"
             )
 
         # A wildcard origin with credentials lets any site read authenticated

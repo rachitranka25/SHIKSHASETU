@@ -27,6 +27,7 @@ from ...cache import (
     get_response_cache,
     get_unified_cache,
 )
+from ...core.config import settings
 from ...core.optimized.core_affinity import (
     get_affinity_manager,
 )
@@ -268,6 +269,53 @@ For code: Use proper code blocks with language tags"""
 
         return {"model": model, "tokenizer": tokenizer}
 
+    async def _try_nvidia(
+        self, prompt: str, config: GenerationConfig
+    ) -> str | None:
+        """
+        Attempt hosted generation through NVIDIA NIM.
+
+        Returns the completion, or None to tell the caller to use the local
+        model instead. Never raises: a hosted outage must degrade to on-device
+        inference, not surface as an error to a student.
+        """
+        from .nvidia_backend import NVIDIABackendError, get_nvidia_backend
+
+        backend = get_nvidia_backend()
+        if not backend.is_configured:
+            logger.warning(
+                "[UnifiedEngine] LLM_PROVIDER=nvidia but no API key; using local model"
+            )
+            return None
+
+        start = time.perf_counter()
+
+        try:
+            response = await backend.generate(
+                prompt,
+                system_prompt=config.system_prompt or self.DEFAULT_SYSTEM_PROMPT,
+                max_tokens=config.max_tokens,
+                temperature=config.temperature,
+                top_p=config.top_p,
+                stop=config.stop_sequences or None,
+            )
+        except NVIDIABackendError as exc:
+            logger.warning("[UnifiedEngine] NVIDIA generation failed (%s); using local model", exc)
+            return None
+
+        elapsed = time.perf_counter() - start
+        self._stats["total_time"] += elapsed
+
+        if config.use_cache and config.temperature == 0:
+            self._response_cache.set(
+                prompt,
+                response,
+                temperature=config.temperature,
+                max_tokens=config.max_tokens,
+            )
+
+        return response
+
     async def generate(
         self,
         prompt: str,
@@ -298,6 +346,14 @@ For code: Use proper code blocks with language tags"""
             if cached:
                 self._stats["cache_hits"] += 1
                 return cached
+
+        # Hosted provider first when configured. On any failure we fall through
+        # to the on-device model rather than failing the student's request —
+        # that is the whole reason the local stack stays installed.
+        if settings.LLM_PROVIDER == "nvidia":
+            hosted = await self._try_nvidia(prompt, config)
+            if hosted is not None:
+                return hosted
 
         # Ensure model is loaded
         self._ensure_llm_loaded()

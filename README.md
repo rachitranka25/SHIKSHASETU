@@ -401,6 +401,38 @@ shiksha_setu/
 
 ---
 
+## LLM Provider
+
+Text generation can run on-device or through NVIDIA NIM. Everything else —
+translation, OCR, TTS, STT, embeddings — is always on-device.
+
+```bash
+LLM_PROVIDER=local    # Qwen2.5-3B via MLX/MPS. Nothing leaves the machine.
+LLM_PROVIDER=nvidia   # NVIDIA NIM, with automatic fallback to local on failure.
+```
+
+`local` is the default, deliberately: under `nvidia`, student prompts are sent
+to NVIDIA's servers. That is a privacy decision, so it has to be made rather
+than inherited. A hosted failure degrades to the local model instead of
+failing the request, which is why the local stack stays installed either way.
+
+Model choice matters more than it looks. Measured against this endpoint with
+the same prompt and roughly 70 completion tokens:
+
+| Model | Latency |
+|---|---|
+| `meta/llama-3.1-8b-instruct` (default) | **0.9s** |
+| `nvidia/nvidia-nemotron-nano-9b-v2` | 2.5s |
+| `meta/llama-3.3-70b-instruct` | 17–125s, highly variable |
+
+A student waiting on a chat reply needs the first row. Override
+`NVIDIA_LLM_MODEL` for batch work where quality outweighs latency.
+
+Get a key at [build.nvidia.com](https://build.nvidia.com). Keep it in `.env`,
+which is gitignored — never in `.env.example` or any tracked file.
+
+---
+
 ## Environment Configuration
 
 Key variables in `.env`:
