@@ -35,10 +35,24 @@ T = TypeVar("T")
 # Create base class for models
 Base = declarative_base()
 
-# Database configuration - supports Supabase or local PostgreSQL
-# Default uses environment variable; local dev fallback only for development
+# Database configuration - supports Supabase or local PostgreSQL.
+# Importing settings first is what loads the project's .env, so this module
+# sees the same DATABASE_URL as the rest of the app no matter which module
+# gets imported first. Reading os.getenv() directly here used to silently fall
+# back to a hardcoded superuser account whenever .env had not been loaded yet.
+from backend.core.config import settings
+
 _DEFAULT_DEV_URL = "postgresql://postgres:postgres@localhost:5432/shiksha_setu"
-DATABASE_URL = os.getenv("DATABASE_URL", _DEFAULT_DEV_URL)
+DATABASE_URL = settings.DATABASE_URL
+
+# A hardcoded superuser fallback is acceptable on a laptop and never in
+# production, where it masks a missing DATABASE_URL as a working app running
+# with far more privilege than it needs.
+if settings.ENVIRONMENT == "production" and not os.getenv("DATABASE_URL"):
+    raise RuntimeError(
+        "DATABASE_URL is not set. Refusing to start in production with the "
+        "development database fallback."
+    )
 
 
 # Async database URL (convert postgresql:// to postgresql+asyncpg://)
