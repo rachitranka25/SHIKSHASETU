@@ -87,6 +87,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
 
+    # Config validation. validate_required() logged every issue it found, but
+    # nothing ever called it, so a production deploy with no JWT secret, no
+    # DATABASE_URL, or DEBUG left on started up perfectly quietly.
+    settings.enforce_startup_config()
+
     # Print Policy Engine startup banner
     if _POLICY_AVAILABLE:
         try:
@@ -262,10 +267,13 @@ app.add_middleware(
 
 # UNIFIED MIDDLEWARE: Optimized for Apple Silicon (CPU/GPU/ANE)
 # Replaces multiple stacked middlewares with single efficient dispatch
+# RATE_LIMIT_CALLS was never a setting — the real name is
+# RATE_LIMIT_PER_MINUTE — so the getattr() default silently overrode whatever
+# operators configured and every deploy ran at 100/min.
 app.add_middleware(
     UnifiedMiddleware,
     rate_limit_enabled=settings.RATE_LIMIT_ENABLED,
-    rate_limit_per_minute=getattr(settings, "RATE_LIMIT_CALLS", 100),
+    rate_limit_per_minute=settings.RATE_LIMIT_PER_MINUTE,
 )
 
 logger.info(

@@ -421,6 +421,26 @@ class Settings:
         if self.DEBUG:
             issues.append("WARNING: DEBUG=true in production")
 
+        # Without rate limiting, /auth/login accepts unlimited password
+        # guesses and the model endpoints accept unlimited billable work.
+        # The shipped .env sets this to false with an "Enable in production"
+        # comment, which is exactly the kind of reminder a deploy forgets.
+        if not self.RATE_LIMIT_ENABLED:
+            issues.append(
+                "ERROR: RATE_LIMIT_ENABLED=false in production "
+                "(leaves login open to brute force)"
+            )
+
+        # A wildcard origin with credentials lets any site read authenticated
+        # responses; browsers reject the combination, so it is also broken.
+        if "*" in self.ALLOWED_ORIGINS:
+            if self.ALLOW_CREDENTIALS:
+                issues.append(
+                    "ERROR: ALLOWED_ORIGINS=* with ALLOW_CREDENTIALS=true in production"
+                )
+            else:
+                issues.append("WARNING: ALLOWED_ORIGINS=* in production")
+
     def _validate_models(self, issues: list[str]) -> None:
         """Validate model configuration."""
         model_checks = [
@@ -458,6 +478,33 @@ class Settings:
         for issue in issues:
             log_method = logger.error if issue.startswith("ERROR") else logger.warning
             log_method(issue)
+
+        return issues
+
+    def enforce_startup_config(self) -> list[str]:
+        """
+        Validate configuration at startup and refuse a broken production boot.
+
+        validate_required() only reports; this decides. In production any
+        ERROR-level issue aborts startup, because the alternative is serving
+        students from a deployment with no JWT secret or no rate limiting. In
+        development everything stays advisory so local work is not blocked by
+        production-only variables.
+
+        Returns:
+            All issues found, so the caller can surface them.
+
+        Raises:
+            RuntimeError: In production, if any issue is ERROR-level.
+        """
+        issues = self.validate_required()
+        blocking = [issue for issue in issues if issue.startswith("ERROR")]
+
+        if blocking and self.ENVIRONMENT == "production":
+            raise RuntimeError(
+                "Refusing to start in production with invalid configuration:\n  "
+                + "\n  ".join(blocking)
+            )
 
         return issues
 
