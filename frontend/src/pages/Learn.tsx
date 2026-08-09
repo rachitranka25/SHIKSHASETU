@@ -20,12 +20,18 @@ import {
   AlertCircle,
   ExternalLink,
   Sparkles,
+  BookOpenCheck,
 } from 'lucide-react';
 
 import { explain, ANSWER_LANGUAGES } from '../api/tutor';
 import type { AnswerLanguage, ExplainResponse } from '../api/tutor';
 import { getLibrary } from '../api/library';
 import { useThemeStore } from '../store';
+import ReadingControls, {
+  loadPreferences,
+  readingStyle,
+} from '../components/ReadingControls';
+import type { ReadingPreferences } from '../components/ReadingControls';
 
 const EXAMPLES = [
   'Can you teach me the Pythagoras theorem?',
@@ -41,6 +47,8 @@ export default function Learn() {
   const [grade, setGrade] = useState<number | null>(null);
   const [language, setLanguage] = useState<AnswerLanguage>('English');
   const [wantDiagram, setWantDiagram] = useState(true);
+  const [readingSupport, setReadingSupport] = useState(false);
+  const [preferences, setPreferences] = useState<ReadingPreferences>(loadPreferences);
 
   const [availableGrades, setAvailableGrades] = useState<number[]>([]);
   const [result, setResult] = useState<ExplainResponse | null>(null);
@@ -79,7 +87,13 @@ export default function Learn() {
 
       try {
         const response = await explain(
-          { question: text, grade, answer_language: language, diagram: wantDiagram },
+          {
+            question: text,
+            grade,
+            answer_language: language,
+            diagram: wantDiagram,
+            reading_support: readingSupport,
+          },
           controller.signal
         );
         setResult(response);
@@ -89,7 +103,7 @@ export default function Learn() {
         if (inFlight.current === controller) setPending(false);
       }
     },
-    [question, grade, language, wantDiagram]
+    [question, grade, language, wantDiagram, readingSupport]
   );
 
   const panel = isDark
@@ -193,6 +207,20 @@ export default function Learn() {
               Diagram
             </label>
 
+            <label
+              className={`flex min-h-touch items-center gap-2 text-body-sm ${muted}`}
+              title="Shorter sentences and commoner words, with the hard words broken into syllables"
+            >
+              <input
+                type="checkbox"
+                checked={readingSupport}
+                onChange={(e) => setReadingSupport(e.target.checked)}
+                className="h-4 w-4 accent-[#F4D47A]"
+              />
+              <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
+              Easier reading
+            </label>
+
             <button
               type="submit"
               disabled={pending || question.trim().length < 3}
@@ -262,8 +290,72 @@ export default function Learn() {
             </div>
 
             <div className={`rounded-card border p-4 ${panel}`}>
-              <p className="whitespace-pre-wrap text-body leading-relaxed">{result.answer}</p>
+              <p
+                className="whitespace-pre-wrap text-body"
+                style={readingSupport ? readingStyle(preferences) : undefined}
+              >
+                {result.answer}
+              </p>
             </div>
+
+            {readingSupport && (
+              <ReadingControls
+                preferences={preferences}
+                onChange={setPreferences}
+                isDark={isDark}
+              />
+            )}
+
+            {result.readability && (
+              <section className={`rounded-card border p-4 ${panel}`} aria-label="Reading measurements">
+                <h2 className={`mb-2 text-body-sm font-medium ${faint}`}>
+                  How this compares with the textbook
+                </h2>
+                <dl className={`grid grid-cols-2 gap-x-6 gap-y-1 text-body-sm ${muted}`}>
+                  <dt>Words per sentence</dt>
+                  <dd className="tabular-nums">
+                    {result.readability.source.words_per_sentence} &rarr;{' '}
+                    <strong>{result.readability.answer.words_per_sentence}</strong>
+                  </dd>
+                  <dt>
+                    {result.readability.answer.script === 'Latin' ? 'Syllables' : 'Aksharas'} per word
+                  </dt>
+                  <dd className="tabular-nums">
+                    {result.readability.source.units_per_word} &rarr;{' '}
+                    <strong>{result.readability.answer.units_per_word}</strong>
+                  </dd>
+                  {result.readability.answer.grade_estimate != null && (
+                    <>
+                      <dt>Reading grade</dt>
+                      <dd className="tabular-nums">
+                        {result.readability.source.grade_estimate} &rarr;{' '}
+                        <strong>{result.readability.answer.grade_estimate}</strong>
+                      </dd>
+                    </>
+                  )}
+                </dl>
+
+                {Object.keys(result.readability.segmented_words).length > 0 && (
+                  <div className="mt-3">
+                    <p className={`mb-1 text-body-sm ${faint}`}>
+                      Longer words, split the way they are read
+                    </p>
+                    <ul className="flex flex-wrap gap-2">
+                      {Object.entries(result.readability.segmented_words)
+                        .slice(0, 10)
+                        .map(([word, units]) => (
+                          <li
+                            key={word}
+                            className={`rounded-btn border px-2 py-1 text-body-sm ${panel}`}
+                          >
+                            {units.join('\u00b7')}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+              </section>
+            )}
 
             {result.diagram && (
               <figure className={`rounded-card border p-4 ${panel}`}>

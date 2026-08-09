@@ -38,6 +38,28 @@ export interface TutorSource {
   similarity: number;
 }
 
+export interface ReadabilityMetrics {
+  script: string;
+  sentences: number;
+  words: number;
+  units: number;
+  words_per_sentence: number;
+  units_per_word: number;
+  long_words: number;
+  long_word_ratio: number;
+  /** Flesch-Kincaid. Null outside English, where it is not defined. */
+  grade_estimate: number | null;
+  hardest_words: string[];
+}
+
+export interface ReadabilityReport {
+  /** The NCERT prose the answer was built from. */
+  source: ReadabilityMetrics;
+  answer: ReadabilityMetrics;
+  /** Hard words broken into syllables, or aksharas for Indic scripts. */
+  segmented_words: Record<string, string[]>;
+}
+
 export interface ExplainResponse {
   answer: string;
   answer_language: string;
@@ -46,6 +68,7 @@ export interface ExplainResponse {
   sources: TutorSource[];
   diagram: string | null;
   diagram_note: string | null;
+  readability: ReadabilityReport | null;
 }
 
 export interface ExplainRequest {
@@ -54,6 +77,7 @@ export interface ExplainRequest {
   grade?: number | null;
   answer_language: AnswerLanguage;
   diagram?: boolean;
+  reading_support?: boolean;
 }
 
 export async function explain(
