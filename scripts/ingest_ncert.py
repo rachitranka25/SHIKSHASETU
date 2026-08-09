@@ -58,6 +58,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true", help="Re-ingest books already in the database")
     parser.add_argument("--dry-run", action="store_true", help="List the selection and exit")
     parser.add_argument(
+        "--ocr",
+        action="store_true",
+        help=(
+            "Re-read untrustworthy pages with GOT-OCR2. NCERT sets equations as "
+            "images and the PDF text layer drops the glyphs: 'a != 0' arrives as "
+            "'a  0', and superscripts flatten. Only pages that look affected are "
+            "sent through OCR, but those pages become much slower. Strongly "
+            "recommended for mathematics; unnecessary for prose."
+        ),
+    )
+    parser.add_argument(
         "--database-url",
         default=os.getenv("INGEST_DATABASE_URL"),
         help=(
@@ -121,6 +132,13 @@ def main() -> int:
 
     embedder = BGEM3Embedder()
 
+    ocr_engine = None
+    if args.ocr:
+        logger.info("Loading OCR engine (%s) ...", settings.OCR_MODEL_ID)
+        from backend.services.ocr import get_ocr_service
+
+        ocr_engine = get_ocr_service().ocr
+
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
@@ -137,7 +155,10 @@ def main() -> int:
         )
 
     with Session(engine) as db:
-        stats = ingest_books(db, books, embedder, force=args.force, on_progress=report)
+        stats = ingest_books(
+            db, books, embedder, force=args.force, on_progress=report,
+            ocr_engine=ocr_engine,
+        )
 
     print()
     print(stats)

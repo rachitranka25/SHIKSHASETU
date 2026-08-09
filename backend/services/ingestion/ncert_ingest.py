@@ -19,6 +19,7 @@ one embedding per chunk.
 import io
 import logging
 import re
+import tempfile
 import time
 import uuid
 import zipfile
@@ -57,6 +58,36 @@ LANGUAGE_CODES = {"English": "en", "Hindi": "hi", "Urdu": "ur"}
 # NCERT chapter PDFs inside a book zip are named <code><chapter>.pdf, plus front
 # matter (`ps`, `pr`) and back matter (`an`, `gl`) we do not want as chapters.
 _CHAPTER_FILE = re.compile(r"([a-l][ehu][a-z]{2}\d)(\d{2})\.pdf$", re.I)
+
+# ==================== WHEN EMBEDDED TEXT CANNOT BE TRUSTED ====================
+#
+# PyMuPDF reads the text layer, and on NCERT's maths PDFs that layer is lossy in
+# a way that changes meaning. Class 10 Maths chapter 4 defines a quadratic as
+#
+#     ax² + bx + c, a ≠ 0
+#
+# and the text layer yields "ax2 + bx + c, a  0". Rendering the same page proves
+# both glyphs are present and correct — only the extraction drops them. So the
+# superscript is flattened and the inequality is deleted outright, turning a
+# constraint into its opposite. Fine in prose, unacceptable in mathematics.
+#
+# Pages like that are recognisable before OCR: NCERT sets equations as inline
+# images, so image count relative to text length separates them cleanly.
+# Measured images per 1000 characters:
+#
+#     Class 10 Maths ch4 (equations)   30.8
+#     Class 10 Science ch8 (figures)    5.9
+#     Class 10 Science ch5 (prose)      4.0
+#     Class 10 Science ch1 (mixed)      2.0
+#
+# The gap is wide, so the threshold sits between rather than near either side.
+#
+# A tempting alternative — looking for the run of spaces a dropped glyph leaves
+# behind — was tried and discarded: justified prose produces exactly the same
+# pattern at the same rate, so it identifies nothing.
+OCR_IMAGE_DENSITY = 15.0  # images per 1000 characters
+OCR_MIN_PAGE_CHARS = 200  # below this, the page is a diagram with a caption
+OCR_RENDER_SCALE = 3.0  # 3x renders equations large enough to read reliably
 
 # PDF text arrives with hyphenated line breaks and hard-wrapped lines.
 _HYPHEN_BREAK = re.compile(r"(\w)-\n(\w)")
@@ -175,12 +206,66 @@ def clean_pdf_text(raw: str) -> str:
     return text.strip()
 
 
-def extract_chapters(zip_path: Path, book: Textbook) -> list[Chapter]:
+def page_needs_ocr(page, raw_text: str) -> bool:
+    """
+    Whether a page's embedded text layer should be distrusted.
+
+    Two cases, both measured on real NCERT pages (see the constants above):
+    a page whose text is dense with inline equation images, and a page that is
+    essentially a diagram with almost no text at all.
+    """
+    chars = len(raw_text.strip())
+    images = len(page.get_images())
+
+    if chars < OCR_MIN_PAGE_CHARS:
+        # Only worth OCR if there is something on the page to read.
+        return bool(images) or bool(page.get_drawings())
+
+    return (images * 1000.0 / chars) > OCR_IMAGE_DENSITY
+
+
+def ocr_page(page, ocr_engine) -> str:
+    """
+    Re-read a page by rendering it and running OCR over the image.
+
+    Rendering uses the embedded fonts, so glyphs the text layer failed to map
+    are drawn correctly and the OCR sees them. GOT-OCR2's "format" mode returns
+    formulas as LaTeX rather than flattening them.
+    """
+    import fitz  # PyMuPDF
+
+    matrix = fitz.Matrix(OCR_RENDER_SCALE, OCR_RENDER_SCALE)
+    pixmap = page.get_pixmap(matrix=matrix)
+
+    # Via a temp file, not a PIL Image. ocr_image() is typed to accept an
+    # Image, but GOT-OCR2's chat() calls .startswith() on whatever it is given,
+    # so an in-memory image raises
+    #     'Image' object has no attribute 'startswith'
+    # after a full model load. A path is what it actually wants.
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as handle:
+        handle.write(pixmap.tobytes("png"))
+        rendered = handle.name
+
+    try:
+        return ocr_engine.ocr_image(rendered, mode="format")
+    finally:
+        Path(rendered).unlink(missing_ok=True)
+
+
+def extract_chapters(
+    zip_path: Path, book: Textbook, ocr_engine=None
+) -> list[Chapter]:
     """
     Pull text from every chapter PDF inside a book zip.
 
     Front and back matter are skipped: their filenames carry letters where the
     chapter number would be, so the pattern simply does not match them.
+
+    Args:
+        ocr_engine: Optional OCR engine. When given, pages whose text layer is
+            untrustworthy are re-read from a rendered image instead. Without
+            it, those pages fall back to their embedded text, which for
+            mathematics means dropped operators.
     """
     import fitz  # PyMuPDF
 
@@ -197,8 +282,40 @@ def extract_chapters(zip_path: Path, book: Textbook) -> list[Chapter]:
 
             try:
                 with fitz.open(stream=io.BytesIO(payload), filetype="pdf") as document:
-                    raw = "\n".join(page.get_text() for page in document)
+                    page_texts = []
+                    ocr_pages = 0
+
+                    for page in document:
+                        embedded = page.get_text()
+
+                        if ocr_engine is not None and page_needs_ocr(page, embedded):
+                            try:
+                                recovered = ocr_page(page, ocr_engine)
+                                # Only prefer OCR if it actually read something;
+                                # a failed pass returning a fragment would lose
+                                # the text we already had.
+                                if recovered and len(recovered.strip()) >= len(
+                                    embedded.strip()
+                                ) // 2:
+                                    page_texts.append(recovered)
+                                    ocr_pages += 1
+                                    continue
+                            except Exception as exc:  # noqa: BLE001
+                                logger.warning(
+                                    "%s chapter %s: OCR failed on a page (%s)",
+                                    book.code, number, exc,
+                                )
+
+                        page_texts.append(embedded)
+
+                    raw = "\n".join(page_texts)
                     page_count = document.page_count
+
+                    if ocr_pages:
+                        logger.info(
+                            "%s chapter %s: %s/%s pages re-read with OCR",
+                            book.code, number, ocr_pages, page_count,
+                        )
             except Exception as exc:  # noqa: BLE001 - one bad PDF must not stop a book
                 logger.warning("%s chapter %s: unreadable PDF (%s)", book.code, number, exc)
                 continue
@@ -379,6 +496,7 @@ def ingest_book(
     download_dir: Path = DOWNLOAD_DIR,
     client: httpx.Client | None = None,
     force: bool = False,
+    ocr_engine=None,
 ) -> tuple[int, int]:
     """
     Ingest one textbook end to end.
@@ -394,7 +512,7 @@ def ingest_book(
     if zip_path is None:
         return 0, 0
 
-    chapters = extract_chapters(zip_path, book)
+    chapters = extract_chapters(zip_path, book, ocr_engine=ocr_engine)
     if not chapters:
         logger.warning("%s: no readable chapters", book.code)
         return 0, 0
@@ -418,6 +536,7 @@ def ingest_books(
     download_dir: Path = DOWNLOAD_DIR,
     force: bool = False,
     on_progress=None,
+    ocr_engine=None,
 ) -> IngestStats:
     """
     Ingest a list of textbooks, continuing past individual failures.
@@ -435,7 +554,7 @@ def ingest_books(
         for position, book in enumerate(books, 1):
             try:
                 chapters, chunks = ingest_book(
-                    db, book, embedder, download_dir, client, force
+                    db, book, embedder, download_dir, client, force, ocr_engine
                 )
                 if chapters:
                     stats.books_done += 1

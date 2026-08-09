@@ -17,8 +17,11 @@ from backend.services.ingestion.ncert_catalog import (
 )
 from backend.services.ingestion.ncert_ingest import (
     MIN_CHUNK_CHARS,
+    OCR_IMAGE_DENSITY,
+    OCR_MIN_PAGE_CHARS,
     chunk_text,
     clean_pdf_text,
+    page_needs_ocr,
 )
 
 # ==================== BOOK CODES ====================
@@ -227,3 +230,74 @@ def test_chunking_terminates_on_text_without_punctuation():
 
     assert len(chunks) > 1
     assert all(len(c) <= 500 for c in chunks)
+
+
+# ==================== DECIDING WHEN TO OCR ====================
+
+
+class _FakePage:
+    """A PDF page, as much of one as page_needs_ocr looks at."""
+
+    def __init__(self, images: int = 0, drawings: int = 0):
+        self._images = images
+        self._drawings = drawings
+
+    def get_images(self):
+        return [None] * self._images
+
+    def get_drawings(self):
+        return [None] * self._drawings
+
+
+def _page_text(chars: int) -> str:
+    return "a" * chars
+
+
+# Densities measured on real NCERT chapters, in images per 1000 characters.
+# The maths case is the one that must be caught; the rest must not be.
+@pytest.mark.parametrize(
+    ("label", "images", "chars", "expected"),
+    [
+        ("class 10 maths ch4, equations as images", 47, 1521, True),
+        ("class 10 science ch8, figure-heavy", 16, 2642, False),
+        ("class 10 science ch5, prose", 10, 2509, False),
+        ("class 10 science ch1, mixed", 4, 1991, False),
+    ],
+)
+def test_detector_matches_the_measured_pages(label, images, chars, expected):
+    page = _FakePage(images=images)
+
+    assert page_needs_ocr(page, _page_text(chars)) is expected, label
+
+
+def test_a_page_that_is_almost_all_diagram_is_ocred():
+    """A caption under a figure is not the content of the page."""
+    page = _FakePage(images=3)
+
+    assert page_needs_ocr(page, _page_text(OCR_MIN_PAGE_CHARS - 1)) is True
+
+
+def test_a_vector_diagram_page_is_ocred_too():
+    """NCERT draws many figures as vectors rather than embedded images."""
+    page = _FakePage(images=0, drawings=500)
+
+    assert page_needs_ocr(page, _page_text(50)) is True
+
+
+def test_a_blank_page_is_not_ocred():
+    """Nothing to read, so nothing to spend a model pass on."""
+    assert page_needs_ocr(_FakePage(), "") is False
+    assert page_needs_ocr(_FakePage(), "   \n  ") is False
+
+
+def test_prose_with_no_images_is_never_ocred():
+    assert page_needs_ocr(_FakePage(images=0), _page_text(3000)) is False
+
+
+def test_threshold_boundary_is_exclusive():
+    """Exactly at the threshold counts as acceptable; above it does not."""
+    chars = 1000
+    at_threshold = int(OCR_IMAGE_DENSITY)
+
+    assert page_needs_ocr(_FakePage(images=at_threshold), _page_text(chars)) is False
+    assert page_needs_ocr(_FakePage(images=at_threshold + 1), _page_text(chars)) is True
