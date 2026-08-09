@@ -115,7 +115,33 @@ Upload **any file type** and get intelligent AI processing:
 
 ### Supported Languages
 
-Hindi • Tamil • Telugu • Bengali • Marathi • Gujarati • Kannada • Malayalam • Punjabi • Odia
+**Translation output** — Hindi • Tamil • Telugu • Bengali • Marathi • Gujarati •
+Kannada • Malayalam • Punjabi • Odia, via IndicTrans2.
+
+**Retrieval** is multilingual through BGE-M3, and works across languages: a
+question asked in one language finds passages written in another. Measured
+against an English-only Class 10 Science corpus:
+
+| Asked in | Question | Retrieved | |
+|---|---|---|---|
+| Hindi | मानव आँख अलग-अलग दूरी पर कैसे फोकस करती है? | ch10, hypermetropia | ✅ 0.672 |
+| Marathi | विद्युत प्रवाह म्हणजे काय? | ch11, Electricity | ✅ 0.637 |
+| Bengali | মানুষের হৃদয় কীভাবে কাজ করে? | ch5, circulation | ✅ 0.596 |
+| Hindi | प्रकाश संश्लेषण क्या है? | ch9, Light | ❌ wanted ch5 |
+| Tamil | ஒளிச்சேர்க்கை என்றால் என்ன? | ch11, Electricity | ❌ wanted ch5 |
+
+The failures share a cause worth knowing: compound scientific terms. Both
+प्रकाश संश्लेषण and ஒளிச்சேர்க்கை mean *photosynthesis* and both begin with the
+word for *light*, and retrieval followed the component rather than the compound.
+Tamil is the weakest of the languages tried. A reranking pass would likely
+recover these — `BGEReranker` exists in the codebase but is not wired into the
+retrieval path.
+
+**Corpus** is a separate question from either. NCERT publishes in three
+languages only — English, Hindi and Urdu — so that is the ceiling on what can
+be ingested, whatever the model understands. Of the 558 books in the catalog:
+208 English, 190 Hindi, 160 Urdu. There are no NCERT textbooks in Tamil,
+Telugu, Bengali or the other languages listed above.
 
 ---
 
