@@ -79,6 +79,25 @@ CONTEXT_CHARS = 1100
 # the model's own memory would defeat the point of grounding it.
 MIN_USEFUL_SIMILARITY = 0.35
 
+# Which textbook editions may be taught from.
+#
+# NCERT publishes the same curriculum in English, Hindi and Urdu, so every
+# chapter exists three times in the corpus. Retrieval is cross-lingual and does
+# not care, which had two consequences: an English question was being answered
+# from the Urdu edition, and the six context passages could be the same chapter
+# repeated in three scripts, crowding out material that would have added
+# something.
+#
+# Restricting the source to English and Hindi fixes both. It is not a judgement
+# about the languages — the Urdu editions are ingested and searchable through
+# the library — but a student is taught from an edition they can check for
+# themselves, and the model is not asked to translate out of a script it
+# handles least well.
+#
+# The answer language is unaffected: an English source still produces a Tamil
+# or Hinglish explanation if that is what was asked for.
+TEACHING_MEDIA = ("English", "Hindi")
+
 
 class ExplainRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1000)
@@ -189,6 +208,7 @@ def _retrieve(db: Session, vector: list[float], grade: int | None, limit: int) -
         "vector": "[" + ",".join(str(x) for x in vector) + "]",
         "limit": limit,
         "chars": CONTEXT_CHARS,
+        "media": list(TEACHING_MEDIA),
     }
     grade_filter = ""
     if grade is not None:
@@ -210,7 +230,8 @@ def _retrieve(db: Session, vector: list[float], grade: int | None, limit: int) -
             FROM embeddings e
             JOIN document_chunks dc   ON dc.id = e.chunk_id
             JOIN processed_content pc ON pc.id = dc.content_id
-            WHERE pc.metadata ->> 'source' = 'NCERT' {grade_filter}
+            WHERE pc.metadata ->> 'source' = 'NCERT'
+              AND pc.metadata ->> 'medium' = ANY(:media) {grade_filter}
             ORDER BY e.embedding <=> CAST(:vector AS vector)
             LIMIT :limit
             """

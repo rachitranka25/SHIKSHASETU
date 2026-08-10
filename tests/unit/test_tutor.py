@@ -158,6 +158,51 @@ def test_hinglish_and_hindi_are_distinct_instructions():
 # ==================== SQL SHAPE ====================
 
 
+def test_teaching_sources_exclude_urdu():
+    """
+    NCERT publishes each chapter in English, Hindi and Urdu, and cross-lingual
+    retrieval happily returned the Urdu edition for an English question — so a
+    student was shown "Class 1 Joyful-Mathematics (Urdu), chapter 13" as the
+    source of their answer, in a script they cannot read and cannot check.
+
+    The same repetition also crowded the context: six passages could be one
+    chapter in three scripts.
+    """
+    from backend.api.routes.tutor import TEACHING_MEDIA
+
+    assert "Urdu" not in TEACHING_MEDIA
+    assert set(TEACHING_MEDIA) == {"English", "Hindi"}
+
+
+def test_retrieval_filters_by_medium():
+    """The restriction has to reach the query, not just the constant."""
+    import inspect
+
+    from backend.api.routes import tutor
+
+    source = inspect.getsource(tutor._retrieve)
+
+    assert "medium" in source
+    assert ":media" in source, "the medium filter must be a bound parameter"
+
+
+def test_source_medium_does_not_constrain_the_answer_language():
+    """
+    Teaching from an English textbook must still allow a Tamil answer. These
+    are separate axes and conflating them would undo the point of the feature.
+    """
+    from backend.api.routes.tutor import ANSWER_LANGUAGES, TEACHING_MEDIA
+
+    assert set(ANSWER_LANGUAGES) - set(TEACHING_MEDIA), (
+        "answers must be available in languages beyond the teaching media"
+    )
+    assert "Tamil" in ANSWER_LANGUAGES
+    assert "Urdu" in ANSWER_LANGUAGES, (
+        "an Urdu-speaking student may still want the answer in Urdu, taught "
+        "from the English edition"
+    )
+
+
 def test_retrieval_sql_uses_cast_not_double_colon():
     """The bind-parameter truncation that once disabled search entirely."""
     import inspect
