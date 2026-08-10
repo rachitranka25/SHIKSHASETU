@@ -18,6 +18,7 @@ one embedding per chunk.
 
 import io
 import logging
+import os
 import re
 import tempfile
 import time
@@ -89,6 +90,14 @@ _CHAPTER_FILE = re.compile(r"([a-l][ehu][a-z]{2}\d)(\d{2})\.pdf$", re.I)
 OCR_IMAGE_DENSITY = 15.0  # images per 1000 characters
 OCR_MIN_PAGE_CHARS = 200  # below this, the page is a diagram with a caption
 OCR_RENDER_SCALE = 3.0  # 3x renders equations large enough to read reliably
+
+# Whether the next book is fetched while the current one is embedded. On by
+# default; INGEST_PREFETCH=0 turns it off so the two paths can be compared on
+# the same books, which is the only way to state a speedup honestly. Download
+# and embedding contend for nothing -- one waits on a government web server, the
+# other saturates the GPU -- so overlapping them should help, but "should" is
+# not a measurement.
+PREFETCH_ENABLED = os.getenv("INGEST_PREFETCH", "1") not in ("0", "false", "False")
 
 # Older NCERT books are typeset in legacy Devanagari fonts -- Walkman-Chanakya
 # 905 in the Hindi readers, and its relatives elsewhere -- which map Devanagari
@@ -646,7 +655,7 @@ def ingest_books(
 
         def start_download(index: int):
             """Begin fetching books[index], if there is one."""
-            if index >= len(books):
+            if index >= len(books) or not PREFETCH_ENABLED:
                 return None
             # A separate client per prefetch: httpx.Client is thread-safe, but
             # the download runs while the main thread may also be using one,

@@ -574,13 +574,25 @@ Half the memory, roughly double the encode throughput, no measurable quality
 cost. On a 4 GB target the fp32 model alone is most of the machine before
 Postgres and the API have asked for anything.
 
-### Download and embedding contend for nothing
+### Download and embedding contend for nothing — measured by pairing, not by comparing
 
-One waits on a government web server, the other saturates the GPU, but they ran
-in sequence at **97 s/book**. With the next book fetched on a prefetch thread
-while the current one is embedded, the observed rate is **~3.1 min/book**
-including PDF extraction and chunk commits — seven hours for the 263-book
-curriculum on one M1.
+One waits on a government web server, the other saturates the GPU, so
+overlapping them should help. Establishing by how much required ingesting the
+**same three books twice**, once with `INGEST_PREFETCH=0`, producing identical
+output both times (37 chapters, 1,130 chunks):
+
+| Mode | Wall time, 3 books | Per book |
+|---|---|---|
+| sequential | 581 s | **193 s** |
+| prefetch | 420 s | **140 s** |
+
+**1.38× speedup**, and ~10.2 hours for the 263-book curriculum on one M1.
+
+The reason this needed a paired run: an earlier sequential figure of **97 s/book**
+was taken on a different, smaller book set. Read against the 140 s figure it
+appears to show prefetching making ingestion *slower*, and a throughput claim
+built from the two unpaired numbers would have been backwards. Only same-input
+comparisons are quoted here.
 
 ### Which pages need OCR is predictable before running it
 
@@ -948,7 +960,7 @@ with its resident set paged entirely out. **`SIGKILL` is not delivered in that
 state**, because the kernel cannot deliver a signal until the I/O completes.
 There is no recovery, only waiting.
 
-Expect **~3.1 min/book**, so roughly seven hours for all 263. It is fully
+Expect **~140 s/book**, so roughly ten hours for all 263. It is fully
 resumable — books already in the database are skipped, and books NCERT never
 published a zip for are recorded as `.unavailable` markers so they are not
 requested again.

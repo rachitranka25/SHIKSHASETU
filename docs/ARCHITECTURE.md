@@ -281,9 +281,15 @@ first call while the model loads, then **0.7–1.2 s**.
 
 Downloading and embedding contend for nothing — one waits on a slow government
 web server, the other saturates the GPU — but ran in sequence, so each sat idle
-while the other worked. Measured at **97 s/book**, which is seven hours over
-the 263-book curriculum. The next book is now fetched on a prefetch thread
-while the current one is embedded.
+while the other worked. The next book is now fetched on a prefetch thread while
+the current one is embedded, and the gain was measured by ingesting the same
+three books twice with `INGEST_PREFETCH=0` and `=1` — identical output both
+times, **193 s/book sequential against 140 s/book prefetched, a 1.38x
+speedup**, or ~10.2 hours over the 263-book curriculum.
+
+An unpaired earlier figure of 97 s/book, taken on a smaller book set, would have
+made prefetching look like a regression against the 140 s measurement. Only
+same-input comparisons belong in a throughput claim.
 
 ### Batching, because 8 GB is not enough
 

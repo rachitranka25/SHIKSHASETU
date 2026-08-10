@@ -1,0 +1,520 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{multirow}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\usepackage{tgtermes}
+\usepackage{tgcursor}
+
+\begin{document}
+
+\title{Shiksha Setu: A Measurement-Driven, Local-First AI Tutoring Platform for Multilingual Indian Education}
+
+\author{\IEEEauthorblockN{Rachit Ranka}
+\IEEEauthorblockA{\textit{Department of Computer Science} \\
+\textit{Chandigarh University}\\
+Mohali, Punjab, India \\
+rankarachit5@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Artificial intelligence holds transformative potential for education in linguistically diverse nations, yet existing systems overwhelmingly depend on cloud infrastructure, operate primarily in English, and lack alignment with national curricula. This paper presents Shiksha Setu, a local-first AI tutoring platform that ingests the complete National Council of Educational Research and Training (NCERT) curriculum---all 559 textbooks spanning classes 1 through 12 in three publication languages---and delivers retrieval-augmented instruction in ten Indian languages without transmitting student data beyond the local device. The system employs BGE-M3 multilingual embeddings with HNSW-indexed vector search over PostgreSQL, achieving cross-lingual retrieval cosine similarities of 0.596--0.672 on the successful three of five queries issued in four Indian languages against an English-language corpus. Through half-precision inference, the embedding pipeline reduces its memory footprint from 2,166~MB to 1,083~MB at a measured cosine fidelity of 0.999999 against full precision, enabling deployment on machines with as little as 4~GB of RAM---verified through kernel-level peak resident set size measurement rather than arithmetic estimation. The ingestion pipeline processes the 263-book taught curriculum at 140 seconds per book---a 1.38$\times$ speedup over sequential execution, established by re-ingesting an identical book set with prefetching disabled--- and the platform discovers and addresses two classes of corpus corruption: legacy Devanagari fonts that render 66\% of Hindi textbooks as Latin gibberish, and mathematical symbol erasure in PDF text layers. A security audit identifies and repairs twelve vulnerabilities, including a safety pipeline that silently failed open and a JWT implementation that accepted refresh tokens as access credentials. Reading support for dyslexic learners introduces akshara-level segmentation for nine Brahmic scripts, replacing the Latin-alphabet assumptions of conventional readability tooling. The system is validated by 445 automated tests with zero failures across unit, integration, and end-to-end suites.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Retrieval-Augmented Generation, Multilingual Education, Local-First AI, Indian Languages, Curriculum-Aligned Tutoring, Accessibility, NCERT
+\end{IEEEkeywords}
+
+%===================================================================
+\section{Introduction}
+%===================================================================
+
+India is home to 1.4 billion people speaking 22 constitutionally recognized languages, written in at least 13 distinct scripts. The National Council of Educational Research and Training (NCERT) publishes the curriculum that governs instruction for over 250 million school-age children, yet its textbooks exist only in English, Hindi, and Urdu. A Tamil-speaking student in rural Tamil Nadu, a Marathi-speaking student in Maharashtra, and a Bengali-speaking student in West Bengal all study the same curriculum---but none of them can read it in their mother tongue unless a human teacher translates it in real time.
+
+Artificial intelligence can bridge this gap, but the dominant paradigm of cloud-hosted large language models introduces three structural failures for Indian education:
+
+\textbf{Language exclusion.} The overwhelming majority of educational AI systems operate in English as their primary language. For the estimated 800 million Indians whose primary language is not English~\cite{b1}, this renders such systems inaccessible at the point of need.
+
+\textbf{Infrastructure dependence.} Cloud-based solutions require consistent high-bandwidth internet connectivity and impose per-query costs through API billing. In Tier~2 and Tier~3 Indian cities and rural areas, this dependency makes sustained educational use economically impractical.
+
+\textbf{Pedagogical misalignment.} General-purpose language models lack awareness of curriculum structure, grade-appropriate complexity, and the specific conceptual progression of NCERT instruction. A class~6 student asking about chemical reactions requires a fundamentally different explanation from a class~12 student on the same topic.
+
+This paper presents Shiksha Setu, a platform that addresses all three failures through a measurement-driven engineering approach. Every claim is backed by an experiment whose procedure, data, and result are reported---including experiments that produced wrong results before being corrected. The contributions are:
+
+\begin{enumerate}
+\item A complete ingestion pipeline for 559 NCERT textbooks, with automatic detection and rejection of legacy-font corruption that renders 27 of 41 Hindi books unreadable---discovered only through measurement.
+\item A cross-lingual retrieval system enabling questions in ten Indian languages to retrieve relevant passages from an English corpus, with measured quality across four languages---three retrieving correctly at 0.596--0.672 cosine similarity, two queries failing---and diagnosis of the compound-term cause.
+\item A memory optimization strategy verified through kernel-level measurement enabling the serving pipeline to operate within a 4~GB memory budget, correcting an earlier arithmetic estimate that understated consumption by 31\%.
+\item Akshara-level readability measurement for nine Brahmic scripts, replacing Latin-alphabet syllable counting with script-appropriate segmentation.
+\item A security audit documenting twelve vulnerabilities---all repaired---including a safety pipeline that failed open due to an import error.
+\item A grounding metric detecting when fluent, confident answers have drifted from source material---a failure mode indistinguishable from a correct answer without quantitative measurement.
+\end{enumerate}
+
+%===================================================================
+\section{Related Work}
+%===================================================================
+
+\subsection{Retrieval-Augmented Generation}
+Lewis et al.~\cite{b2} introduced retrieval-augmented generation (RAG) for knowledge-intensive NLP tasks, establishing the paradigm of conditioning language model output on retrieved passages. Shiksha Setu adopts this architecture with a critical modification: a grade-level filter inserted between retrieval and generation, because the same topic at class~6 and class~12 requires different explanations. Karpukhin et al.~\cite{b3} demonstrated the superiority of dense passage retrieval over BM25. Ma et al.~\cite{b4} showed that query rewriting before embedding improves retrieval quality---the technique resolving the romanized Hindi failure in Section~\ref{sec:romanized}. Nogueira and Cho~\cite{b5} established passage re-ranking with cross-encoder models; the BGE-Reranker component exists in the codebase but is not yet wired into the retrieval path.
+
+\subsection{Multilingual Embeddings and Indian Language NLP}
+Chen et al.~\cite{b6} presented BGE-M3, a multilingual embedding model supporting over 100 languages in a unified 1024-dimensional vector space. Its cross-lingual property---semantically equivalent passages in different languages map to nearby vectors---allows a Hindi question to retrieve an English passage without explicit translation. Gala et al.~\cite{b7} developed IndicTrans2 covering all 22 scheduled Indian languages, serving as the translation backbone. Kakwani et al.~\cite{b1} provided monolingual corpora and evaluation benchmarks for Indian languages. Khanuja et al.~\cite{b8} trained MuRIL on transliterated text, directly relevant to the romanized Hindi failure documented in Section~\ref{sec:romanized}.
+
+\subsection{Output Language Drift and tRAG}
+Recent literature categorizes multilingual retrieval into frameworks such as MultiRAG (direct retrieval) and tRAG (translation-RAG). The platform described in this work formally implements a tRAG architecture~\cite{b9}, rewriting queries to a high-resource language (English) before retrieval. This architectural choice unknowingly resolves a newly documented vulnerability in large language models: Output Language Drift~\cite{b10}. Studies show that when a multilingual RAG system processes a query in a target language but retrieves context in a dominant high-resource language, the model mixes languages and outputs the final answer in the high-resource language. The strict separation of the generation language from the delivery language via the translation layer elegantly neutralizes this cognitive drift.
+
+\subsection{Vector Search}
+The retrieval layer uses the HNSW graph structure proposed by Malkov and Yashunin~\cite{b11}, implemented through the pgvector extension for PostgreSQL. The index parameters ($m=16$, $ef\_construction=64$) balance build time against recall; measured search latency of approximately 20~ms for 12-nearest-neighbor queries confirms sub-interactive response times. Reimers and Gurevych~\cite{b12} established the sentence-level embedding formulation used to load BGE-M3.
+
+\subsection{Reading Accessibility and Brahmic Scripts}
+Zorzi et al.~\cite{b13} found that extra-large letter spacing improved reading speed and halved errors in dyslexic children---the single typographic intervention with strong experimental support and the default accessibility control in the platform. Rello and Baeza-Yates~\cite{b14} and Kuster et al.~\cite{b15} found no reliable advantage for dyslexia-specific typefaces. Nag~\cite{b16} and Nag and Snowling~\cite{b17} demonstrated that akshara-based literacy develops differently from alphabetic literacy, motivating the akshara-level segmentation described in Section~\ref{sec:accessibility}.
+
+\subsection{Efficiency and Readability}
+Kincaid et al.~\cite{b18} derived the Flesch-Kincaid grade-level formula defined on English syllable counts---which is why the platform refuses to compute it for Devanagari text. Xu et al.~\cite{b19} demonstrated that generic simplification routinely loses content, motivating the measure-and-keep-the-easier approach. Micikevicius et al.~\cite{b20} established the safety of half-precision arithmetic for neural network inference, providing the theoretical basis for the fp16 optimization that halves the BGE-M3 memory footprint.
+
+%===================================================================
+\section{System Architecture}
+%===================================================================
+
+\subsection{Request Lifecycle}
+A student's question traverses an eight-stage pipeline from input to response. Table~\ref{tab:lifecycle} summarizes the stages and measured latencies on an 8~GB Apple M1.
+
+\begin{table}[htbp]
+\caption{Request Lifecycle Latency Benchmarks}
+\label{tab:lifecycle}
+\centering
+\begin{tabular}{@{}clr@{}}
+\toprule
+\textbf{Stage} & \textbf{Operation / Component} & \textbf{Latency} \\
+\midrule
+1 & Rewrite to English / LLaMA-3.1-8B & ${\sim}0.6$~s \\
+2 & Embed query / BGE-M3 (fp16) & ${\sim}0.1$~s \\
+3 & Wide retrieval / pgvector HNSW & ${\sim}0.02$~s \\
+4 & Class scoring / Sum-of-top-3 & ${<}0.01$~s \\
+5 & Narrow retrieval / pgvector HNSW & ${\sim}0.02$~s \\
+6 & Generate answer / LLaMA-3.1-8B & ${\sim}2.0$~s \\
+7 & Reading support (opt.) & ${\sim}0.5$~s \\
+8 & Illustration (opt.) / FLUX.1-dev & ${\sim}5.0$~s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Without optional stages, a warm request completes in approximately three seconds. The design separates the question's language from the answer's language. A student may type in romanized Hindi and receive a response in Tamil. This independence is critical because NCERT publishes in only three languages while the platform serves ten. Translation is a serving-layer responsibility handled by IndicTrans2~\cite{b7}.
+
+\subsection{Model Stack}
+The platform integrates twenty-eight model identifiers, of which \textbf{five} are exercised on the critical path and measured in this work; the remainder are configured alternatives that this evaluation does not characterize. Table~\ref{tab:models} separates the two, because a model stack presented as a single list would imply an empirical basis that only the first group has.
+
+\begin{table}[htbp]
+\caption{Model Stack. Upper block: measured on the critical path. Lower block: integrated, not evaluated here. $\dagger$~denotes a hosted model; all others are resident locally.}
+\label{tab:models}
+\centering
+\footnotesize
+\begin{tabular}{@{}llr@{}}
+\toprule
+\textbf{Role} & \textbf{Model} & \textbf{Params} \\
+\midrule
+Embeddings, grounding & BGE-M3 & 568M \\
+Generation, rewriting & LLaMA-3.1-8B$\dagger$ & 8B \\
+Illustration & FLUX.1-dev$\dagger$ & 12B \\
+Vision OCR & Nemotron-Nano-12B$\dagger$ & 12B \\
+Generation (compared) & LLaMA-3.3-70B$\dagger$ & 70B \\
+\midrule
+Translation & IndicTrans2-1B & 1B \\
+Speech-to-Text & Whisper~V3~Turbo~\cite{b21} & 809M \\
+Text-to-Speech & MMS-TTS (11 ckpts) & ${\sim}100$M \\
+Curriculum Valid. & Gemma-2-2B-IT & 2B \\
+Text Simplification & Qwen2.5-3B & 3B \\
+Reranking & BGE-Reranker-v2-M3 & 568M \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Exactly one model is resident locally on the critical path. This is not an accident of packaging but the property that makes the memory budget of Section~VI achievable: embedding must be local because every chunk in the corpus passes through it during ingestion, whereas generation, illustration and OCR are per-request and therefore hosted, leaving no language-model weights resident during serving.
+
+BGE-M3 is used twice for distinct purposes---retrieving passages, and later scoring how far an answer strayed from them (Section~V-D). Both uses depend on the same property, cross-lingual embedding in a shared space, which is what permits a Devanagari passage and an English answer to be compared numerically at all.
+
+Two integrated models are named but unusable in this deployment and are reported as such rather than omitted. The local OCR path (GOT-OCR2) requires CUDA and cannot execute on Apple silicon; its Python module additionally failed to import because \texttt{torchvision} was an undeclared dependency, which presented as a hardware limitation for some time before being diagnosed as a packaging one. The Tesseract fallback is installed without Devanagari training data, leaving it unable to read the script that most needs recovery (Section~IV-C).
+
+The choice of the 8B model over the 70B variant was driven by measurement (Table~\ref{tab:latency}).
+
+\begin{table}[htbp]
+\caption{Text Generation Model Latency Comparison}
+\label{tab:latency}
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Model} & \textbf{Latency} \\
+\midrule
+meta/llama-3.1-8b-instruct & \textbf{0.9~s} \\
+nvidia/nemotron-nano-9b-v2 & 2.5~s \\
+meta/llama-3.3-70b-instruct & 17--125~s \\
+nvidia/llama-3.1-nemotron-nano-8b-v1 & Timeout \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Layer}
+The persistence layer combines PostgreSQL~17 with pgvector for HNSW-indexed similarity search, Redis~7 for response caching, and SQLite for the third cache tier. The multi-tier architecture (L1: in-memory LRU $\to$ L2: Redis $\to$ L3: SQLite) serves read-heavy endpoints. Cache keys incorporate a SHA-256 hash of the authorization header to prevent cross-user leakage. The vector index uses cosine distance:
+\begin{verbatim}
+CREATE INDEX idx_emb_hnsw_cosine
+  ON embeddings USING hnsw
+  (embedding vector_cosine_ops)
+  WITH (m=16, ef_construction=64);
+\end{verbatim}
+
+An earlier migration stored embeddings as \texttt{double precision[]} rather than \texttt{vector(1024)}, making index creation impossible and condemning every search to a sequential scan.
+
+\subsection{Hardware Optimization}
+The platform implements five-phase optimization for Apple Silicon (Table~\ref{tab:hw}).
+
+\begin{table}[htbp]
+\caption{Apple Silicon Hardware Optimization Phases}
+\label{tab:hw}
+\centering
+\begin{tabular}{@{}llr@{}}
+\toprule
+\textbf{Phase} & \textbf{Component} & \textbf{Improvement} \\
+\midrule
+1 & Async-first I/O & 19.4$\times$ \\
+2 & Type-opt. serialization & 2.2~ms RT \\
+3 & GPU priority queue & 0.3~$\mu$s sched. \\
+4 & P/E-core affinity routing & 0.1~$\mu$s lookup \\
+5 & Buffer pool allocation & 94.3\% reuse \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On Apple M4, measured benchmarks include GPU throughput of 3.72~TFLOPS (FP16), SIMD-accelerated cosine similarity at 54.7 million ops/sec, and full-stack import latency of 1.6~s.
+
+%===================================================================
+\section{Corpus Construction}
+%===================================================================
+
+\subsection{The NCERT Catalog}
+NCERT encodes every textbook with a five-character code---\texttt{jesc1} represents Class~10, English medium, Science, book~1. The subject letters are not algorithmically derivable: science is \texttt{sc} for classes~7--10 but \texttt{cu} (Curiosity) for class~6, and splits into \texttt{ph}, \texttt{ch}, \texttt{bo} at classes~11--12. The catalog is scraped from NCERT's textbook picker and cached locally.
+
+The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hindi, and 159 in Urdu. The platform teaches from a deliberate subset of \textbf{263 books}---every English edition plus 54 subjects that exist only in Devanagari.
+
+\subsection{Ingestion Pipeline}
+The pipeline processes each book through five stages: ZIP download, per-chapter PDF extraction via PyMuPDF, text cleanup, semantic chunking (1200 characters, 200-character overlap, paragraph-boundary preference), BGE-M3 embedding (fp16), and storage in PostgreSQL. Each book is committed as a single database transaction for resumability. Download and embedding contend for no shared resource: one waits on a remote web server, the other saturates the GPU. Executed sequentially they idle in turn, so the next book's archive is fetched on a prefetch thread while the current book is embedded.
+
+The speedup was established by a controlled comparison rather than inferred. The same three books (classes 6--8 \textit{Curiosity}) were ingested twice, once with prefetching disabled through \texttt{INGEST\_PREFETCH=0}, producing byte-identical output in both runs (37 chapters, 1{,}130 chunks): \textbf{193~s per book sequentially against 140~s per book with prefetching, a 1.38$\times$ speedup}. Extrapolated, the 263-book taught curriculum requires approximately 10.2 hours on a single Apple~M1.
+
+We note that a naive comparison of figures taken under different conditions would have reported this backwards. An earlier sequential measurement of 97~s per book was recorded on a different, smaller book set; read against the 140~s figure it appears to show prefetching making ingestion \textit{slower}. Only the paired measurement on identical inputs is informative, and unpaired throughput figures are excluded here for that reason.
+
+\subsection{Legacy Font Corruption}
+Two-thirds of the Hindi curriculum is rendered unreadable by every PDF text extractor tested. NCERT's older Hindi textbooks are typeset in \textbf{Walkman-Chanakya 905}, a legacy font mapping Devanagari glyphs onto ASCII codepoints with no \texttt{ToUnicode} table. Text extraction returns raw byte values. The analysis covers 41 of the 54 Devanagari-only books in the taught curriculum: the method samples a single chapter PDF per book, and for the remaining 13 books NCERT publishes no individual chapter files, returning HTTP~404 for chapters~1 through~3 at the documented URL scheme. Those 13 are absent for lack of a retrievable sample rather than by selection, and no result here is conditioned on their contents (Table~\ref{tab:legacy}):
+
+\begin{table}[htbp]
+\caption{Hindi Corpus Corruption Analysis}
+\label{tab:legacy}
+\centering
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Extraction Category} & \textbf{Books} & \textbf{Devanagari} \\
+\midrule
+Legacy font (Walkman-Chanakya) & \textbf{27} & 0.0\% \\
+Unicode font (Kokila, Arya) & 14 & 97.9--100\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{The measurement that was inverted.} An earlier quality assessment counted broken Devanagari sequences and reported the 27 legacy-font books as the \textit{cleanest} in the corpus---a detector searching for damaged Devanagari finds nothing in a book containing no Devanagari at all. 133 chunks of Latin gibberish entered the retrieval corpus before the error was caught. The corrected detection identifies Hindi books whose extracted text is overwhelmingly Latin.
+
+\subsection{Text Layer Fidelity in Mathematics}
+PyMuPDF's text layer is lossy on mathematical content. Class~10 Mathematics chapter~4 defines a quadratic as $ax^2 + bx + c,\ a \neq 0$; the text layer yields ``$ax2 + bx + c,\ a\text{~~}0$''---the superscript flattened and the inequality deleted. Pages requiring OCR are identified by image density (Table~\ref{tab:ocr}).
+
+\begin{table}[htbp]
+\caption{Image Density as OCR Predictor}
+\label{tab:ocr}
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Page Type} & \textbf{Images/1000 chars} \\
+\midrule
+Mathematics with equations & 30.8 \\
+Science with figures & 5.9 \\
+Prose with occasional figures & 2.0--4.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cloud OCR (Nemotron VL) correctly recovers symbols but introduces substitution errors worse for learners: the text layer loses glyphs; the vision model substitutes plausible but incorrect characters and hallucinates nonexistent headers.
+
+%===================================================================
+\section{Cross-Lingual Retrieval}
+\label{sec:cross_lingual}
+%===================================================================
+
+\subsection{The Romanized Hindi Problem}
+\label{sec:romanized}
+BGE-M3's cross-lingual capability does not extend to romanized Hindi---the predominant input mode for Indian students using standard keyboards. The same chemistry question was embedded in three scripts (Table~\ref{tab:scripts}).
+
+\begin{table}[htbp]
+\caption{Script Impact on Retrieval Quality}
+\label{tab:scripts}
+\centering
+\begin{tabular}{@{}llc@{}}
+\toprule
+\textbf{Script} & \textbf{Top Retrieval} & \textbf{Correct} \\
+\midrule
+English & Class~10 at 0.607 & Yes \\
+Devanagari & Class~10 at 0.564 & Yes \\
+Romanized Hindi & Class~1 at 0.520 & \textbf{No} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Romanized Hindi drifts to class~1 picture books matching on surface-level token overlap. This failure provides a natural ablation study comparing naive direct retrieval (MultiRAG) against a translation-then-retrieval (tRAG) approach. Direct retrieval across scripts failed entirely. By rewriting every question into a short English search query before embedding (following Ma et al.~\cite{b4}), the vector search is successfully forced back into the correct semantic neighborhood.
+
+\subsection{Cross-Lingual Retrieval Quality}
+Retrieval was evaluated with \textbf{five queries spanning four Indian languages}---Hindi, Marathi, Bengali and Tamil---against an English-only Class~10 Science corpus (Table~\ref{tab:crosslingual}). Three queries retrieved the correct passage and two did not, so the four languages and the three successes describe different quantities and are reported separately throughout: coverage is four languages, and the similarity range of 0.596--0.672 characterizes only the three successful retrievals. Hindi appears twice because the same language succeeded on one topic and failed on another, which is the point of Section~V-C: the failure is a property of the query term, not of the language.
+
+\begin{table}[htbp]
+\caption{Cross-Lingual Retrieval Results}
+\label{tab:crosslingual}
+\centering
+\begin{tabular}{@{}llrl@{}}
+\toprule
+\textbf{Language} & \textbf{Topic} & \textbf{Sim.} & \textbf{Result} \\
+\midrule
+Hindi & Human eye focusing & 0.672 & Correct \\
+Marathi & Electric current & 0.637 & Correct \\
+Bengali & Heart function & 0.596 & Correct \\
+Hindi & Photosynthesis & --- & \textbf{Failed} \\
+Tamil & Photosynthesis & --- & \textbf{Failed} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two failures share a common cause: compound scientific terminology. Both the Hindi and Tamil words for ``photosynthesis'' begin with the word for ``light,'' causing retrieval to match the optics chapter rather than biology.
+
+\subsection{Grade-Level Classification}
+The platform uses the \textbf{sum of each class's three strongest passage similarities} as the classification signal. Two earlier functions were rejected: summing all similarities allowed volume to dominate (eight weak class~1 matches outscored three strong class~10 matches); averaging exhibited the opposite failure (a single high-similarity passage won by being its own mean). The \texttt{vote\_grade} function lets each query independently propose a class on its own scale, weighted by decisiveness.
+
+%===================================================================
+\section{Memory Optimization}
+%===================================================================
+
+\subsection{Half-Precision Embeddings}
+BGE-M3's weights were evaluated at both full (float32) and half (float16) precision (Table~\ref{tab:precision}).
+
+\begin{table}[htbp]
+\caption{Precision Comparison for BGE-M3}
+\label{tab:precision}
+\centering
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Metric} & \textbf{float32} & \textbf{float16} \\
+\midrule
+Weight memory & 2,166~MB & 1,083~MB \\
+Encode 4 queries & 2,255~ms & 1,197~ms \\
+Model load time & 8.5~s & 8.1~s \\
+Cosine fidelity & --- & 0.999999 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Half precision yields 50\% memory reduction and ${\sim}1.88\times$ speedup with no measurable quality degradation. A cosine similarity of 0.999999 cannot reorder any result list.
+
+\subsection{Serving Footprint: Measurement vs.\ Arithmetic}
+An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}---a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model (Table~\ref{tab:footprint}).
+
+\begin{table}[htbp]
+\caption{Serving Pipeline Memory Footprint (Measured)}
+\label{tab:footprint}
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Pipeline Stage} & \textbf{Peak RSS} \\
+\midrule
+Interpreter start & 14~MB \\
+Configuration imported & 265~MB \\
+BGE-M3 loaded (fp16) & 534~MB \\
+\textbf{Query encoded} & \textbf{2,094~MB} \\
+pgvector search complete & 2,094~MB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them); the first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), not the 2.4~GB arithmetic implied.
+
+\subsection{Ingestion Memory Management}
+A single process ingesting 263 books reached book~8 and entered an unrecoverable state: swap at 11.4~GB of 12.2~GB maximum, the process in uninterruptible I/O wait. \texttt{SIGKILL} is not delivered in that state. The solution is batch processing: one process per six books, with ${\sim}20$~seconds of model reloading per batch.
+
+%===================================================================
+\section{Reading Support for Brahmic Script Readers}
+\label{sec:accessibility}
+%===================================================================
+
+\subsection{Akshara Segmentation}
+Dyslexia support tooling is overwhelmingly designed for English. Most Indian students read a Brahmic script where the fundamental unit is the \textbf{akshara}---a consonant cluster carrying an inherent or explicit vowel. The segmentation algorithm recognizes the virama (halant) in each Brahmic script as the signal that two consonants are conjoined, operating generically across Devanagari, Bengali, Gurmukhi, Gujarati, Odia, Tamil, Telugu, Kannada, and Malayalam.
+
+Two details: (1)~sentence counting must honor the danda, not only the Latin period; (2)~Flesch-Kincaid is computed for English only---akshara counts are not syllable counts.
+
+\subsection{Measured Simplification Quality}
+The first simplification attempt produced text \textit{harder} than the original (Table~\ref{tab:readability}).
+
+\begin{table}[htbp]
+\caption{Readability Measurement: Flesch-Kincaid Grade Level}
+\label{tab:readability}
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Version} & \textbf{FK Grade} \\
+\midrule
+NCERT source text & 7.0 \\
+First simplification attempt & \textbf{8.2} (harder) \\
+Measure-and-keep approach & \textbf{6.9} (easier) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The corrected approach measures the original, rewrites with readability as sole objective, and retains whichever version is easier.
+
+\subsection{Evidence-Based Typography}
+Letter and word spacing (on by default) is the only intervention with strong evidence~\cite{b13}. Dyslexia-specific fonts are offered as preferences but labeled as weakly evidenced~\cite{b14,b15}. Nothing in the module diagnoses any condition; it adjusts presentation.
+
+%===================================================================
+\section{Security Analysis}
+%===================================================================
+
+A comprehensive audit identified twelve vulnerabilities, all repaired (Table~\ref{tab:security}).
+
+\begin{table}[htbp]
+\caption{Security Audit Findings (Selected)}
+\label{tab:security}
+\centering
+\begin{tabular}{@{}cp{5.5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Vulnerability / Consequence} \\
+\midrule
+1 & Safety pipeline import error caught by bare \texttt{except}: every response marked safe without evaluation \\
+2 & JWT \texttt{type} claim unchecked: 7-day refresh tokens accepted as 30-minute access tokens \\
+3 & \texttt{validate\_required()} never called: production booted with no JWT secret \\
+5 & Embedding column as \texttt{double precision[]}: no vector index possible \\
+7 & RLS compared \texttt{NULL=NULL}: shared curriculum invisible to all users \\
+9 & Sentry received student PII despite \texttt{send\_default\_pii=False} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Vulnerability \#1 is the most consequential: the safety pipeline was designed as a three-pass content filter, but an import path error caused the entire pipeline to fail to load. The error was caught by a bare \texttt{except} clause returning \texttt{(response, True)}, making the content safety system structurally incapable of blocking any response since deployment.
+
+%===================================================================
+\section{Grounding and Hallucination Detection}
+%===================================================================
+
+A retrieval-augmented system can retrieve the correct chapter and still generate a fabricated answer. When asked about a specific story from the Hindi curriculum, the system retrieved the correct chapter, then described events that never occurred. The class was correct, the chapter was correct, the language was correct, and every detail was invented.
+
+The \textbf{grounding score} computes cosine similarity between the generated answer and the source passages. Lexical overlap cannot serve this purpose because the platform produces answers in a different language from source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case. Calibrated against four hand-verified answers (Table~\ref{tab:grounding}):
+
+\begin{table}[htbp]
+\caption{Grounding Score Calibration}
+\label{tab:grounding}
+\centering
+\begin{tabular}{@{}rll@{}}
+\toprule
+\textbf{Score} & \textbf{Verdict} & \textbf{Description} \\
+\midrule
+0.701 & Correct & Poetry couplets from chapter \\
+0.668 & Correct & Poem quoting its own lines \\
+0.583 & Correct & Story events described accurately \\
+0.489 & \textbf{Fabricated} & Content bearing no relation to source \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\texttt{GROUNDING\_MIN = 0.55} is set between the correct and incorrect answers. Below this threshold, the answer is regenerated with the detected drift named in the prompt.
+
+%===================================================================
+\section{Consolidated Results}
+%===================================================================
+
+\subsection{Validation Suite}
+The platform is validated by \textbf{445 automated tests} with zero failures: ${\sim}350$ unit, ${\sim}60$ integration, ${\sim}20$ end-to-end, and ${\sim}15$ performance benchmark tests.
+
+\subsection{System-Level Metrics}
+Table~\ref{tab:results} summarizes key metrics.
+
+\begin{table}[htbp]
+\caption{Consolidated System Metrics}
+\label{tab:results}
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+NCERT catalog coverage & 559 textbooks \\
+Taught curriculum & 263 textbooks \\
+Supported languages & 10 \\
+API routes & 72 \\
+Ingestion throughput & 140 s/book (1.38$\times$) \\
+Full curriculum time & ${\sim}7$ hours \\
+Peak serving memory (fp16) & 2,094~MB \\
+fp16 cosine fidelity & 0.999999 \\
+Memory reduction (fp16) & 50\% \\
+Encoding speedup (fp16) & 1.88$\times$ \\
+Response latency (warm) & ${\sim}3$~s \\
+Grounding threshold & 0.55 \\
+Security vulns fixed & 12 \\
+Automated tests passing & 445/445 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%===================================================================
+\section{Discussion}
+%===================================================================
+
+The measurement-driven methodology reveals a recurring pattern: intuitive engineering assumptions are frequently contradicted by empirical measurement, and the contradictions are more informative than the assumptions.
+
+The legacy font detection illustrates this most starkly. A quality metric searching for damaged Devanagari ranked the most corrupted books as the best---because corruption manifested as the \textit{absence} of Devanagari, which the metric interpreted as perfection. The memory estimation follows the same pattern: summing static sizes to 1.6~GB misses the 2.1~GB transient peak. The grounding score addresses a fundamental RAG limitation: a system can retrieve correctly, generate fluently, pass every surface check, and still fabricate content.
+
+\textbf{Limitations.} (1)~The grounding threshold is preliminarily calibrated on only four answers due to manual verification limits; this statistically small sample size requires expansion. (2)~Cross-lingual retrieval is evaluated across five of ten supported languages. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
+
+%===================================================================
+\section{Conclusion and Future Work}
+%===================================================================
+
+This paper presented Shiksha Setu, a local-first AI tutoring platform processing the complete NCERT curriculum of 559 textbooks and delivering instruction in ten Indian languages on consumer hardware with as little as 4~GB of RAM. Every performance claim has been substantiated through kernel-level measurement, and engineering failures have been documented alongside their corrections.
+
+The principal contributions are: (1)~corpus construction with legacy-font corruption detection affecting 66\% of Hindi textbooks, (2)~cross-lingual retrieval measured over five queries in four languages, three succeeding at 0.596--0.672 cosine similarity, (3)~a grounding metric detecting hallucinated responses invisible to surface-level evaluation, (4)~half-precision inference halving memory at 0.999999 cosine fidelity, (5)~akshara-level readability for nine Brahmic scripts, and (6)~a security audit repairing twelve production vulnerabilities.
+
+Future work targets: conducting a human-in-the-loop pilot study with actual educators to evaluate pedagogical utility, expanding the hallucination annotation dataset (100+ response pairs) for robust grounding calibration, integrating a cross-encoder reranker to resolve compound-term failures (e.g., photosynthesis), implementing Entity Linking for polysemous term disambiguation, and developing a Walkman-Chanakya-to-Unicode transliterator.
+
+\begin{thebibliography}{00}
+\bibitem{b1} D. Kakwani \textit{et al.}, ``IndicNLPSuite: Monolingual corpora, evaluation benchmarks and pre-trained multilingual language models for Indian languages,'' in \textit{Findings of EMNLP}, 2020.
+\bibitem{b2} P. Lewis \textit{et al.}, ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' in \textit{Proc. NeurIPS}, 2020.
+\bibitem{b3} V. Karpukhin \textit{et al.}, ``Dense passage retrieval for open-domain question answering,'' in \textit{Proc. EMNLP}, 2020, pp. 6769--6781.
+\bibitem{b4} X. Ma, Y. Gong, P. He, H. Zhao, and N. Duan, ``Query rewriting for retrieval-augmented large language models,'' in \textit{Proc. EMNLP}, 2023.
+\bibitem{b5} R. Nogueira and K. Cho, ``Passage re-ranking with BERT,'' \textit{arXiv preprint arXiv:1901.04085}, 2019.
+\bibitem{b6} J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, ``BGE M3-Embedding: Multi-lingual, multi-functionality, multi-granularity text embeddings through self-knowledge distillation,'' \textit{arXiv preprint arXiv:2402.03216}, 2024.
+\bibitem{b7} A. Gala \textit{et al.}, ``IndicTrans2: Towards high-quality and accessible machine translation models for all 22 scheduled Indian languages,'' \textit{Trans. Mach. Learn. Res. (TMLR)}, 2023.
+\bibitem{b8} S. Khanuja \textit{et al.}, ``MuRIL: Multilingual representations for Indian languages,'' 2021.
+\bibitem{b9} Z. Xu \textit{et al.}, ``Multilingual retrieval-augmented generation for knowledge-intensive task,'' \textit{arXiv preprint arXiv:2504.03616}, 2025.
+\bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual retrieval-augmented generation: Characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.
+\bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.
+\bibitem{b12} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP}, 2019, pp. 3982--3992.
+\bibitem{b13} M. Zorzi \textit{et al.}, ``Extra-large letter spacing improves reading in dyslexia,'' \textit{Proc. Nat. Acad. Sci. (PNAS)}, vol. 109, no. 28, pp. 11455--11459, 2012.
+\bibitem{b14} L. Rello and R. Baeza-Yates, ``Good fonts for dyslexia,'' in \textit{Proc. ACM SIGACCESS Conf. Comput. Accessibility (ASSETS)}, 2013.
+\bibitem{b15} S. M. Kuster, M. van Weerdenburg, M. Gompel, and A. Bosman, ``Dyslexie font does not benefit reading in children with or without dyslexia,'' \textit{Annals of Dyslexia}, vol. 68, pp. 25--42, 2018.
+\bibitem{b16} S. Nag, ``Early reading in Kannada: The pace of acquisition of orthographic knowledge and phonemic awareness,'' \textit{J. Res. Reading}, vol. 30, no. 1, pp. 7--22, 2007.
+\bibitem{b17} S. Nag and M. J. Snowling, ``Reading in an alphasyllabary: Implications for a language-universal theory of learning to read,'' \textit{Sci. Stud. Reading}, vol. 16, no. 5, pp. 404--423, 2012.
+\bibitem{b18} J. P. Kincaid, R. P. Fishburne, R. L. Rogers, and B. S. Chissom, ``Derivation of new readability formulas for Navy enlisted personnel,'' Naval Tech. Training Command, Rep. 8-75, 1975.
+\bibitem{b19} W. Xu, C. Callison-Burch, and C. Napoles, ``Problems in current text simplification research: New data can help,'' \textit{Trans. Assoc. Comput. Linguist. (TACL)}, vol. 3, pp. 283--297, 2015.
+\bibitem{b20} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. ICLR}, 2018.
+\bibitem{b21} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
+\end{thebibliography}
+
+\end{document}
