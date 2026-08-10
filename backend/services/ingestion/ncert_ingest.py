@@ -90,6 +90,33 @@ OCR_IMAGE_DENSITY = 15.0  # images per 1000 characters
 OCR_MIN_PAGE_CHARS = 200  # below this, the page is a diagram with a caption
 OCR_RENDER_SCALE = 3.0  # 3x renders equations large enough to read reliably
 
+# Older NCERT books are typeset in legacy Devanagari fonts -- Walkman-Chanakya
+# 905 in the Hindi readers, and its relatives elsewhere -- which map Devanagari
+# glyphs onto ASCII codepoints and ship no ToUnicode table. Extraction returns
+# the raw bytes, so Class 10's Kshitij-2 comes out as
+#
+#     dkO; [kaM ... rqylhnkl ... lu~ 1532 esa gqvk FkkA
+#
+# where the text is actually
+#
+#     काव्य खंड ... तुलसीदास ... सन् 1532 में हुआ था।
+#
+# It is not detectable by looking for broken Devanagari, because there is no
+# Devanagari in it at all -- a fact that made an earlier quality pass rank
+# these books as the *cleanest* in the corpus. What identifies them is the
+# reverse: a Hindi book whose extracted text is overwhelmingly Latin.
+#
+# Storing it is worse than skipping it. The text is unreadable to a student,
+# and BGE-M3 embeds it as meaningless Latin, so it competes for retrieval slots
+# against passages that would have helped. 27 of the 41 in-scope Hindi books
+# are affected; recovering them needs a Chanakya-to-Unicode transliteration,
+# which is a separate piece of work.
+LEGACY_FONT_MAX_DEVANAGARI = 0.5  # fraction of letters that must be Devanagari
+LEGACY_FONT_MIN_LETTERS = 200  # below this the sample is too small to judge
+
+_DEVANAGARI = re.compile(r"[\u0900-\u097f]")
+_LATIN_LETTER = re.compile(r"[A-Za-z]")
+
 # PDF text arrives with hyphenated line breaks and hard-wrapped lines.
 _HYPHEN_BREAK = re.compile(r"(\w)-\n(\w)")
 _SINGLE_NEWLINE = re.compile(r"(?<!\n)\n(?!\n)")
@@ -267,6 +294,26 @@ def ocr_page(page, ocr_engine) -> str:
         Path(rendered).unlink(missing_ok=True)
 
 
+def is_legacy_font_text(text: str, book: Textbook) -> bool:
+    """
+    Whether a Devanagari-medium book's text came out as legacy font bytes.
+
+    Only applies to Hindi books: an English chapter is legitimately all Latin.
+    Short samples are treated as fine, because a page of nothing but a diagram
+    caption and a page number would otherwise be condemned on no evidence.
+    """
+    if book.medium != "Hindi":
+        return False
+
+    devanagari = len(_DEVANAGARI.findall(text))
+    latin = len(_LATIN_LETTER.findall(text))
+    letters = devanagari + latin
+    if letters < LEGACY_FONT_MIN_LETTERS:
+        return False
+
+    return devanagari / letters < LEGACY_FONT_MAX_DEVANAGARI
+
+
 def extract_chapters(
     zip_path: Path, book: Textbook, ocr_engine=None
 ) -> list[Chapter]:
@@ -336,6 +383,15 @@ def extract_chapters(
                 continue
 
             cleaned = clean_pdf_text(raw)
+
+            if is_legacy_font_text(cleaned, book):
+                logger.warning(
+                    "%s chapter %s: legacy Devanagari font, text extracted as "
+                    "Latin bytes -- skipping rather than storing gibberish",
+                    book.code, number,
+                )
+                continue
+
             if len(cleaned) < MIN_CHUNK_CHARS:
                 logger.debug(
                     "%s chapter %s: %s chars, likely scanned images — skipping",

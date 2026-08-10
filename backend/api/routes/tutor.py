@@ -99,6 +99,21 @@ MIN_USEFUL_SIMILARITY = 0.35
 # or Hinglish explanation if that is what was asked for.
 TEACHING_MEDIA = ("English", "Hindi")
 
+# Cosine similarity, answer against the passages it was given, below which the
+# answer is treated as having drifted. Calibrated against four hand-checked
+# answers over the Hindi reader corpus:
+#
+#     0.701  correct  Rahim's couplets, from the chapter that contains them
+#     0.668  correct  the Himalaya poem, quoting its own lines back
+#     0.583  correct  Baba Bharti and his horse Sultan
+#     0.489  wrong    a word-by-word guess at a couplet it never retrieved
+#                     ("Don't give a light rope to Rahiman's children")
+#
+# Correct answers sat at 0.58-0.70 and the invented one at 0.49, so the
+# boundary goes between them rather than at a round number. Four points is a
+# small sample and this is a starting value, not a validated one.
+GROUNDING_MIN = 0.55
+
 
 class ExplainRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1000)
@@ -144,6 +159,14 @@ class ExplainResponse(BaseModel):
     grade: int | None
     grade_was_detected: bool
     sources: list[Source]
+    grounding: float = Field(
+        description=(
+            "Cosine similarity between the answer and the passages it was "
+            "written from. Reported so a low score is visible rather than "
+            "silent: a fluent answer about the wrong thing looks exactly like "
+            "a correct one."
+        ),
+    )
     diagram: str | None = None
     diagram_note: str | None = None
     readability: ReadabilityReport | None = None
@@ -193,7 +216,10 @@ async def rewrite_for_search(question: str, engine, config_cls) -> str:
         logger.warning("Query rewrite failed, using the original: %s", exc)
         return question
 
-    cleaned = " ".join(rewritten.split()).strip().strip('"').strip()
+    # .strip('"') only removes quotes at the ends. The model likes to quote the
+    # part it is unsure how to translate, which leaves a lone '"' mid-string:
+    #   Meaning of "Rahiman dekhi baden ko, laghu na deejiye daari
+    cleaned = " ".join(rewritten.replace('"', " ").split()).strip()
 
     # A model that ignored the instructions and wrote a paragraph, or returned
     # nothing, is worse than the question the student typed.
@@ -246,6 +272,25 @@ def _retrieve(db: Session, vector: list[float], grade: int | None, limit: int) -
 GRADE_EVIDENCE_DEPTH = 3
 
 
+def merge_hits(results: list[list], limit: int) -> list:
+    """
+    One ranked list from several searches, each passage scored by its best hit.
+
+    Taking the maximum rather than the sum matters for grade detection: a
+    passage found by both queries is not thereby better evidence than one found
+    strongly by a single query, and summing would let the overlap between two
+    phrasings of the same question decide the class.
+    """
+    best: dict[tuple, object] = {}
+    for rows in results:
+        for row in rows:
+            key = (row.grade, row.subject, row.chapter, row.passage[:80])
+            if key not in best or row.similarity > best[key].similarity:
+                best[key] = row
+
+    return sorted(best.values(), key=lambda r: r.similarity, reverse=True)[:limit]
+
+
 def detect_grade(rows) -> int | None:
     """
     Work out which class a topic belongs to from the passages that matched.
@@ -266,19 +311,60 @@ def detect_grade(rows) -> int | None:
     Capping at three bounds what volume can contribute while still rewarding
     corroboration.
     """
+    scores = grade_scores(rows)
+    return max(scores, key=scores.get) if scores else None
+
+
+def grade_scores(rows) -> dict[int, float]:
+    """Each class's evidence, as the sum of its three strongest passages."""
     by_grade: dict[int, list[float]] = {}
     for row in rows:
         if row.grade is None or row.similarity < MIN_USEFUL_SIMILARITY:
             continue
         by_grade.setdefault(row.grade, []).append(float(row.similarity))
 
-    if not by_grade:
+    return {
+        grade: sum(sorted(hits, reverse=True)[:GRADE_EVIDENCE_DEPTH])
+        for grade, hits in by_grade.items()
+    }
+
+
+def vote_grade(per_query_rows: list[list]) -> int | None:
+    """
+    Let each query propose a class, then pick between the proposals.
+
+    Merging two queries' hits into one ranked list does not work, because
+    similarity is only comparable within a single query. Asked "Rahiman dekhi
+    baden ko, laghu na deejiye daari", the student's own wording ranked class 6
+    Malhar -- which contains that couplet -- in every one of its twelve hits,
+    while the English rewrite put a class 3 reader on top at 0.513. Pooled and
+    sorted, the rewrite's numerically larger scores buried the correct class.
+
+    So each query is scored on its own scale and proposes a winner, weighted by
+    how decisive that proposal is: the share of the evidence its winner holds,
+    times the absolute evidence behind it. A query that ranks one class
+    unanimously speaks with more authority than one that leads by 2%, and a
+    class proposed by both queries beats a class proposed by one.
+    """
+    proposals: dict[int, list[float]] = {}
+    for rows in per_query_rows:
+        scores = grade_scores(rows)
+        if not scores:
+            continue
+
+        ranked = sorted(scores.values(), reverse=True)
+        top = ranked[0]
+        runner_up = ranked[1] if len(ranked) > 1 else 0.0
+        # Lead as a fraction of the winner's own score, so it does not depend on
+        # the scale of this query's similarities, times the evidence itself, so
+        # that a decisive vote on thin evidence cannot outrank a solid one.
+        authority = (top - runner_up) / top * top if top else 0.0
+        proposals.setdefault(max(scores, key=scores.get), []).append(authority)
+
+    if not proposals:
         return None
 
-    def score(grade: int) -> float:
-        return sum(sorted(by_grade[grade], reverse=True)[:GRADE_EVIDENCE_DEPTH])
-
-    return max(by_grade, key=score)
+    return max(proposals, key=lambda g: (len(proposals[g]), max(proposals[g])))
 
 
 # Written for a reader whose decoding is effortful, not for a younger reader.
@@ -292,6 +378,44 @@ READING_SUPPORT_RULES = """
 - No nested clauses, no semicolons, no parenthetical asides.
 - Put a blank line between steps so the eye can find its place again.
 - Keep every fact and every technical term the curriculum requires. This is the same lesson, not a smaller one."""
+
+
+def grounding_score(answer: str, rows, embedder) -> float:
+    """
+    How close the answer stays to the passages it was given, 0 to 1.
+
+    Lexical overlap cannot measure this: the whole point of the platform is that
+    a Devanagari passage produces an English answer, so they share almost no
+    tokens. BGE-M3 is cross-lingual, which makes the cosine similarity between
+    the answer and its context a usable signal in exactly the case that matters.
+
+    It catches the failure that the prompt does not. Asked about Baba Bharti,
+    the model retrieved the right chapter -- the story of his horse Sultan --
+    and then wrote that he collects herbs and nurses a wounded bird. Correct
+    class, correct chapter, correct answer language, invented content. Nothing
+    in the response distinguished it from a good answer.
+    """
+    context = "\n\n".join(row.passage for row in rows)
+    if not context.strip() or not answer.strip():
+        return 0.0
+
+    import numpy as np
+
+    vectors = embedder.encode([answer[:4000], context[:4000]])
+    a, b = np.asarray(vectors[0]), np.asarray(vectors[1])
+    denominator = float(np.linalg.norm(a) * np.linalg.norm(b))
+    if denominator == 0.0:
+        return 0.0
+
+    return float(np.dot(a, b) / denominator)
+
+
+GROUNDING_PROMPT_SUFFIX = """
+
+The previous attempt described things that are not in the material above. Use
+only what is written there. Name only the people, places and objects the
+material names. If the material does not answer part of the question, say that
+plainly."""
 
 
 def build_prompt(
@@ -315,8 +439,8 @@ STUDENT'S QUESTION
 
 HOW TO ANSWER
 - Write the entire answer in {ANSWER_LANGUAGES[language]}. This is required regardless of the language the question was asked in.
+- Use only the material above. Every fact, name, place and number in your answer must appear in it. If it does not cover part of the question, say so plainly rather than filling the gap from memory.
 - Teach the concept: what it means, why it is true, and a worked example.
-- Stay within the material above. If it does not cover part of the question, say so plainly instead of inventing content.
 - Pitch it at {audience} — simple sentences, familiar examples from Indian life.
 - Keep mathematical notation and formulae exact.
 - No preamble. Begin with the explanation.{support}"""
@@ -374,31 +498,54 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
 
     engine = get_inference_engine()
 
-    # Rewrite before embedding: the student's wording is what gets taught back
-    # to them, but it is not what searches best.
+    # Search with the student's own wording *and* its English rewrite. The
+    # rewrite alone used to replace the question, which made every rewrite
+    # failure a retrieval failure: asked "Malhar mein Rahim ke dohe kya sikhate
+    # hain?", the model wrote "Rahman's couplets" -- a different poet -- and the
+    # search left class 6 Malhar, which contains those exact couplets, for a
+    # class 3 English reader. The raw question had ranked Malhar in all twelve
+    # of its top hits.
+    #
+    # Neither form is reliable on its own. Romanised Hindi drifts onto surface
+    # form (a class 10 chemistry question landing on class 1 picture books);
+    # the rewrite mistranslates proper nouns and is not deterministic even at
+    # temperature 0. Searching both and keeping each passage's best score costs
+    # one extra embedding call and removes the single point of failure.
     search_query = await rewrite_for_search(request.question, engine, GenerationConfig)
+    queries = [request.question]
     if search_query != request.question:
         logger.info("Search rewrite: %r -> %r", request.question[:60], search_query)
+        queries.append(search_query)
 
     try:
-        vector = get_embedder().encode_query(search_query).tolist()
+        embedder = get_embedder()
+        vectors = [embedder.encode_query(q).tolist() for q in queries]
     except Exception as exc:
         logger.error("Query embedding failed: %s", exc)
         raise HTTPException(
             status_code=503, detail="The embedding model is unavailable."
         ) from exc
 
+    def per_query(grade: int | None, limit: int) -> list[list]:
+        return [_retrieve(db, vector, grade, limit) for vector in vectors]
+
     grade = request.grade
     detected = False
 
     if grade is None:
-        discovery = _retrieve(db, vector, None, DISCOVERY_HITS)
-        grade = detect_grade(discovery)
+        discovery = per_query(None, DISCOVERY_HITS)
+        grade = vote_grade(discovery)
         detected = grade is not None
-        # Reuse the wide result when nothing could be narrowed to.
-        rows = _retrieve(db, vector, grade, CONTEXT_HITS) if grade else discovery[:CONTEXT_HITS]
+        # Once the class is fixed, both queries are searching the same small set
+        # of passages, so pooling them by score is safe and picks up whatever
+        # either phrasing found.
+        rows = (
+            merge_hits(per_query(grade, CONTEXT_HITS), CONTEXT_HITS)
+            if grade
+            else merge_hits(discovery, CONTEXT_HITS)
+        )
     else:
-        rows = _retrieve(db, vector, grade, CONTEXT_HITS)
+        rows = merge_hits(per_query(grade, CONTEXT_HITS), CONTEXT_HITS)
 
     usable = [row for row in rows if row.similarity >= MIN_USEFUL_SIMILARITY]
     if not usable:
@@ -410,17 +557,36 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
             ),
         )
 
-    try:
-        answer = await engine.generate(
-            build_prompt(
-                request.question,
-                usable,
-                grade,
-                request.answer_language,
-                request.reading_support,
-            ),
+    prompt = build_prompt(
+        request.question,
+        usable,
+        grade,
+        request.answer_language,
+        request.reading_support,
+    )
+
+    async def generate(text_prompt: str) -> str:
+        return await engine.generate(
+            text_prompt,
             GenerationConfig(max_tokens=1200, temperature=0.3, use_cache=False),
         )
+
+    try:
+        answer = await generate(prompt)
+        grounding = grounding_score(answer, usable, embedder)
+
+        # One retry, with the drift named. Retrying is worth a second call
+        # because the failure is not a refusal -- the model had the right
+        # passages and wrote around them, and telling it so is usually enough.
+        if grounding < GROUNDING_MIN:
+            logger.warning(
+                "Answer drifted from its sources (grounding %.3f < %.2f), retrying",
+                grounding, GROUNDING_MIN,
+            )
+            retried = await generate(prompt + GROUNDING_PROMPT_SUFFIX)
+            retried_grounding = grounding_score(retried, usable, embedder)
+            if retried_grounding > grounding:
+                answer, grounding = retried, retried_grounding
     except Exception as exc:
         logger.error("Explanation generation failed: %s", exc)
         raise HTTPException(
@@ -530,6 +696,7 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
         answer_language=request.answer_language,
         grade=grade,
         grade_was_detected=detected,
+        grounding=round(grounding, 4),
         sources=[
             Source(
                 grade=row.grade,

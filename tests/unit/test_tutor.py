@@ -15,15 +15,20 @@ from backend.api.routes.tutor import (
     MIN_USEFUL_SIMILARITY,
     AnswerLanguage,
     detect_grade,
+    merge_hits,
+    vote_grade,
 )
 
 
 class _Row:
     """A retrieved passage, as much of one as detect_grade reads."""
 
-    def __init__(self, grade: int | None, similarity: float):
+    def __init__(self, grade: int | None, similarity: float, passage: str = "", subject: str = "", chapter: int = 1):
         self.grade = grade
         self.similarity = similarity
+        self.passage = passage or f"passage g{grade} s{similarity}"
+        self.subject = subject
+        self.chapter = chapter
 
 
 # ==================== WHICH CLASS TEACHES THIS ====================
@@ -207,3 +212,76 @@ def test_retrieval_sql_uses_cast_not_double_colon():
     ]
 
     assert not offenders, "use CAST(:name AS type):\n" + "\n".join(offenders)
+
+
+# ==================== VOTING ACROSS QUERY PHRASINGS ====================
+
+
+def test_a_unanimous_query_beats_one_that_leads_narrowly():
+    """
+    The failure this exists for. Asked "Rahiman dekhi baden ko, laghu na
+    deejiye daari", the student's own wording ranked class 6 Malhar -- which
+    contains that couplet -- in every one of its hits, while the English
+    rewrite put a class 3 reader on top and class 6 just behind it. Pooling the
+    two by similarity let the rewrite's numerically larger scores win, and the
+    answer came back from a class 3 book about bus safety.
+    """
+    raw = [_Row(6, 0.50), _Row(6, 0.43), _Row(6, 0.42), _Row(6, 0.41)]
+    rewrite = [_Row(3, 0.513), _Row(3, 0.497), _Row(3, 0.490), _Row(6, 0.489)]
+
+    assert vote_grade([raw, rewrite]) == 6
+
+
+def test_a_class_both_queries_agree_on_wins():
+    """Corroboration counts before decisiveness does."""
+    raw = [_Row(8, 0.60), _Row(8, 0.58), _Row(8, 0.57), _Row(4, 0.40)]
+    rewrite = [_Row(8, 0.55), _Row(8, 0.54), _Row(8, 0.53), _Row(9, 0.52)]
+
+    assert vote_grade([raw, rewrite]) == 8
+
+
+def test_a_decisive_vote_on_thin_evidence_loses_to_a_solid_one():
+    """
+    A query whose only hit is one weak passage is unanimous by default. That is
+    not authority, so the lead is weighted by the evidence behind it.
+    """
+    thin = [_Row(2, 0.36)]
+    solid = [_Row(11, 0.62), _Row(11, 0.61), _Row(11, 0.60), _Row(5, 0.38)]
+
+    assert vote_grade([thin, solid]) == 11
+
+
+def test_vote_grade_returns_none_when_nothing_is_useful():
+    assert vote_grade([[_Row(6, 0.10)], [_Row(3, 0.20)]]) is None
+
+
+def test_vote_grade_survives_a_query_that_matched_nothing():
+    """One empty result must not silence the other."""
+    assert vote_grade([[], [_Row(7, 0.55), _Row(7, 0.54)]]) == 7
+
+
+# ==================== POOLING PASSAGES ====================
+
+
+def test_merge_hits_keeps_each_passage_once_at_its_best_score():
+    """
+    Both phrasings find the same passage; it is one passage, and its score is
+    the better of the two. Summing would let the overlap between two wordings
+    of the same question outrank a passage only one of them found.
+    """
+    a = [_Row(6, 0.50, passage="the couplet", subject="Malhar", chapter=5)]
+    b = [_Row(6, 0.61, passage="the couplet", subject="Malhar", chapter=5)]
+
+    merged = merge_hits([a, b], 5)
+
+    assert len(merged) == 1
+    assert merged[0].similarity == 0.61
+
+
+def test_merge_hits_orders_by_score_and_respects_the_limit():
+    a = [_Row(6, 0.40, passage="one"), _Row(6, 0.70, passage="two")]
+    b = [_Row(8, 0.55, passage="three")]
+
+    merged = merge_hits([a, b], 2)
+
+    assert [r.similarity for r in merged] == [0.70, 0.55]

@@ -19,6 +19,7 @@ from backend.services.ingestion.ncert_catalog import (
 )
 from backend.services.ingestion.ncert_ingest import (
     MIN_CHUNK_CHARS,
+    is_legacy_font_text,
     OCR_IMAGE_DENSITY,
     OCR_MIN_PAGE_CHARS,
     chunk_text,
@@ -382,3 +383,50 @@ def test_threshold_boundary_is_exclusive():
 
     assert page_needs_ocr(_FakePage(images=at_threshold), _page_text(chars)) is False
     assert page_needs_ocr(_FakePage(images=at_threshold + 1), _page_text(chars)) is True
+
+
+# ==================== LEGACY DEVANAGARI FONTS ====================
+
+
+def test_legacy_font_text_is_rejected_for_a_hindi_book():
+    """
+    Class 10's Kshitij-2 is typeset in Walkman-Chanakya 905, which maps
+    Devanagari glyphs onto ASCII codepoints with no ToUnicode table. The
+    extracted "text" below is really "काव्य खंड ... तुलसीदास ... सन् 1532 में
+    हुआ था।" -- unreadable to a student, and embedded by BGE-M3 as meaningless
+    Latin that competes for retrieval slots against passages that would help.
+    """
+    gibberish = (
+        "dkO; [kaM ân; fla/q efr lhi lekukA Lokfr lkjnk dgfga lqtkukA "
+        "rqylhnkl dk tUe mÙkj izns'k osQ ck¡nk f”kys osQ jktkiqj xk¡o esa "
+        "lu~ 1532 esa gqvk FkkA t;'kadj izlkn dk tUe lu~ 1889 esa okjk.klh "
+        'esa gqvkA lw ;Zdkar f=kikBh ^fujkyk* dk tUe caxky osQ efg"kkny esa '
+    ) * 3
+    book = Textbook(code="jhks1", title="Kshitij-2", grade=10, medium="Hindi")
+
+    assert is_legacy_font_text(gibberish, book)
+
+
+def test_real_devanagari_is_kept():
+    """Sarangi is set in Kokila, a Unicode font, and extracts correctly."""
+    real = (
+        "बच्चों को पोस्टर देखने के लिए पर्याप्त समय दें। पोस्टर में दिखाए गए "
+        "घर-परिवार एवं कार्यों के विषय में बातचीत करें। इस घर में कौन-कौन हैं? "
+    ) * 4
+    book = Textbook(code="ahsr1", title="Sarangi", grade=1, medium="Hindi")
+
+    assert not is_legacy_font_text(real, book)
+
+
+def test_an_english_book_is_never_condemned_for_being_latin():
+    """The whole point of an English chapter is that it is Latin."""
+    book = Textbook(code="jesc1", title="Science", grade=10, medium="English")
+
+    assert not is_legacy_font_text("Light behaves as both a wave and a particle. " * 20, book)
+
+
+def test_a_short_sample_is_given_the_benefit_of_the_doubt():
+    """A page holding only a diagram caption and a folio is no evidence."""
+    book = Textbook(code="jhks1", title="Kshitij-2", grade=10, medium="Hindi")
+
+    assert not is_legacy_font_text("figure 3.1", book)

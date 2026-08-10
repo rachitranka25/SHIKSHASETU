@@ -251,6 +251,267 @@ ingested subset is English-first.
 
 ---
 
+## Measured findings
+
+Every number here comes from running this code against the real NCERT corpus.
+Several of these were found by measurement contradicting an assumption, and the
+contradictions are recorded alongside the results because the wrong turn is
+usually the more useful half.
+
+### Two thirds of the Hindi curriculum is unreadable by any PDF text extractor
+
+NCERT's older Hindi textbooks are typeset in **Walkman-Chanakya 905**, a legacy
+font that maps Devanagari glyphs onto ASCII codepoints and ships no `ToUnicode`
+table. Text extraction returns the raw bytes. Class 10's Kshitij-2 comes out as:
+
+```
+dkO; [kaM ... rqylhnkl ... lu~ 1532 esa gqvk FkkA
+```
+
+where the text is actually `काव्य खंड ... तुलसीदास ... सन् 1532 में हुआ था।`
+
+Measured across 41 in-scope Hindi books, chapter 3 of each:
+
+| Extraction | Books | Devanagari in output |
+|---|---|---|
+| Legacy font (Walkman-Chanakya) | **27** | 0.0% |
+| Unicode font (Kokila, Arya) | 14 | 97.9–100% |
+
+The newer books — Sarangi, Veena, Malhar, Ganga, Sharada — use Unicode fonts and
+extract correctly.
+
+**The wrong turn.** An earlier quality pass scored these books by counting
+broken Devanagari: orphan vowel signs, doubled conjuncts, a virama followed by a
+vowel sign. It reported the 27 legacy books as the **cleanest in the corpus**,
+because a detector that looks for damaged Devanagari finds nothing in a book
+containing no Devanagari at all. Kshitij-2 and Aroh were ranked perfect and
+ingested on that basis; 133 chunks of Roman gibberish went into the corpus
+before a chapter was read by eye. The measurement was not merely imprecise, it
+was inverted — the books it ranked worst (Sarangi, 12 defects) are the only ones
+usable, and the ones it ranked perfect are unusable.
+
+What identifies the failure is the reverse test: a Hindi book whose extracted
+text is overwhelmingly *Latin*. `is_legacy_font_text()` now refuses such
+chapters at ingestion rather than storing them, because a passage that is
+unreadable to a student still competes for retrieval slots against one that
+would have helped.
+
+Recovering the 27 books needs a Chanakya-to-Unicode transliteration, including
+the reordering legacy fonts require — the `ि` matra is stored before its
+consonant. That work is not done.
+
+### Where Devanagari does extract, the damage is subtle
+
+Among the 14 usable books, conjunct consonants are dropped silently where the
+font's `ToUnicode` map is incomplete:
+
+```
+क्या   → क्ा      (य lost)
+स्वागत → सवागत    (virama lost)
+लट्टू  → लटट् टटू  (shaping collapsed)
+```
+
+Roughly 1–2% of words, concentrated in Class 11 Hindustani Sangeet (131
+defects / 6942 words) and the Sanskrit readers.
+
+**Cloud OCR is not the fix.** Rendering a page at 3× and transcribing it with
+`nvidia/nemotron-nano-12b-v2-vl` repairs the conjuncts and introduces worse
+errors:
+
+| | Text layer | Vision OCR |
+|---|---|---|
+| conjuncts | `क्ा`, `सवागत` — dropped | `क्या`, `स्वागत` — correct |
+| word identity | correct | बातचीत→वातचीत, सुबह→सुभह, अतिथि→आतिथि, परिचित→परिरचित, सहपाठियों→सहपातियों |
+| invention | none | hallucinated a `Reprint 2026-27` header |
+
+The text layer loses glyphs; the vision model substitutes visually similar
+characters and adds text that is not on the page. For a reader, silent
+substitution is worse than a visible gap. Tesseract with Devanagari training
+data is untested — the installed build has no `hin` model.
+
+### Similarity is not comparable across query phrasings
+
+The tutor rewrites each question into an English search query before embedding,
+because BGE-M3's cross-lingual strength does not extend to romanised Hindi. That
+rewrite used to *replace* the question, which made every rewrite failure a
+retrieval failure.
+
+Asked `Malhar mein Rahim ke dohe kya sikhate hain?`, the rewrite produced
+**"Rahman's couplets in Malhar"** — a different poet — and the search left Class
+6 Malhar, which contains those exact couplets, for a Class 3 English reader:
+
+```
+rewrite  "Rahman's couplets in Malhar what do they teach"
+   0.500  class 6 [hi] Malhar          <- correct book, top hit
+   0.488  class 3 [en] Bansuri-I
+   0.483  class 3 [en] Bansuri-I
+   0.461  class 3 [en] Bansuri-I
+   grade score:  class 3 = 1.431   class 6 = 1.398    -> class 3 wins by 2.4%
+
+raw question, no rewrite
+   all twelve top hits are class 6 Malhar             -> class 6
+```
+
+**The wrong turn.** The first fix pooled both queries' hits into one ranked list
+and kept each passage's best score. It did not work, and the reason is the
+finding: **similarity is only comparable within a single query.** The rewrite's
+absolute scores ran higher, so its Class 3 hits (0.513, 0.497, 0.490) outranked
+the raw query's correct Class 6 hits (0.496, 0.425, 0.423) in the pooled list,
+and the wrong class won again.
+
+`vote_grade()` instead lets each query propose a class on its own scale, weighted
+by how decisive the proposal is — the share of the evidence its winner holds,
+times the absolute evidence behind it — and prefers a class that both queries
+propose. A query that ranks one class unanimously outweighs one that leads by
+2%; a query whose single weak hit makes it unanimous by default does not
+outweigh a solid one.
+
+### A fluent answer about the wrong thing looks exactly like a correct one
+
+Asked `बाबा भारती की कहानी में क्या हुआ?`, the tutor retrieved the right chapter —
+Malhar Class 6, chapter 4, the story of Baba Bharti's horse Sultan — and then
+wrote that he collects herbs and nurses a wounded bird. Correct class, correct
+chapter, correct answer language, invented content. The prompt already said
+*"stay within the material above"*.
+
+Nothing in the response distinguished it from a good answer, which is why
+`grounding` is now a returned field: the cosine similarity between the answer
+and the passages it was written from. Lexical overlap cannot measure this — the
+platform's entire purpose is that a Devanagari passage produces an English
+answer, so they share almost no tokens. BGE-M3 being cross-lingual is what makes
+the metric work in exactly the case that matters.
+
+Calibrated against four hand-checked answers:
+
+| Grounding | Verdict | Answer |
+|---|---|---|
+| 0.701 | correct | Rahim's couplets, from the chapter containing them |
+| 0.668 | correct | the Himalaya poem, quoting its own lines back |
+| 0.583 | correct | Baba Bharti and his horse Sultan |
+| 0.489 | **wrong** | *"Don't give a light rope to Rahiman's children"* |
+
+`GROUNDING_MIN = 0.55` sits between them. Below it, the answer is regenerated
+once with the drift named; the score is returned either way. Four points is a
+starting value, not a validated threshold.
+
+The 0.489 case is instructive: after the voting fix it reached the right class
+and the right book, and the end-to-end test **passed** — correct language,
+correct class, sources from the Hindi reader. The answer was still wrong,
+because retrieval landed on chapter 13 rather than chapter 5 and the model
+guessed at the couplet word by word. Only the grounding score caught it. A test
+that checks language and class checks the easy half.
+
+### Embedding precision is free on Apple silicon
+
+BGE-M3 weights, and cosine similarity of the resulting vectors against float32:
+
+| dtype | Resident | Cosine vs fp32 |
+|---|---|---|
+| float32 | 2166 MB | — |
+| float16 | 1083 MB | 0.999999 |
+
+Half the memory, roughly double the encode throughput, no measurable quality
+cost. On a 4 GB target the fp32 model alone is most of the machine before
+Postgres and the API have asked for anything.
+
+### Ingestion wedges an 8 GB machine, and a swap-only guard is the wrong guard
+
+A single process attempting the whole catalog reached book 8 and stopped: swap at
+11.4 GB of 12.2, the process in uninterruptible I/O wait (`STAT U`) with its
+resident set paged entirely out, no progress for eleven minutes. **`SIGKILL` is
+not delivered in that state** — the kernel cannot deliver a signal until the I/O
+completes, so there is no recovery, only waiting. One process per small batch
+returns every page between batches, at the cost of a ~20 s model reload.
+
+The memory guard checks **free RAM and swap together**. An earlier version
+checked swap alone and stopped a healthy run with 937 MB of swap free while 65%
+of RAM sat idle.
+
+### Download and embedding contend for nothing
+
+One waits on a government web server, the other saturates the GPU, but they ran
+in sequence at **97 s/book**. With the next book fetched on a prefetch thread
+while the current one is embedded, the observed rate is **~3.1 min/book**
+including PDF extraction and chunk commits — seven hours for the 263-book
+curriculum on one M1.
+
+### Which pages need OCR is predictable before running it
+
+NCERT sets equations as images, and the text layer drops the glyphs: `a ≠ 0`
+arrives as `a  0`. Image density separates the pages that need re-reading from
+the ones that do not:
+
+| Page type | Images per 1000 chars |
+|---|---|
+| Mathematics with inline equations | 30.8 |
+| Prose with figures | 2.0–5.9 |
+
+A threshold of 15 catches the first and spares the second. Looking for the run
+of spaces a dropped glyph leaves behind was tried and discarded: justified prose
+produces the same pattern at the same rate.
+
+The heuristic is orthogonal to the Devanagari problem — it fires on 4 of 5 pages
+of a Class 1 picture book and 0 of 5 pages of dense Hindi prose, which is
+correct for equations and useless for legacy fonts.
+
+### The image model has three failure modes worth knowing
+
+`black-forest-labs/flux.1-dev`, used for illustrations:
+
+- **422 on unlisted sizes.** `height: 512` is rejected; 1024×768 is accepted.
+- **It returns JPEG, not PNG.** A PNG-signature check discarded every image
+  until the sniff was changed to read magic bytes.
+- **Blank frames arrive with `finishReason: SUCCESS`.** Detected by brightness
+  spread: a blank frame measures 2, a real illustration 205. Below 40, retry
+  once.
+
+A language model asked for SVG instead produced a rectangle with four floating
+words, and the 70B took 145 s to do it worse than the 8B did in 8. Standard
+geometry figures are therefore hand-written SVG templates with computed
+coordinates; everything else falls through to the image model.
+
+### Reading support has to be measured, not asserted
+
+The first version of the dyslexia-support rewrite produced text **harder** than
+its source — Flesch-Kincaid 8.2 against the source's 7.0 — while also losing the
+answer-language instruction. It now measures, rewrites, measures again, and
+keeps whichever is easier. Readability is reported for both so the adaptation can
+be checked rather than trusted.
+
+For Brahmic scripts the unit is the **akshara**, not the syllable, segmented
+virama-aware (`प्रकाश` → `प्र`, `का`, `श`), and sentence counting honours the
+danda (`।`). Flesch-Kincaid is reported only for Latin, where it is defined.
+
+### Defects found by audit that meant advertised features had never worked
+
+Ordered by consequence, all fixed:
+
+| Defect | Consequence |
+|---|---|
+| Safety pipeline import failure returned `(response, True)` | Content filtering failed **open** — every unsafe response passed |
+| Duplicate auth module with no JWT type check | A refresh token was accepted as an access token |
+| `validate_required()` only logged, and nothing called it | A production deploy with rate limiting off would boot silently |
+| `RATE_LIMIT_CALLS` did not exist as a setting | The limit read as `None` |
+| `embedding` stored as `double precision[]` | No vector index was possible; search was a sequential scan |
+| `:vector::vector` bind | SQLAlchemy truncated the parameter name at the colon |
+| Row-level security made shared curriculum unrepresentable | Curriculum had to belong to a tenant to exist |
+| App role held zero table privileges | Least-privilege role could not read |
+| Sentry received student PII | Question text left the deployment |
+| Case-sensitive credential header filter | `authorization` passed where `Authorization` was stripped |
+| Unbounded uploads on an unauthenticated route | Trivial disk exhaustion |
+| `torchvision` undeclared | The OCR path could never import |
+
+### An open hole, stated rather than hidden
+
+`processed_content` carries row-level security; **`document_chunks` and
+`embeddings` carry none.** The isolation is therefore bypassable — the chunk text
+is the same content as its parent, and a tenant's connection can read and delete
+another tenant's chunks directly. This was found by RLS correctly refusing a
+delete on the parent while the same delete succeeded on its children. Not yet
+fixed.
+
+---
+
 ## Project Status
 
 The capability table above describes what the codebase is built to do. This
@@ -276,6 +537,15 @@ section describes what is currently verified, so you can tell the two apart.
 - Response caching and per-route metrics across the v2 API, keyed per caller
   so no response crosses between users.
 - Upload endpoints enforce a 100 MB cap and a file-type allowlist.
+- Hindi literature end to end, against a corpus where English STEM books
+  outnumber the Hindi reader thirteen to one: a Hinglish question, an English
+  question and a Devanagari question about Class 6 Malhar all resolve to class
+  6 and retrieve from the Hindi reader rather than the class 10 science books.
+  Three of the four answers are grounded (0.58-0.70); the fourth reaches the
+  right book and still answers wrongly, and is reported as such by its
+  grounding score of 0.49 rather than passing silently.
+- Ingestion refuses chapters whose Devanagari extracted as legacy-font Latin
+  bytes, so the 27 affected books cannot silently poison the corpus.
 - Production startup refuses to boot on a missing JWT secret, a missing
   `DATABASE_URL`, disabled rate limiting, or a wildcard CORS origin combined
   with credentials.
@@ -289,6 +559,23 @@ section describes what is currently verified, so you can tell the two apart.
 
 **Known gaps**
 
+- **27 of the 41 in-scope Hindi books cannot be ingested at all.** They are
+  typeset in Walkman-Chanakya 905, a legacy font with no `ToUnicode` table, and
+  extraction yields Roman gibberish. Ingestion now refuses them rather than
+  storing it. Recovering them needs a Chanakya-to-Unicode transliteration with
+  matra reordering, which is not written. Every Hindi book from classes 10-12 is
+  in this set, so the Hindi strand currently reaches classes 1-9 only.
+- **Retrieval can reach the right book and the wrong chapter.** A romanised
+  couplet resolved to Class 6 Malhar but chapter 13 instead of chapter 5, and
+  the model then guessed at the couplet word by word. The grounding score
+  flags it (0.49); nothing prevents it. Wiring `BGEReranker`, which exists in
+  the codebase but is not in the retrieval path, is the obvious next step.
+- **`GROUNDING_MIN` is calibrated on four hand-checked answers.** It separates
+  them cleanly, which is not the same as being validated.
+- **`document_chunks` and `embeddings` have no row-level security** while their
+  parent `processed_content` does, so tenant isolation is bypassable through
+  the children. Found by RLS refusing a delete on the parent while the same
+  delete succeeded on its chunks.
 - Retrieval quality depends on how much of the catalog a deployment has
   ingested. The pipeline reaches all 559 books; a fresh clone starts at zero
   and fills as the ingestion runs, so a question about a class whose books are
