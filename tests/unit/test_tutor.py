@@ -2,8 +2,8 @@
 Unit tests for the tutor's decision logic.
 
 No model and no database. These cover the parts that decide what a student is
-taught and what gets rendered into their browser — which class the answer comes
-from, and whether a model-authored SVG is safe to insert.
+taught and what is shown to them — which class the answer comes from, which
+textbook editions may be taught out of, and what the illustration is asked for.
 """
 
 import re
@@ -15,7 +15,6 @@ from backend.api.routes.tutor import (
     MIN_USEFUL_SIMILARITY,
     AnswerLanguage,
     detect_grade,
-    extract_svg,
 )
 
 
@@ -74,56 +73,46 @@ def test_a_single_strong_passage_is_enough():
     assert detect_grade([_Row(6, 0.72)]) == 6
 
 
-# ==================== GENERATED SVG IS UNTRUSTED ====================
+# ==================== ILLUSTRATIONS ====================
 
 
-def test_extracts_a_plain_svg():
-    raw = 'Here you go:\n<svg viewBox="0 0 400 300"><circle cx="10" cy="10" r="5"/></svg>\nHope that helps!'
-
-    svg = extract_svg(raw)
-
-    assert svg is not None
-    assert svg.startswith("<svg")
-    assert svg.endswith("</svg>")
-    assert "Hope that helps" not in svg
-
-
-def test_none_sentinel_yields_no_diagram():
-    """The model is told to say NONE when a concept cannot be drawn."""
-    assert extract_svg("NONE") is None
-    assert extract_svg("  none  ") is None
-
-
-def test_missing_svg_yields_no_diagram():
-    assert extract_svg("I cannot draw that.") is None
-    assert extract_svg("") is None
-
-
-@pytest.mark.parametrize(
-    "payload",
-    [
-        '<svg viewBox="0 0 400 300"><script>alert(1)</script></svg>',
-        '<svg viewBox="0 0 400 300" onload="steal()"></svg>',
-        '<svg viewBox="0 0 400 300"><image onerror="x()" href="a"/></svg>',
-        '<svg viewBox="0 0 400 300"><a href="javascript:x()">t</a></svg>',
-    ],
-)
-def test_svg_carrying_script_is_discarded(payload):
+def test_illustration_prompt_forbids_text_in_the_image():
     """
-    This string is inserted into the page with dangerouslySetInnerHTML. A
-    language model is not a trusted author, and its output can be steered by
-    the question a student types.
+    Diffusion models misspell words, and a textbook diagram with garbled labels
+    is worse than one with none. The labels come from the explanation instead,
+    as real characters.
     """
-    assert extract_svg(payload) is None
+    from backend.services.illustration import build_scene_prompt
+
+    prompt = build_scene_prompt("the water cycle", "Water evaporates from lakes.")
+
+    lowered = prompt.lower()
+    assert "no text" in lowered
+    assert "no words" in lowered
+    assert "no labels" in lowered
 
 
-def test_extraction_is_not_fooled_by_a_fenced_block():
-    raw = "```svg\n<svg viewBox=\"0 0 400 300\"><rect width=\"10\" height=\"10\"/></svg>\n```"
+def test_illustration_prompt_includes_the_explanation():
+    """
+    The concept alone draws something generic. A sentence of the explanation is
+    what makes it this lesson's picture.
+    """
+    from backend.services.illustration import build_scene_prompt
 
-    svg = extract_svg(raw)
+    prompt = build_scene_prompt("photosynthesis", "Green leaves absorb sunlight.")
 
-    assert svg is not None
-    assert "```" not in svg
+    assert "photosynthesis" in prompt
+    assert "Green leaves absorb sunlight" in prompt
+
+
+def test_illustration_is_skipped_without_a_key(monkeypatch):
+    """A missing picture must never cost the student the explanation."""
+    from backend.core.config import settings
+    from backend.services import illustration
+
+    monkeypatch.setattr(settings, "NVIDIA_API_KEY", "")
+
+    assert illustration.generate_illustration("anything") is None
 
 
 # ==================== LANGUAGES ====================

@@ -30,6 +30,14 @@ set -uo pipefail
 BATCH_SIZE="${1:-5}"
 MAX_BATCHES="${2:-0}"   # 0 means keep going until the catalog is exhausted
 
+# Which editions to ingest, space separated. Defaults to the two the tutor can
+# teach from — see TEACHING_MEDIA in backend/api/routes/tutor.py. The Urdu
+# editions are the same curriculum in a script the tutor does not teach out of,
+# so they are 160 books of the catalog that only the library search would
+# reach. Ingest them later with:
+#     INGEST_MEDIA=Urdu scripts/ingest_ncert_batched.sh
+INGEST_MEDIA="${INGEST_MEDIA:-English Hindi}"
+
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 PYTHON="venv/bin/python"
@@ -92,7 +100,7 @@ while :; do
     # books NCERT never published a zip for. A trial run with --limit reported
     # "0 books ingested, 8 skipped" twice in a row for exactly that reason.
     # Selecting the pending codes explicitly is what makes each batch do work.
-    pending=$($PYTHON - "$BATCH_SIZE" <<'PY'
+    pending=$($PYTHON - "$BATCH_SIZE" "$INGEST_MEDIA" <<'PY'
 import os
 import sys
 from pathlib import Path
@@ -104,6 +112,7 @@ from backend.services.ingestion import load_catalog
 from backend.services.ingestion.ncert_ingest import DOWNLOAD_DIR
 
 wanted = int(sys.argv[1])
+media = set(sys.argv[2].split()) if len(sys.argv) > 2 and sys.argv[2].strip() else None
 
 engine = create_engine(os.environ["INGEST_DATABASE_URL"])
 with engine.connect() as connection:
@@ -121,7 +130,11 @@ with engine.connect() as connection:
 unavailable = {p.stem for p in DOWNLOAD_DIR.glob("*.unavailable")}
 skip = done | unavailable
 
-remaining = [b.code for b in load_catalog() if b.code not in skip]
+remaining = [
+    b.code
+    for b in load_catalog()
+    if b.code not in skip and (media is None or b.medium in media)
+]
 print(" ".join(remaining[:wanted]))
 print(len(done), len(unavailable), len(remaining), file=sys.stderr)
 PY
@@ -133,7 +146,7 @@ PY
     fi
 
     echo
-    echo "──── batch $batch — $(echo "$pending" | wc -w | tr -d ' ') books: $pending ────"
+    echo "──── batch $batch [$INGEST_MEDIA] — $(echo "$pending" | wc -w | tr -d ' ') books: $pending ────"
 
     $PYTHON scripts/ingest_ncert.py --codes $pending --discard-downloads
     status=$?

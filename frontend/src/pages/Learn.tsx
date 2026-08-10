@@ -359,12 +359,15 @@ export default function Learn() {
 
             {result.diagram && (
               <figure className={`rounded-card border p-4 ${panel}`}>
-                {/* The SVG is model-generated and server-side stripped of script
-                    and event handlers before it is ever sent here. */}
-                <div
-                  className="mx-auto max-w-md [&>svg]:h-auto [&>svg]:w-full"
-                  // eslint-disable-next-line react/no-danger
-                  dangerouslySetInnerHTML={{ __html: result.diagram }}
+                {/* A data: URI holding a PNG, rendered as an image. The earlier
+                    version injected model-authored SVG with
+                    dangerouslySetInnerHTML; an <img> cannot execute anything,
+                    so the whole class of injection goes away with it. */}
+                <img
+                  src={result.diagram}
+                  alt={`Illustration for: ${question.trim()}`}
+                  className="mx-auto w-full max-w-lg rounded"
+                  loading="lazy"
                 />
                 {result.diagram_note && (
                   <figcaption className={`mt-3 text-body-sm ${faint}`}>

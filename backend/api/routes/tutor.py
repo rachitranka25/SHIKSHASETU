@@ -21,14 +21,14 @@ Three things this does that plain retrieval does not:
    it used, rather than letting the model answer from memory.
 
 ON DIAGRAMS: NCERT's own figures are images inside the textbook PDFs, and the
-ingestion extracts text only — the figures are not in the corpus and cannot be
-served. A diagram returned here is drawn by the model to illustrate the
-explanation. The response says so in `diagram_note`, and the field is null
-rather than approximated when the topic does not admit a simple drawing.
+ingestion extracts text only — they are not in the corpus and cannot be served.
+An illustration returned here is drawn for the explanation by an image model,
+carries no text of its own, and says so in `diagram_note`. See
+backend/services/illustration.py for why a language model writing SVG was
+abandoned.
 """
 
 import logging
-import re
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -357,47 +357,6 @@ def reading_load(metrics) -> float:
     )
 
 
-DIAGRAM_PROMPT = """Draw one small, clean SVG diagram illustrating this concept for a school textbook.
-
-CONCEPT: {question}
-CONTEXT: {summary}
-
-Rules:
-- Output only the SVG. No markdown fence, no explanation, nothing before or after.
-- viewBox="0 0 400 300", no width or height attributes, so it scales.
-- stroke="currentColor" and fill="none" for lines so it works on light and dark backgrounds. Use fill="currentColor" for text.
-- Label the parts with <text> elements, font-size 13 or larger.
-- Keep it to the essential shape. No decoration, no colour, no gradients.
-- If this concept cannot be usefully drawn as a simple diagram, output exactly: NONE"""
-
-# Model output is inserted into the page, so only a plain <svg> element is
-# accepted — anything else, including a fenced block or commentary, is dropped.
-_SVG = re.compile(r"<svg\b[^>]*>.*?</svg>", re.S | re.I)
-_FORBIDDEN_IN_SVG = re.compile(r"<script|onload=|onerror=|javascript:", re.I)
-
-
-def extract_svg(raw: str) -> str | None:
-    """
-    Pull a usable SVG out of the model's reply, or return None.
-
-    Rejects anything carrying script or event handlers: this string is rendered
-    into the page, and a model is not a trusted author.
-    """
-    if not raw or "NONE" in raw[:40].upper():
-        return None
-
-    match = _SVG.search(raw)
-    if not match:
-        return None
-
-    svg = match.group(0)
-    if _FORBIDDEN_IN_SVG.search(svg):
-        logger.warning("Discarded a generated SVG containing script or handlers")
-        return None
-
-    return svg
-
-
 @router.post("/tutor/explain", response_model=ExplainResponse, tags=["tutor"])
 async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> ExplainResponse:
     """
@@ -470,22 +429,23 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
     diagram = None
     diagram_note = None
     if request.diagram:
-        try:
-            raw = await engine.generate(
-                DIAGRAM_PROMPT.format(
-                    question=request.question,
-                    summary=usable[0].passage[:400],
-                ),
-                GenerationConfig(max_tokens=900, temperature=0.2, use_cache=False),
-            )
-            diagram = extract_svg(raw)
-        except Exception as exc:  # A missing picture must not lose the lesson.
-            logger.warning("Diagram generation failed: %s", exc)
+        # An image model, not a language model writing SVG. Asking a text model
+        # for SVG produced a rectangle with four floating words; the 70B took
+        # 145 seconds to do it worse than the 8B did in 8. See
+        # backend/services/illustration.py.
+        from ...services.illustration import generate_illustration
 
+        subject = usable[0].subject or "this topic"
+        diagram = generate_illustration(
+            concept=f"{request.question.strip()} ({subject}, Class {grade})",
+            description=answer[:400],
+        )
         if diagram:
             diagram_note = (
-                "Drawn to illustrate the explanation. NCERT's own figures are "
-                "images inside the textbook PDFs and are not part of the corpus."
+                "Illustration drawn for this explanation. It carries no text, "
+                "because image models misspell words — the labelled facts are in "
+                "the explanation above. NCERT's own figures live inside the "
+                "textbook PDFs and are not part of the corpus."
             )
 
     readability = None
