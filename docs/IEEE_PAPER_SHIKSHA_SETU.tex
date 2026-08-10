@@ -11,8 +11,22 @@
 \usepackage{multirow}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
-\usepackage{tgtermes}
-\usepackage{tgcursor}
+% Times with real bold and italic. tgtermes/tgcursor are pdfTeX font packages;
+% under XeTeX they left every \textbf and \textit rendering as LMRoman-Regular,
+% so the compiled PDF had no bold or italic anywhere. fontspec loads the same
+% TeX Gyre faces with their bold and italic variants present.
+\usepackage{fontspec}
+\setmainfont{texgyretermes}[
+  Extension      = .otf,
+  UprightFont    = *-regular,
+  BoldFont       = *-bold,
+  ItalicFont     = *-italic,
+  BoldItalicFont = *-bolditalic ]
+\setmonofont{texgyrecursor}[
+  Extension   = .otf,
+  UprightFont = *-regular,
+  BoldFont    = *-bold,
+  ItalicFont  = *-italic ]
 
 \begin{document}
 
@@ -469,7 +483,7 @@ Taught curriculum & 263 textbooks \\
 Supported languages & 10 \\
 API routes & 72 \\
 Ingestion throughput & 140 s/book (1.38$\times$) \\
-Full curriculum time & ${\sim}7$ hours \\
+Full curriculum time & ${\sim}10.2$ hours \\
 Peak serving memory (fp16) & 2,094~MB \\
 fp16 cosine fidelity & 0.999999 \\
 Memory reduction (fp16) & 50\% \\
@@ -490,7 +504,7 @@ The measurement-driven methodology reveals a recurring pattern: intuitive engine
 
 The legacy font detection illustrates this most starkly. A quality metric searching for damaged Devanagari ranked the most corrupted books as the best---because corruption manifested as the \textit{absence} of Devanagari, which the metric interpreted as perfection. The memory estimation follows the same pattern: summing static sizes to 1.6~GB misses the 2.1~GB transient peak. The grounding score addresses a fundamental RAG limitation: a system can retrieve correctly, generate fluently, pass every surface check, and still fabricate content.
 
-\textbf{Limitations.} (1)~The grounding threshold is preliminarily calibrated on only four answers due to manual verification limits; this statistically small sample size requires expansion. (2)~Cross-lingual retrieval is evaluated across five of ten supported languages. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
+\textbf{Limitations.} (1)~The grounding threshold is preliminarily calibrated on only four answers due to manual verification limits; this statistically small sample size requires expansion. (2)~Cross-lingual retrieval is evaluated with five queries across four of the ten supported languages, and over a 30-book corpus rather than the full taught curriculum. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
 
 %===================================================================
 \section{Conclusion and Future Work}
