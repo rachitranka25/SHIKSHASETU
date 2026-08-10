@@ -96,9 +96,15 @@ is therefore scraped from NCERT's own textbook picker — a JavaScript page that
 writes titles through a chain of `if(pm=="jesc1")` blocks — and cached to
 `data/ncert_catalog.json` so ingestion never depends on their site being up.
 
-**558 books**: 208 English, 190 Hindi, 160 Urdu, across classes 1–12.
-Roughly a quarter have no zip published; those are recorded as
+**558 books**: 208 English, 190 Hindi, 160 Urdu, across classes 1–12. The
+pipeline reaches all of them; how many are in a given database depends on how
+long the ingestion has been left to run, and `/api/v2/library` reports the live
+figure. Roughly a quarter have no zip published at all; those are recorded as
 `.unavailable` markers so a batched run does not re-request them every batch.
+
+Only the English and Hindi editions are taught from (§5), so a deployment that
+never ingests Urdu loses nothing but library search coverage — and saves 29% of
+the ingestion time.
 
 ### Pipeline
 

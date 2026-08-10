@@ -13,6 +13,30 @@ A local-first, unrestricted AI platform that empowers learning, research, creati
 > off by default. See [Content Policy](#content-policy) before deploying it to
 > students.
 
+## Curriculum coverage
+
+The pipeline covers **the entire NCERT catalog — all 558 textbooks across
+classes 1 to 12**, in English, Hindi and Urdu. Book codes are scraped from
+NCERT's own picker, so the catalog tracks whatever they publish rather than a
+hand-written list, and ingestion is a single resumable command:
+
+```bash
+scripts/ingest_ncert_batched.sh          # English + Hindi, ~398 books
+INGEST_MEDIA=Urdu scripts/ingest_ncert_batched.sh   # the rest, later
+```
+
+How much of that is loaded into any given deployment is a separate question —
+it depends on how long the operator has let the ingestion run. Check with:
+
+```bash
+curl localhost:8000/api/v2/library | jq '{books: .total_books, classes: .grades}'
+```
+
+The `/library` page shows the same thing, and the class filter is built from
+what is actually present rather than from a fixed list.
+
+---
+
 **[→ docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how every part works, with
 the measurements behind each decision: request lifecycle, model choices and the
 benchmarks that drove them, the ingestion pipeline, why Hinglish retrieval was
@@ -250,8 +274,11 @@ section describes what is currently verified, so you can tell the two apart.
 
 **Known gaps**
 
-- The database is empty. No NCERT or CBSE content has been ingested, so
-  curriculum validation and RAG have nothing to retrieve against.
+- Retrieval quality depends on how much of the catalog a deployment has
+  ingested. The pipeline reaches all 558 books; a fresh clone starts at zero
+  and fills as the ingestion runs, so a question about a class whose books are
+  not yet loaded returns "the curriculum library has nothing on this yet"
+  rather than guessing.
 - `WriteBehindQueue.put` is synchronous while `cache.set` awaits it; four
   cache tests are skipped pending that refactor.
 - 33 handlers return internal exception text to the client via
