@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend.core.config import settings  # noqa: E402
 from backend.services.ingestion import (  # noqa: E402
+    curriculum_scope,
     fetch_catalog,
     load_catalog,
     save_catalog,
@@ -50,7 +51,18 @@ logger = logging.getLogger("ingest")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--refresh-catalog", action="store_true", help="Re-scrape the book list from NCERT and exit")
-    parser.add_argument("--all", action="store_true", help="Every book in the catalog")
+    parser.add_argument("--all", action="store_true", help="Every book in the catalog, all three media")
+    parser.add_argument(
+        "--curriculum",
+        action="store_true",
+        help=(
+            "The books the platform teaches from: English wherever an English "
+            "edition exists, Hindi for the subjects that only exist in "
+            "Devanagari (Hindi and Sanskrit readers, Hindustani music), never "
+            "Urdu. Composes with --grades. This is what you usually want -- "
+            "--all ingests three translations of the same book."
+        ),
+    )
     parser.add_argument("--grades", type=int, nargs="+", help="Class numbers, e.g. --grades 6 7 8")
     parser.add_argument("--medium", nargs="+", choices=["English", "Hindi", "Urdu"], help="Languages to ingest")
     parser.add_argument("--codes", nargs="+", help="Specific book codes, e.g. jesc1")
@@ -114,6 +126,8 @@ def main() -> int:
             return 1
     elif args.all:
         books = catalog
+    elif args.curriculum and not (args.grades or args.medium):
+        books = curriculum_scope(catalog)
     elif args.grades or args.medium:
         books = select(
             catalog,
@@ -121,8 +135,14 @@ def main() -> int:
             media=set(args.medium) if args.medium else None,
         )
     else:
-        logger.error("Choose a selection: --all, --grades, --medium, or --codes")
+        logger.error("Choose a selection: --curriculum, --all, --grades, --medium, or --codes")
         return 1
+
+    # Applied after the fact so it composes: --curriculum --grades 9 10 is the
+    # taught scope for those two classes.
+    if args.curriculum:
+        in_scope = {b.code for b in curriculum_scope(catalog)}
+        books = [b for b in books if b.code in in_scope]
 
     if args.limit:
         books = books[: args.limit]

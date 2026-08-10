@@ -15,14 +15,25 @@ A local-first, unrestricted AI platform that empowers learning, research, creati
 
 ## Curriculum coverage
 
-The pipeline covers **the entire NCERT catalog — all 558 textbooks across
-classes 1 to 12**, in English, Hindi and Urdu. Book codes are scraped from
-NCERT's own picker, so the catalog tracks whatever they publish rather than a
-hand-written list, and ingestion is a single resumable command:
+The pipeline covers **the entire NCERT catalog — all 559 textbooks across
+classes 1 to 12** (209 English, 191 Hindi, 159 Urdu). Book codes are scraped
+from NCERT's own picker, so the catalog tracks whatever they publish rather
+than a hand-written list.
+
+What the platform actually teaches from is a deliberate subset of that:
+**263 books — every English edition, plus the 54 subjects that exist only in
+Devanagari** (the Hindi readers, the Sanskrit readers, Hindustani music).
+Storing the Hindi and Urdu translations of Class 10 Science alongside the
+English one would triple the corpus to teach nothing new, because translation
+is the serving layer's job — a Tamil-speaking student is taught from the
+English source. Translating a Hindi poetry reader, on the other hand, destroys
+the thing being taught, so those are kept in Devanagari.
+
+Ingestion is a single resumable command:
 
 ```bash
-scripts/ingest_ncert_batched.sh          # English + Hindi, ~398 books
-INGEST_MEDIA=Urdu scripts/ingest_ncert_batched.sh   # the rest, later
+scripts/ingest_ncert_batched.sh            # the taught curriculum, 263 books
+python scripts/ingest_ncert.py --all       # every edition, 559 books
 ```
 
 How much of that is loaded into any given deployment is a separate question —
@@ -172,9 +183,11 @@ retrieval path.
 
 **Corpus** is a separate question from either. NCERT publishes in three
 languages only — English, Hindi and Urdu — so that is the ceiling on what can
-be ingested, whatever the model understands. Of the 558 books in the catalog:
-208 English, 190 Hindi, 160 Urdu. There are no NCERT textbooks in Tamil,
-Telugu, Bengali or the other languages listed above.
+be ingested, whatever the model understands. Of the 559 books in the catalog:
+209 English, 191 Hindi, 159 Urdu. There are no NCERT textbooks in Tamil,
+Telugu, Bengali or the other languages listed above; those languages are
+reached by translating the English source at serving time, which is why the
+ingested subset is English-first.
 
 ---
 
@@ -277,7 +290,7 @@ section describes what is currently verified, so you can tell the two apart.
 **Known gaps**
 
 - Retrieval quality depends on how much of the catalog a deployment has
-  ingested. The pipeline reaches all 558 books; a fresh clone starts at zero
+  ingested. The pipeline reaches all 559 books; a fresh clone starts at zero
   and fills as the ingestion runs, so a question about a class whose books are
   not yet loaded returns "the curriculum library has nothing on this yet"
   rather than guessing.

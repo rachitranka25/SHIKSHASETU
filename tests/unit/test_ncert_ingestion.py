@@ -11,7 +11,9 @@ import pytest
 
 from backend.services.ingestion.ncert_catalog import (
     Textbook,
+    curriculum_scope,
     decode,
+    load_catalog,
     parse_catalog,
     select,
 )
@@ -135,6 +137,64 @@ def test_parse_catalog_recovers_a_title_from_an_unclosed_strong_tag():
 def test_parse_catalog_on_an_unrecognisable_page_returns_nothing():
     """A redesign should yield an empty catalog, not garbage entries."""
     assert parse_catalog("<html><body>Site under maintenance</body></html>") == []
+
+
+# ==================== CURRICULUM SCOPE ====================
+
+
+def _book(code: str, title: str) -> Textbook:
+    grade, medium = decode(code)
+    return Textbook(code=code, title=title, grade=grade, medium=medium)
+
+
+def test_curriculum_scope_prefers_the_english_edition():
+    """Translation is the platform's job; one English source serves every language."""
+    scoped = curriculum_scope(
+        [_book("jesc1", "Science"), _book("jhsc1", "Vigyan"), _book("jusc1", "Science")]
+    )
+
+    assert [b.code for b in scoped] == ["jesc1"]
+
+
+def test_curriculum_scope_keeps_hindi_only_subjects():
+    """Rimjhim has no English edition, and translating a Hindi reader is pointless."""
+    scoped = curriculum_scope([_book("ahhn1", "Rimjhim"), _book("ahjm1", "Joyful Maths")])
+
+    assert {b.code for b in scoped} == {"ahhn1", "ahjm1"}
+
+
+def test_curriculum_scope_never_keeps_urdu():
+    """An Urdu-only book is dropped rather than taught from."""
+    assert curriculum_scope([_book("kuch1", "Keemiya I")]) == []
+
+
+def test_curriculum_scope_matches_editions_within_a_grade():
+    """
+    NCERT reuses subject letters across unrelated books: class 9's vocational
+    `ievs1` (Solanceous Crop Cultivator) shares `vs` with class 6's Vasant.
+    Matching on subject letters alone dropped half the Hindi readers.
+    """
+    scoped = curriculum_scope([_book("ievs1", "Solanceous Crop"), _book("fhvs1", "Vasant")])
+
+    assert {b.code for b in scoped} == {"ievs1", "fhvs1"}
+
+
+def test_curriculum_scope_teaches_no_subject_in_hindi_that_english_covers():
+    """
+    The guarantee the user asked for, checked against the real catalog: every
+    Hindi book in scope is a language or arts reader. A rename that strands a
+    Hindi maths or science edition — as class 7's Ganit did — must be caught
+    here rather than surfacing to a student.
+    """
+    import re
+
+    non_language = re.compile(
+        r"ganit|vigyan|math|scien|samajik|bhugol|itihas|arth|rasayan|bhautik|jeev", re.I
+    )
+    hindi = [b for b in curriculum_scope(load_catalog()) if b.medium == "Hindi"]
+
+    assert hindi, "the catalog should contain Hindi-only readers"
+    assert [b.code for b in hindi if non_language.search(b.title)] == []
 
 
 def test_select_filters_by_grade_and_medium():

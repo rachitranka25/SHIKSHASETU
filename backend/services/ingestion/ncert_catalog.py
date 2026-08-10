@@ -205,3 +205,45 @@ def select(
         for b in books
         if (grades is None or b.grade in grades) and (media is None or b.medium in media)
     ]
+
+
+# NCERT replaced the class 7 maths book, and the old Hindi edition (`ghmh1`,
+# Ganit) outlived its English counterpart under the old subject letters. It
+# therefore looks Hindi-only to the rule below, but it is a maths book, and
+# `gegp1` (Ganita Prakash) already covers class 7 maths in English. Any future
+# rename that strands a non-language Hindi edition belongs here too; the test
+# suite scans for the ones that slip through.
+_RENAMED_ORPHANS = frozenset({"ghmh1"})
+
+
+def curriculum_scope(books: list[Textbook]) -> list[Textbook]:
+    """
+    The books the platform teaches from: English for every subject that has an
+    English edition, Hindi for the ones that do not, and never Urdu.
+
+    Every subject is taught in English because translation is the platform's
+    job, not the corpus's — a student reads Class 10 Science in Tamil from the
+    English source. Storing the Hindi and Urdu editions of the same book would
+    trade three times the corpus for nothing the pipeline cannot already do.
+
+    The exception is the subjects that only exist in Devanagari: the Hindi
+    readers (Rimjhim, Vasant, Aroh), the Sanskrit ones (Ruchira, Shemushi), and
+    Hindustani music. Translating those away would destroy the thing being
+    taught, so they are kept in Hindi.
+
+    Editions of one book are matched on grade plus subject letters, because
+    NCERT reuses subject letters across unrelated books — class 9's vocational
+    `ievs1` (Solanceous Crop Cultivator) shares `vs` with class 6's Vasant, so
+    matching on subject letters alone would discard half the Hindi readers.
+    """
+    editions: dict[tuple[int, str], dict[str, Textbook]] = {}
+    for book in books:
+        editions.setdefault((book.grade, book.code[2:]), {})[book.medium] = book
+
+    scoped = []
+    for by_medium in editions.values():
+        chosen = by_medium.get("English") or by_medium.get("Hindi")
+        if chosen is not None and chosen.code not in _RENAMED_ORPHANS:
+            scoped.append(chosen)
+
+    return sorted(scoped, key=lambda b: (b.grade, b.medium, b.code))

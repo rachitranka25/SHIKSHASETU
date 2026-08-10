@@ -8,6 +8,7 @@ database ships empty; this is what fills it.
 
 from .ncert_catalog import (
     Textbook,
+    curriculum_scope,
     decode,
     fetch_catalog,
     load_catalog,
@@ -18,6 +19,7 @@ from .ncert_catalog import (
 
 __all__ = [
     "Textbook",
+    "curriculum_scope",
     "decode",
     "fetch_catalog",
     "load_catalog",

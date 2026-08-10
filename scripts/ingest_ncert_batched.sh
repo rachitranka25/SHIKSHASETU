@@ -30,13 +30,16 @@ set -uo pipefail
 BATCH_SIZE="${1:-5}"
 MAX_BATCHES="${2:-0}"   # 0 means keep going until the catalog is exhausted
 
-# Which editions to ingest, space separated. Defaults to the two the tutor can
-# teach from — see TEACHING_MEDIA in backend/api/routes/tutor.py. The Urdu
-# editions are the same curriculum in a script the tutor does not teach out of,
-# so they are 160 books of the catalog that only the library search would
-# reach. Ingest them later with:
-#     INGEST_MEDIA=Urdu scripts/ingest_ncert_batched.sh
-INGEST_MEDIA="${INGEST_MEDIA:-English Hindi}"
+# What to ingest. "curriculum" is the 263 books the platform teaches from: one
+# edition per book, English wherever NCERT publishes one, Hindi for the
+# subjects that exist only in Devanagari, never Urdu. See curriculum_scope() in
+# backend/services/ingestion/ncert_catalog.py for why.
+#
+# "all" takes every edition of every book — 559 — which is mostly the same
+# curriculum a second and third time in scripts the tutor does not teach out
+# of. Only useful for library search coverage:
+#     INGEST_SCOPE=all scripts/ingest_ncert_batched.sh
+INGEST_SCOPE="${INGEST_SCOPE:-curriculum}"
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
@@ -100,7 +103,7 @@ while :; do
     # books NCERT never published a zip for. A trial run with --limit reported
     # "0 books ingested, 8 skipped" twice in a row for exactly that reason.
     # Selecting the pending codes explicitly is what makes each batch do work.
-    pending=$($PYTHON - "$BATCH_SIZE" "$INGEST_MEDIA" <<'PY'
+    pending=$($PYTHON - "$BATCH_SIZE" "$INGEST_SCOPE" <<'PY'
 import os
 import sys
 from pathlib import Path
@@ -108,11 +111,11 @@ from pathlib import Path
 from sqlalchemy import create_engine, text
 
 sys.path.insert(0, str(Path.cwd()))
-from backend.services.ingestion import load_catalog
+from backend.services.ingestion import curriculum_scope, load_catalog
 from backend.services.ingestion.ncert_ingest import DOWNLOAD_DIR
 
 wanted = int(sys.argv[1])
-media = set(sys.argv[2].split()) if len(sys.argv) > 2 and sys.argv[2].strip() else None
+scope = sys.argv[2] if len(sys.argv) > 2 else "curriculum"
 
 engine = create_engine(os.environ["INGEST_DATABASE_URL"])
 with engine.connect() as connection:
@@ -130,11 +133,9 @@ with engine.connect() as connection:
 unavailable = {p.stem for p in DOWNLOAD_DIR.glob("*.unavailable")}
 skip = done | unavailable
 
-remaining = [
-    b.code
-    for b in load_catalog()
-    if b.code not in skip and (media is None or b.medium in media)
-]
+catalog = load_catalog()
+books = catalog if scope == "all" else curriculum_scope(catalog)
+remaining = [b.code for b in books if b.code not in skip]
 print(" ".join(remaining[:wanted]))
 print(len(done), len(unavailable), len(remaining), file=sys.stderr)
 PY
@@ -146,7 +147,7 @@ PY
     fi
 
     echo
-    echo "──── batch $batch [$INGEST_MEDIA] — $(echo "$pending" | wc -w | tr -d ' ') books: $pending ────"
+    echo "──── batch $batch [$INGEST_SCOPE] — $(echo "$pending" | wc -w | tr -d ' ') books: $pending ────"
 
     $PYTHON scripts/ingest_ncert.py --codes $pending --discard-downloads
     status=$?

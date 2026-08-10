@@ -45,7 +45,7 @@ question (any language)
    │      per class; class 10 wins with 1.78 against class 1's 1.20
    │
    ├─5─► narrow retrieval, scoped to that class      6 passages
-   │      English and Hindi editions only
+   │      one edition per book: see §5
    │
    ├─6─► generate the explanation                    llama-3.1-8b   ~2 s
    │      grounded in those passages, in the chosen answer language
@@ -96,15 +96,14 @@ is therefore scraped from NCERT's own textbook picker — a JavaScript page that
 writes titles through a chain of `if(pm=="jesc1")` blocks — and cached to
 `data/ncert_catalog.json` so ingestion never depends on their site being up.
 
-**558 books**: 208 English, 190 Hindi, 160 Urdu, across classes 1–12. The
+**559 books**: 209 English, 191 Hindi, 159 Urdu, across classes 1–12. The
 pipeline reaches all of them; how many are in a given database depends on how
 long the ingestion has been left to run, and `/api/v2/library` reports the live
 figure. Roughly a quarter have no zip published at all; those are recorded as
 `.unavailable` markers so a batched run does not re-request them every batch.
 
-Only the English and Hindi editions are taught from (§5), so a deployment that
-never ingests Urdu loses nothing but library search coverage — and saves 29% of
-the ingestion time.
+`curriculum_scope()` narrows that to the **263 books worth storing** (§5), which
+is a little under half the ingestion time.
 
 ### Pipeline
 
@@ -203,12 +202,33 @@ corroboration.
 
 ### Which editions are taught from
 
-English and Hindi only. Every chapter exists three times in the corpus, so
-cross-lingual retrieval was citing *"Class 1 Joyful-Mathematics (Urdu), chapter
-13"* as the source of an English answer — a source the student cannot read or
-check — and the six context passages could be one chapter in three scripts,
-crowding out anything new. The Urdu editions stay searchable through the
-library; they are not taught out of. The **answer** language is unaffected.
+One per book: the English edition wherever NCERT publishes one, the Hindi
+edition for the subjects that exist only in Devanagari, and never Urdu.
+`curriculum_scope()` in `ncert_catalog.py` makes the choice; 559 books become
+263.
+
+The problem it solves is that every chapter existed three times over. Retrieval
+began citing *"Class 1 Joyful-Mathematics (Urdu), chapter 13"* as the source of
+an English answer — a source the student can neither read nor check — and the
+six context passages could turn out to be one chapter in three scripts,
+crowding out anything new. Deduplicating by edition removes both.
+
+English wins the tie because translation is the serving layer's job, not the
+corpus's: a Tamil-speaking student is already taught from the English source,
+so the Hindi and Urdu editions of Class 10 Science buy nothing for three times
+the storage and ingestion time. The exception is the subjects where the
+language *is* the subject — the Hindi readers (Rimjhim, Vasant, Aroh), the
+Sanskrit ones (Ruchira, Shemushi), Hindustani music. Translating those away
+destroys what is being taught, so they stay in Devanagari. That is 54 of the
+263.
+
+Editions are matched on grade *plus* subject letters rather than subject
+letters alone, because NCERT reuses them across unrelated books: class 9's
+vocational `ievs1` (Solanceous Crop Cultivator) shares `vs` with class 6's
+Vasant. Matching on the letters alone discarded half the Hindi readers as
+"already available in English".
+
+The **answer** language is unaffected by any of this.
 
 ---
 
@@ -261,12 +281,13 @@ first call while the model loads, then **0.7–1.2 s**.
 
 Downloading and embedding contend for nothing — one waits on a slow government
 web server, the other saturates the GPU — but ran in sequence, so each sat idle
-while the other worked. Measured at **97 s/book** over 558 books. The next book
-is now fetched on a prefetch thread while the current one is embedded.
+while the other worked. Measured at **97 s/book**, which is seven hours over
+the 263-book curriculum. The next book is now fetched on a prefetch thread
+while the current one is embedded.
 
 ### Batching, because 8 GB is not enough
 
-A single process attempting all 558 books reached book 8 and wedged: swap at
+A single process attempting the whole catalog reached book 8 and wedged: swap at
 11.4 GB of 12.2, the process in uninterruptible I/O wait with its resident set
 paged entirely out, no progress for eleven minutes, no recovery. One process
 per small batch returns every page between batches, at the cost of a ~20 s
