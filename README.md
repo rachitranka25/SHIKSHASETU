@@ -251,12 +251,92 @@ ingested subset is English-first.
 
 ---
 
-## Measured findings
+## Every model in the system
 
-Every number here comes from running this code against the real NCERT corpus.
-Several of these were found by measurement contradicting an assumption, and the
-contradictions are recorded alongside the results because the wrong turn is
-usually the more useful half.
+Twenty-eight model identifiers appear in the codebase. Listing them as a stack
+would overstate what runs, so they are split by whether they have been observed
+working. The distinction is the point: a reviewer can check the first table and
+ignore the rest.
+
+### Verified working — measured in this repository
+
+| Model | Params | Where it runs | Job | Measured |
+|---|---|---|---|---|
+| **BAAI/bge-m3** | 568 M | local, MPS/CUDA/CPU | Embeddings for every chunk and query, 1024-dim | fp16 1,083 MB, cosine 0.999999 vs fp32; 83 ms warm encode; 12.4 s cold |
+| **meta/llama-3.1-8b-instruct** | 8 B | NVIDIA NIM (hosted) | Writes the explanation, and rewrites the question into a search query | 4–38 s end-to-end per tutor request, over the six requests in the Hindi test run |
+| **black-forest-labs/flux.1-dev** | 12 B | NVIDIA NIM (hosted) | Draws illustrations for concepts with no geometry template | 5 s per image at 1024×768 |
+| **nvidia/nemotron-nano-12b-v2-vl** | 12 B | NVIDIA NIM (hosted) | Vision OCR for pages whose text layer is untrustworthy | Repairs Devanagari conjuncts, but substitutes characters — see findings |
+| **meta/llama-3.3-70b-instruct** | 70 B | NVIDIA NIM (hosted) | Available as `NVIDIA_LLM_MODEL`; tested and **not** used by default | 17–125 s, highly variable; produced worse SVG in 145 s than the 8B did in 8 |
+
+Why these five and not others: exactly one model is resident locally. Embedding
+is the only task that must be local, because every chunk in the corpus passes
+through it during ingestion and a hosted call per chunk would be both slow and
+expensive. Generation, illustration and OCR are per-request, so they are hosted
+— which is also what keeps the serving path inside 4 GB, since no LLM weights
+are resident.
+
+### Present and configured, not verified here
+
+These load through the same model manager and are reachable, but this repository
+carries no measurement of them. Do not cite them as results.
+
+| Model | Params | Intended job |
+|---|---|---|
+| BAAI/bge-reranker-v2-m3 | 568 M | Cross-encoder reranking. `get_reranker()` exists in `rag.py`; **it is not in the tutor's retrieval path**, and wiring it is the documented fix for retrieval reaching the right book and the wrong chapter |
+| ai4bharat/indictrans2-en-indic-1B | 1 B | English → 22 Indic languages, as an offline alternative to translating inside the LLM |
+| facebook/mms-tts-{hin,ben,guj,kan,mal,mar,ory,pan,tam,tel,eng} | ~100 M each | Text-to-speech, one checkpoint per language, 11 of them |
+| openai/whisper-large-v3-turbo | 809 M | Speech-to-text for spoken questions |
+| Qwen/Qwen2.5-{0.5B,3B,7B}-Instruct | 0.5–7 B | Local generation when no API key is present |
+| google/gemma-2-2b-it | 2 B | Local generation, small-machine tier |
+| BAAI/bge-{small,base}-en-v1.5 | 33 M / 109 M | English-only embedding tiers for constrained deployments |
+| sentence-transformers/all-MiniLM-L6-v2 | 22 M | CoreML backend experiments |
+| sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 | 118 M | Lightweight multilingual embedding fallback |
+| google/mt5-base, google/flan-t5-large | 580 M / 780 M | Named in config; no call site |
+
+### Named and unusable
+
+| Model | Why not |
+|---|---|
+| **ucaslcl/GOT-OCR2_0** | The local OCR path. Requires CUDA — it cannot run on Apple silicon at all, so `--ocr nvidia` is the only working OCR route on this machine. `torchvision` was also undeclared, which meant the import failed before the CUDA check was ever reached. |
+| **Tesseract** | Installed as the OCR fallback, but the build carries no Devanagari (`hin`) training data, so it cannot read the script that needs help most. `brew install tesseract-lang` would supply it; untested. |
+
+### Where each model sits in one request
+
+```
+student's question
+        │
+        ├─► llama-3.1-8b ─────────► English search query
+        │                            (the question is also kept — see findings)
+        │
+        ├─► BGE-M3 ───────────────► two 1024-dim query vectors   ~83 ms each
+        │
+        ├─► pgvector HNSW ────────► 12 candidate passages         ~185 ms
+        │        (no model; cosine distance in Postgres)
+        │
+        ├─► vote_grade ───────────► the class                     <1 ms
+        │        (no model; arithmetic over the two rankings)
+        │
+        ├─► llama-3.1-8b ─────────► the explanation               2–20 s
+        │
+        ├─► BGE-M3 ───────────────► grounding score               ~83 ms
+        │        (answer vs context, same model, second use)
+        │
+        └─► flux.1-dev ───────────► illustration, if asked        ~5 s
+                 or a hand-written SVG template for geometry      <1 ms
+```
+
+BGE-M3 is used twice for different purposes — retrieval and grounding
+verification — which is only possible because it is cross-lingual. Nothing else
+would let a Devanagari passage and an English answer be compared numerically.
+
+---
+
+## Principal findings
+
+Six results that were not obvious before measuring, each with the wrong turn
+that preceded it. The wrong turns are included because in every case the first
+answer was confident and incorrect, and a reader reproducing this needs to know
+which cliff is where.
 
 ### Two thirds of the Hindi curriculum is unreadable by any PDF text extractor
 
@@ -401,24 +481,12 @@ because retrieval landed on chapter 13 rather than chapter 5 and the model
 guessed at the couplet word by word. Only the grounding score caught it. A test
 that checks language and class checks the easy half.
 
-### Embedding precision is free on Apple silicon
-
-BGE-M3 weights, and cosine similarity of the resulting vectors against float32:
-
-| dtype | Resident | Cosine vs fp32 |
-|---|---|---|
-| float32 | 2166 MB | — |
-| float16 | 1083 MB | 0.999999 |
-
-Half the memory, roughly double the encode throughput, no measurable quality
-cost. On a 4 GB target the fp32 model alone is most of the machine before
-Postgres and the API have asked for anything.
-
 ### The 4 GB budget was arithmetic, and the arithmetic was wrong
 
-An earlier version of this claim summed component sizes to ~1.6 GB and
-concluded that 4 GB fits. `scripts/benchmarks/serving_footprint.py` measures it
-instead, reporting peak RSS at each step of a served request:
+The 4 GB target was justified by adding up component sizes — framework, fp16
+weights, Postgres shared buffers — reaching ~1.6 GB and concluding that it fits.
+`scripts/benchmarks/serving_footprint.py` measures it instead, reporting peak RSS
+at each step of a served request:
 
 | Step | Peak RSS |
 |---|---|
@@ -488,6 +556,24 @@ The memory guard checks **free RAM and swap together**. An earlier version
 checked swap alone and stopped a healthy run with 937 MB of swap free while 65%
 of RAM sat idle.
 
+## Supporting measurements
+
+Engineering results: reproducible, useful for anyone rebuilding this, and not
+claimed as contributions.
+
+### Embedding precision is free on Apple silicon
+
+BGE-M3 weights, and cosine similarity of the resulting vectors against float32:
+
+| dtype | Resident | Cosine vs fp32 |
+|---|---|---|
+| float32 | 2166 MB | — |
+| float16 | 1083 MB | 0.999999 |
+
+Half the memory, roughly double the encode throughput, no measurable quality
+cost. On a 4 GB target the fp32 model alone is most of the machine before
+Postgres and the API have asked for anything.
+
 ### Download and embedding contend for nothing
 
 One waits on a government web server, the other saturates the GPU, but they ran
@@ -542,6 +628,8 @@ be checked rather than trusted.
 For Brahmic scripts the unit is the **akshara**, not the syllable, segmented
 virama-aware (`प्रकाश` → `प्र`, `का`, `श`), and sentence counting honours the
 danda (`।`). Flesch-Kincaid is reported only for Latin, where it is defined.
+
+## Security audit
 
 ### Defects found by audit that meant advertised features had never worked
 
@@ -651,6 +739,286 @@ section describes what is currently verified, so you can tell the two apart.
 - Output filtering is off and the age gate is inert. This is deliberate — see
   [Content Policy](#content-policy) — but it is a gap if you are deploying to
   minors.
+
+---
+
+## Build it from nothing
+
+A complete path from an empty machine to a working tutor, with a check after
+every step so you find out immediately which one failed rather than at the end.
+Every command here was run on the machine this README was written on; the
+outputs are real, not illustrative.
+
+Budget about 40 minutes to a first answer, most of it downloading model weights.
+
+### Step 0 — What each dependency is actually for
+
+Install nothing on faith. This is why each piece exists:
+
+| Piece | Why it is needed | What breaks without it |
+|---|---|---|
+| **Python 3.11** | `sentence-transformers` and `torch` wheels; 3.13 has no wheels for parts of this stack | `pip install` compiles from source and fails |
+| **PostgreSQL 14+** | Stores chapters, chunks and vectors in one place, so retrieval is a single query | Nothing works |
+| **pgvector** | The `vector` column type and the HNSW index. Cosine distance runs *inside* Postgres | The app boots, logs `Could not enable pgvector extension`, and retrieval silently degrades |
+| **Node 20+** | Vite 7 requires it | Frontend will not build |
+| **An NVIDIA NIM API key** | Generation, illustration and cloud OCR are hosted calls | Tutor returns 503; ingestion still works |
+| **Redis** | Optional. Response caching works in-process without it | Nothing; leave it off on a small machine |
+
+```bash
+brew install python@3.11 postgresql@14 pgvector node
+brew services start postgresql@14
+```
+
+### Step 1 — Database, roles, and the extension
+
+```bash
+createdb shiksha_setu
+psql -d shiksha_setu -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+psql -d shiksha_setu -c 'SELECT extversion FROM pg_extension WHERE extname = $$vector$$;'
+```
+
+**Check.** You must see a version:
+
+```
+ extversion
+------------
+ 0.8.2
+```
+
+If instead you get `could not open extension control file
+.../postgresql@14/extension/vector.control`, pgvector installed against a
+*different* PostgreSQL than the one running. This is the single most common
+setup failure and it reads like pgvector is missing when it is merely elsewhere:
+
+```bash
+find /opt/homebrew -name vector.control   # where it went
+psql --version                            # which server is running
+```
+
+If they disagree, build it against your own server:
+
+```bash
+git clone --branch v0.8.2 https://github.com/pgvector/pgvector.git && cd pgvector
+make        PG_CONFIG=/opt/homebrew/opt/postgresql@14/bin/pg_config
+make install PG_CONFIG=/opt/homebrew/opt/postgresql@14/bin/pg_config
+```
+
+Now create the least-privilege application role. The API runs as this; only the
+owner may write shared curriculum, which is enforced by row-level security:
+
+```sql
+CREATE ROLE shiksha_app LOGIN PASSWORD 'choose-something';
+GRANT CONNECT ON DATABASE shiksha_setu TO shiksha_app;
+GRANT USAGE ON SCHEMA public TO shiksha_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO shiksha_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO shiksha_app;
+```
+
+That last `ALTER DEFAULT PRIVILEGES` is not decoration. Without it the role holds
+no privileges on tables created by later migrations, and the API fails at
+runtime with permission errors on tables that plainly exist.
+
+### Step 2 — Code and Python environment
+
+```bash
+git clone https://github.com/rachitranka25/SHIKSHASETU.git
+cd SHIKSHASETU
+python3.11 -m venv venv
+venv/bin/pip install -r requirements.txt
+```
+
+**Check.** Both imports must succeed:
+
+```bash
+venv/bin/python -c "import torch, sentence_transformers, fitz; print(torch.__version__)"
+```
+
+`fitz` is PyMuPDF and does the PDF text extraction. `torchvision` must also be
+installed even though nothing obviously uses it — the OCR module imports it at
+module scope, and its absence made the OCR path unimportable for a long time
+while looking like a CUDA problem.
+
+### Step 3 — Configuration
+
+```bash
+cp .env.example .env            # or: cp deploy/4gb.env .env   on a 4 GB machine
+venv/bin/python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Put that in `JWT_SECRET_KEY`, then set:
+
+```bash
+DATABASE_URL=postgresql+asyncpg://shiksha_app:choose-something@localhost/shiksha_setu
+INGEST_DATABASE_URL=postgresql://postgres@localhost:5432/shiksha_setu
+NVIDIA_API_KEY=nvapi-...
+EMBEDDING_DTYPE=float16
+```
+
+Two connection strings, deliberately. The app connects as the restricted role;
+ingestion connects as the owner, because shared curriculum is stored with no
+organisation and row-level security lets only the owner create such rows. If you
+try to ingest as `shiksha_app` the inserts silently affect zero rows — which is
+the security policy working, not a bug.
+
+### Step 4 — Migrations
+
+```bash
+venv/bin/alembic upgrade head
+```
+
+**Check.** Migration 019 is the one that matters. Confirm the column is a real
+vector, not an array of floats:
+
+```bash
+psql -d shiksha_setu -c '\d embeddings' | grep embedding
+```
+
+You want `vector(1024)`. If you see `double precision[]` you are before 019, no
+vector index is possible, and every search is a sequential scan over the whole
+table.
+
+### Step 5 — The catalog
+
+```bash
+venv/bin/python scripts/ingest_ncert.py --refresh-catalog
+```
+
+**Check.**
+
+```
+Catalog refreshed: 559 textbooks
+```
+
+This scrapes NCERT's own textbook picker, so the list tracks what they publish
+rather than a hand-written table. It is cached to `data/ncert_catalog.json` and
+ships with the repo, so ingestion never depends on their site being reachable.
+
+See what the platform will teach from before downloading anything:
+
+```bash
+venv/bin/python scripts/ingest_ncert.py --curriculum --dry-run | head
+```
+
+```
+263 textbooks selected
+  aeen1  class  1  English   Mridang
+  ...
+```
+
+263 of 559, because only one edition of each book is stored. See
+[Curriculum coverage](#curriculum-coverage) for why.
+
+### Step 6 — Ingest one book first
+
+Never start with the whole catalog. Prove the pipeline on a single book:
+
+```bash
+export INGEST_DATABASE_URL="postgresql://postgres@localhost:5432/shiksha_setu"
+venv/bin/python scripts/ingest_ncert.py --codes jesc1 --discard-downloads
+```
+
+`jesc1` is Class 10 Science. First run also downloads BGE-M3, about 2.2 GB.
+
+**Check.**
+
+```
+1 books ingested, 0 skipped, 0 failed; 13 chapters, 513 chunks
+```
+
+```bash
+psql -d shiksha_setu -c "SELECT count(*) FROM document_chunks;"
+psql -d shiksha_setu -c "SELECT count(*) FROM embeddings WHERE embedding IS NOT NULL;"
+```
+
+Those two counts must be **equal**. A chunk without an embedding is invisible to
+retrieval, and nothing else in the system will tell you.
+
+### Step 7 — The rest of the corpus, in batches
+
+```bash
+scripts/ingest_ncert_batched.sh 6
+```
+
+Six books per process, then the process exits and a new one starts. This looks
+wasteful — each batch reloads the model, about 20 s — and it is the only thing
+that works on 8 GB. A single process attempting the whole catalog reached book 8
+and wedged: swap at 11.4 GB of 12.2, the process in uninterruptible I/O wait
+with its resident set paged entirely out. **`SIGKILL` is not delivered in that
+state**, because the kernel cannot deliver a signal until the I/O completes.
+There is no recovery, only waiting.
+
+Expect **~3.1 min/book**, so roughly seven hours for all 263. It is fully
+resumable — books already in the database are skipped, and books NCERT never
+published a zip for are recorded as `.unavailable` markers so they are not
+requested again.
+
+Watch it without attaching:
+
+```bash
+psql -d shiksha_setu -tAc "SELECT count(DISTINCT metadata->>'book_code') FROM processed_content;"
+```
+
+### Step 8 — Start the backend
+
+```bash
+venv/bin/uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
+```
+
+**Check.**
+
+```bash
+curl -s http://127.0.0.1:8000/health
+```
+
+```json
+{"status":"healthy","version":"2.0.0"}
+```
+
+### Step 9 — Ask it something
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v2/tutor/explain \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"Pythagoras theorem samjhao","answer_language":"English","diagram":true}' \
+  | venv/bin/python -m json.tool | head -40
+```
+
+Read three fields before anything else:
+
+| Field | What it tells you |
+|---|---|
+| `grade` | Which class it decided the topic belongs to. Wrong here means retrieval went wrong, and the answer will be fluent anyway |
+| `sources` | Which chapters it actually read. If these are not the chapters you expect, the answer is not trustworthy no matter how it reads |
+| `grounding` | How close the answer stayed to those chapters. **Below 0.55 means it drifted** — a fluent answer about the wrong thing is indistinguishable from a correct one without this number |
+
+A 404 saying *"the curriculum library has nothing on this yet"* is the system
+being honest, not broken — the class you asked about is not ingested. That is
+deliberate: it refuses to answer from the model's own memory.
+
+### Step 10 — Frontend
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Open `http://localhost:3000` — the port is pinned in `frontend/vite.config.ts`,
+not Vite's default. Do not run the frontend and ingestion at the same time on a
+small machine.
+
+### When it goes wrong
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Could not enable pgvector extension` | pgvector built against a different PostgreSQL | Step 1 |
+| Ingestion reports `0 ingested, N skipped` repeatedly | Those books are already done or have no zip | Normal; the batch script selects pending codes explicitly for this reason |
+| Inserts affect 0 rows during ingestion | Connected as `shiksha_app`, not the owner | Use `INGEST_DATABASE_URL` |
+| Every search is slow | `embeddings.embedding` is still `double precision[]` | `alembic upgrade head`, check 019 |
+| Machine freezes during ingestion | One process holding the embedder plus expanded PDFs | Use the batch script; do not raise the batch size |
+| Tutor returns 503 | `NVIDIA_API_KEY` unset or rejected | Generation is hosted; ingestion does not need it |
+| Answers look right but cite odd chapters | Retrieval reached the right book, wrong chapter | Check `grounding`; this is a known open gap |
+| A Hindi book ingests as Roman gibberish | It is typeset in a legacy font | Ingestion now refuses these; see findings |
+| `ps` shows the API using 46 MB | Its pages are swapped out | Use `scripts/benchmarks/serving_footprint.py`, which reads peak RSS |
 
 ---
 
