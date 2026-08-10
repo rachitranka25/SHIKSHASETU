@@ -299,22 +299,49 @@ grows it on demand, so "937 MB free" was reported while 65% of RAM was idle.
 
 ### Running on 4 GB
 
-With fp16 the serving path is roughly:
+Measured, not added up. `scripts/benchmarks/serving_footprint.py` loads the
+embedder, encodes a question and runs a pgvector search, reporting peak RSS at
+each step:
 
 ```
-python + torch + app        ~264 MB
-BGE-M3 fp16 weights       ~1,083 MB
-Postgres (shared buffers)   ~256 MB default
-                          ─────────
-                           ~1.6 GB steady state
+  interpreter start                14 MB peak
+  config imported                 265 MB peak
+  BGE-M3 loaded                   534 MB peak
+  query encoded                  2094 MB peak   <- the spike is here
+  pgvector search done           2094 MB peak
+
+  device mps, dtype float16, model load 5.3 s, encode 12.4 s cold / 83 ms warm,
+  retrieval 185 ms
 ```
 
-That fits. What does **not** fit on 4 GB is ingestion at the same time — the
-embedder plus a 70 MB zip expanded across twenty PDFs needs the headroom.
-Ingest on a larger machine, or ingest and serve at different times. The
-pipeline is fully resumable, so alternating costs nothing but wall-clock.
+An earlier version of this section summed component sizes to ~1.6 GB and
+concluded "that fits". The measurement says **2094 MB**, and the cost is not
+where the arithmetic put it: loading the weights accounts for 534 MB, and the
+first encode adds **1560 MB more**. Summing static component sizes misses the
+transient peak, which on a 4 GB machine is the number that decides whether the
+process survives.
 
-Set `EMBEDDING_DTYPE=float16` explicitly if the platform detection picks CPU.
+It still fits 4 GB alongside Postgres, but the headroom is roughly 1.4 GB, not
+the 2.4 GB the arithmetic implied. Set `EMBEDDING_DTYPE=float16` explicitly if
+platform detection picks CPU.
+
+Two things this measurement does not yet explain, stated so they are not
+mistaken for settled:
+
+- **Where the 1560 MB goes.** `EMBEDDING_MAX_LENGTH` is 8192 while the longest
+  chunk in the corpus tokenises to 602 and a question to 9-15, so an attention
+  workspace sized for 8192 tokens is the obvious suspect. An attempt to cap
+  `max_seq_length` did not take effect — the attribute was not where the
+  benchmark looked for it — so the hypothesis is untested.
+- **Measurement noise.** Two runs of the same configuration on this machine
+  differed by 414 MB, because it was swapping. Peak-RSS figures here are
+  therefore good to a few hundred MB, not better, and should be re-taken on an
+  unloaded machine before being quoted.
+
+What does **not** fit on 4 GB is ingestion at the same time — the embedder plus
+a 70 MB zip expanded across twenty PDFs needs the headroom. Ingest on a larger
+machine, or ingest and serve at different times. The pipeline is fully
+resumable, so alternating costs nothing but wall-clock.
 
 ---
 

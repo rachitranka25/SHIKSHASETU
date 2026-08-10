@@ -414,6 +414,67 @@ Half the memory, roughly double the encode throughput, no measurable quality
 cost. On a 4 GB target the fp32 model alone is most of the machine before
 Postgres and the API have asked for anything.
 
+### The 4 GB budget was arithmetic, and the arithmetic was wrong
+
+An earlier version of this claim summed component sizes to ~1.6 GB and
+concluded that 4 GB fits. `scripts/benchmarks/serving_footprint.py` measures it
+instead, reporting peak RSS at each step of a served request:
+
+| Step | Peak RSS |
+|---|---|
+| interpreter start | 14 MB |
+| config imported | 265 MB |
+| BGE-M3 loaded (fp16) | 534 MB |
+| **query encoded** | **2094 MB** |
+| pgvector search done | 2094 MB |
+
+The real figure is **2094 MB**, and the cost is not where the arithmetic put it:
+the weights account for 534 MB and the *first encode* adds 1560 MB more. Summing
+static sizes misses the transient peak, which on a 4 GB machine is the number
+that decides whether the process survives. It still fits — with about 1.4 GB of
+headroom, not the 2.4 GB implied.
+
+`ps` is useless for this on a loaded machine: it reported **46 MB** for the
+process holding the 1 GB model, because the pages had been swapped out.
+`getrusage(RUSAGE_SELF).ru_maxrss` is a high-water mark and survives that.
+
+**Where the 1560 MB goes, and two optimisations that did not work.**
+
+`EMBEDDING_MAX_LENGTH` is 8192 while the longest chunk in the corpus tokenises
+to **602** and a question to **9-15**, so an attention workspace sized for 8192
+tokens looked like the obvious culprit. Capping it to 768 changed nothing:
+three runs each gave means of **1832 MB at 8192 and 1952 MB at 768** — no
+improvement, inside the noise. The device was not the cause either: CPU averaged
+1983 MB against MPS's 1908 MB over three runs each.
+
+The arithmetic explains it without any waste to remove:
+
+```
+framework + app                265 MB
+BGE-M3 fp16 weights          1,136 MB   (568M params x 2 bytes)
+activations and workspace     ~500 MB
+                             ─────────
+                             ~1,900 MB   = the observed mean
+```
+
+"BGE-M3 loaded" measures only 534 MB because safetensors **mmaps** the weights;
+they become resident on the first forward pass. The 1560 MB spike is the model
+itself arriving, not overhead. There is nothing to reclaim there — reducing it
+needs a smaller embedding model or int8 quantisation, both of which change the
+vectors and require re-ingestion.
+
+Batch size is the same story. Encoding the 32 longest chunks took **16 s at
+batch 1, 22 s at 8, 27 s at 32**, reproducible in both orders — larger batches
+are slower on MPS here, so `deploy/4gb.env` sets 1 on that basis. Its effect on
+*peak memory* could not be established: two passes in opposite orders gave
+1516/1749/2817 MB and then 1661/2837/2697 MB, so the monotonic pattern in the
+first pass was machine state.
+
+**Measurement noise is the limiting factor throughout.** Repeated runs of an
+identical configuration differed by up to 414 MB on a machine that was swapping.
+Every peak-RSS figure here is good to a few hundred MB and no better, and should
+be re-taken on an idle machine before being quoted.
+
 ### Ingestion wedges an 8 GB machine, and a swap-only guard is the wrong guard
 
 A single process attempting the whole catalog reached book 8 and stopped: swap at

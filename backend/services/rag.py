@@ -350,6 +350,7 @@ class BGEM3Embedder:
                 )
                 logger.info("BGE-M3 loaded at %s", dtype)
                 self._use_sentence_transformers = True
+                self._cap_sequence_length()
 
                 # NOTE: torch.compile disabled - causes 100x slowdown from recompilation
                 # on different input shapes. Raw MPS performance is already optimal.
@@ -390,6 +391,7 @@ class BGEM3Embedder:
                 model_kwargs={"torch_dtype": resolve_embedding_dtype(self.device)},
             )
             self._use_sentence_transformers = True
+            self._cap_sequence_length()
             logger.info("Loaded BGE-M3 with sentence-transformers (fallback)")
 
         # Verify dimension
@@ -422,6 +424,42 @@ class BGEM3Embedder:
 
         gc.collect()
         logger.info("BGE-M3 embedder unloaded")
+
+    def _cap_sequence_length(self) -> None:
+        """
+        Hold the model to the sequence length this corpus actually uses.
+
+        BGE-M3 accepts 8192 tokens and sentence-transformers sizes its attention
+        workspace for whatever `max_seq_length` says, not for the input. Nothing
+        set it, so every encode paid for 8192 tokens. Measured over the 7,462
+        stored chunks:
+
+            mean 308 tokens, p95 416, p99 484, longest 602
+            a student's question: 9-15
+
+        602 is the longest text that can reach the model, because chunking caps
+        a chunk at CHUNK_CHARS.
+
+        Capping this was tried as a memory optimisation and does not work.
+        Three runs each at 8192 and 768 gave means of 1832 MB and 1952 MB --
+        no improvement, and inside the run-to-run noise of a swapping machine.
+        The peak is not an attention workspace sized from this number; it is the
+        weights themselves becoming resident on the first forward pass, because
+        safetensors mmaps them and "model loaded" therefore measures only
+        534 MB. So this stays as a bound on a pathological input, and the
+        default stays at the model's own limit.
+        """
+        model = getattr(self, "_model", None)
+        limit = settings.EMBEDDING_MAX_LENGTH
+        if model is None or not hasattr(model, "max_seq_length"):
+            return
+
+        was = model.max_seq_length
+        if was is not None and was <= limit:
+            return
+
+        model.max_seq_length = limit
+        logger.info("Embedding sequence length capped: %s -> %s", was, limit)
 
     def encode(
         self,

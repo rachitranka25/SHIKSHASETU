@@ -109,6 +109,11 @@ class Settings:
     # --- Embeddings: BGE-M3 ---
     EMBEDDING_MODEL_ID: str = os.getenv("EMBEDDING_MODEL_ID", "BAAI/bge-m3")
     EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1024"))
+    # BGE-M3's own limit. Lowering it does not save memory -- measured at 768
+    # over three runs each way, the peak did not move outside run-to-run noise,
+    # because the spike on first encode is the weights becoming resident (they
+    # are mmapped at load), not an attention workspace sized from this number.
+    # Kept as a knob because it bounds a pathological input, not as a saving.
     EMBEDDING_MAX_LENGTH: int = int(os.getenv("EMBEDDING_MAX_LENGTH", "8192"))
     # M4 Optimization: Batch size 64 achieves 348 texts/sec (benchmarked)
     EMBEDDING_BATCH_SIZE: int = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
