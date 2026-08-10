@@ -482,3 +482,146 @@ venv/bin/python -m pytest tests/unit/test_readability.py -v
 # the whole suite
 venv/bin/python -m pytest
 ```
+
+---
+
+## 13. Related work
+
+Each entry says which decision in this system it bears on, because a reference
+list that does not is just decoration.
+
+> **Verify before citing.** These are recalled from memory, not resolved
+> against a bibliographic database. Titles and authors should be right; years
+> and venues may be off by a little, and a few papers appeared on arXiv a year
+> before their conference. Check each one against the published record before
+> it goes into a paper — a wrong citation is worse than a missing one.
+
+### Retrieval and RAG
+
+1. **Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP
+   Tasks", NeurIPS 2020.** The architecture this system uses: retrieve, then
+   condition generation on what was retrieved. §2 is a RAG loop with a class
+   filter in the middle.
+
+2. **Karpukhin et al., "Dense Passage Retrieval for Open-Domain Question
+   Answering", EMNLP 2020.** Establishes dense retrieval over BM25 for QA, and
+   the bi-encoder setup used here.
+
+3. **Chen et al., "BGE M3-Embedding: Multi-Lingual, Multi-Functionality,
+   Multi-Granularity Text Embeddings Through Self-Knowledge Distillation",
+   2024** (arXiv 2402.03216). The embedding model. Its multilingual claims are
+   what make a Hindi question retrieve an English chapter; §5 documents where
+   that holds and where it does not.
+
+4. **Reimers & Gurevych, "Sentence-BERT: Sentence Embeddings using Siamese
+   BERT-Networks", EMNLP 2019.** The sentence-embedding formulation, and the
+   `sentence-transformers` library this loads the model through.
+
+5. **Malkov & Yashunin, "Efficient and Robust Approximate Nearest Neighbor
+   Search Using Hierarchical Navigable Small World Graphs", IEEE TPAMI 2018.**
+   The HNSW index in migration 019, including the `m` and `ef_construction`
+   parameters set there.
+
+6. **Ma et al., "Query Rewriting for Retrieval-Augmented Large Language
+   Models", EMNLP 2023.** The technique that fixed Hinglish retrieval (§5):
+   rewrite the query before embedding rather than accepting what the user
+   typed.
+
+7. **Gao et al., "Precise Zero-Shot Dense Retrieval without Relevance Labels"
+   (HyDE), 2022.** A stronger variant of the same idea — generate a
+   hypothetical answer and embed that. Worth trying here; not implemented.
+
+8. **Nogueira & Cho, "Passage Re-ranking with BERT", 2019.** The reranking
+   stage that `BGEReranker` exists for and that is not yet wired in. §11 lists
+   the compound-term failures it would most likely fix.
+
+### Multilingual and Indian-language NLP
+
+9. **Conneau et al., "Unsupervised Cross-lingual Representation Learning at
+   Scale" (XLM-R), ACL 2020.** Why a single multilingual encoder can place
+   translations near each other, which is the assumption the corpus design
+   rests on.
+
+10. **Gala et al., "IndicTrans2: Towards High-Quality and Accessible Machine
+    Translation Models for all 22 Scheduled Indian Languages", TMLR 2023.** The
+    translation model in the stack.
+
+11. **Kakwani et al., "IndicNLPSuite: Monolingual Corpora, Evaluation
+    Benchmarks and Pre-trained Multilingual Language Models for Indian
+    Languages", Findings of EMNLP 2020.** Benchmarks for the languages this
+    targets, and a reminder of how thin evaluation data is for most of them.
+
+12. **Khanuja et al., "MuRIL: Multilingual Representations for Indian
+    Languages", 2021.** Notable here for training on transliterated text —
+    directly relevant to the romanised-Hindi failure in §5, and a candidate
+    encoder if query rewriting proves insufficient.
+
+### Reading, dyslexia, and Indic scripts
+
+13. **Zorzi et al., "Extra-large letter spacing improves reading in dyslexia",
+    PNAS 2012.** The one typographic intervention with strong evidence, and the
+    reason letter spacing is the first control and on by default in §8.
+
+14. **Rello & Baeza-Yates, "Good fonts for dyslexia", ASSETS 2013.** Eye-tracking
+    across fonts; finds readability effects but no advantage for
+    dyslexia-specific typefaces.
+
+15. **Kuster et al., "Dyslexie font does not benefit reading in children with
+    or without dyslexia", Annals of Dyslexia 2018.** Why the dyslexia font is
+    offered as a preference and labelled as unevidenced rather than
+    recommended.
+
+16. **Nag, "Early reading in Kannada: the pace of acquisition of orthographic
+    knowledge and phonemic awareness", Journal of Research in Reading 2007.**
+    Akshara-based literacy develops differently from alphabetic literacy. The
+    argument for segmenting Devanagari by akshara rather than character (§8).
+
+17. **Nag & Snowling, "Reading in an alphasyllabary: implications for a
+    language-universal theory of learning to read", Scientific Studies of
+    Reading (c. 2012).** Alphasyllabaries as their own category, not alphabets
+    with extra marks.
+
+### Readability and text simplification
+
+18. **Kincaid et al., "Derivation of New Readability Formulas for Navy Enlisted
+    Personnel", Naval Technical Training Command, 1975.** The Flesch-Kincaid
+    grade level. Defined on English syllable counts, which is why §8 refuses to
+    report it for Devanagari.
+
+19. **Xu, Callison-Burch & Napoles, "Problems in Current Text Simplification
+    Research: New Data Can Help", TACL 2015.** Simplification is not one task,
+    and generic simplification loses content — the reason reading support here
+    changes sentences while preserving every fact and technical term.
+
+20. **Jiang et al., "Neural CRF Model for Sentence Alignment in Text
+    Simplification", ACL 2020.** Alignment between original and simplified
+    text; relevant to verifying that a rewrite kept the curriculum content, an
+    approximation of which is the length check in §8.
+
+### Efficiency
+
+21. **Micikevicius et al., "Mixed Precision Training", ICLR 2018.** Why fp16 is
+    safe for inference-scale numerics, behind the 2166 MB → 1083 MB result in
+    §6.
+
+22. **Dettmers et al., "LLM.int8(): 8-bit Matrix Multiplication for
+    Transformers at Scale", NeurIPS 2022.** The next step if 1083 MB is still
+    too much; not implemented.
+
+23. **Hinton, Vinyals & Dean, "Distilling the Knowledge in a Neural Network",
+    2015.** The route to a smaller encoder for genuinely constrained hardware,
+    and the method BGE-M3 itself uses in training.
+
+### Models used but not otherwise cited
+
+24. **Radford et al., "Robust Speech Recognition via Large-Scale Weak
+    Supervision" (Whisper), 2022.** The speech-to-text model.
+
+25. **Wei et al., "General OCR Theory: Towards OCR-2.0 via a Unified End-to-end
+    Model" (GOT-OCR2.0), 2024.** The OCR model the project is built around, and
+    which cannot run here (§3).
+
+26. **Rombach et al., "High-Resolution Image Synthesis with Latent Diffusion
+    Models", CVPR 2022.** Latent diffusion, the family FLUX belongs to.
+    Relevant to §7's reason for keeping text out of generated images: these
+    models render glyphs as texture, not as characters.

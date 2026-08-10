@@ -41,7 +41,9 @@ what is actually present rather than from a fixed list.
 the measurements behind each decision: request lifecycle, model choices and the
 benchmarks that drove them, the ingestion pipeline, why Hinglish retrieval was
 broken and how it was fixed, memory optimisation and the 4 GB path, akshara
-segmentation for dyslexic readers, and the security findings.
+segmentation for dyslexic readers, the security findings, and a
+referenced [related-work section](docs/ARCHITECTURE.md#13-related-work) tying
+each design decision to the literature behind it.
 
 ---
 
