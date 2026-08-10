@@ -44,10 +44,31 @@ CATALOG_PATH = Path(__file__).resolve().parents[3] / "data" / "ncert_catalog.jso
 # number. Anything looser matches unrelated identifiers elsewhere in the page.
 BOOK_CODE = re.compile(r"^[a-l][ehu][a-z]{2}\d$")
 
+# Some blocks on the live page open <strong> and never close it — two class 11
+# chemistry entries do. A plain `.*?<strong>(.*?)</strong>` then runs past the
+# end of its own block to borrow the *next* book's closing tag, which both
+# mangles the title ('Chemistry Part-I");\n\t\tif(pm=="khch1")...') and consumes
+# the next block so it is never matched at all. So the match is fenced to a
+# single block: `if(pm==` is the boundary, and the title ends at either its
+# closing tag or that boundary, whichever comes first.
+_BLOCK_START = r"if\s*\(\s*pm\s*=="
 _TITLE_BLOCK = re.compile(
-    r'pm==\"([a-l][ehu][a-z]{2}\d)\"\s*\)\s*\{.*?<strong>(.*?)</strong>', re.S
+    r'pm==\"([a-l][ehu][a-z]{2}\d)\"\s*\)\s*\{'
+    rf"(?:(?!{_BLOCK_START}).)*?"
+    rf"<strong>(.*?)(?:</strong>|(?={_BLOCK_START}))",
+    re.S,
 )
 _TAGS = re.compile(r"<[^>]+>")
+
+# Whatever survives an unclosed tag still carries the JavaScript that followed
+# it. A book title holds none of these characters, so the first one ends it.
+_TITLE_END = re.compile(r'["<>;\n\t]')
+
+# A code with no titled block of its own is not in the catalog. `lups2` is the
+# only one: it appears solely inside a shared corrigendum condition, and the
+# unfenced regex used to reach forward and hand it an unrelated book's title
+# ("Short Stories"). Dropping it loses nothing real — that entry was invented
+# by the bug.
 
 MEDIUM_NAMES = {"e": "English", "h": "Hindi", "u": "Urdu"}
 
@@ -102,7 +123,8 @@ def parse_catalog(html: str) -> list[Textbook]:
     seen: dict[str, str] = {}
 
     for code, raw_title in _TITLE_BLOCK.findall(html):
-        title = _TAGS.sub("", raw_title).strip()
+        title = _TAGS.sub("", raw_title)
+        title = _TITLE_END.split(title, 1)[0].strip()
         if title and code not in seen:
             seen[code] = title
 

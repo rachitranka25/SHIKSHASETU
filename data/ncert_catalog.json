@@ -1,6 +1,6 @@
 {
   "source": "https://ncert.nic.in/textbook.php",
-  "count": 558,
+  "count": 559,
   "books": [
     {
       "code": "aeen1",
@@ -2032,7 +2032,13 @@
     },
     {
       "code": "kech1",
-      "title": "Chemistry Part-I\");\t\n\t\t\t\n\t\t}\n\t\tif(pm==\"khch1\")\n\t\t{\n\t\tdocument.write(\"Rasayan Vigyan bhag-I",
+      "title": "Chemistry Part-I",
+      "grade": 11,
+      "medium": "English"
+    },
+    {
+      "code": "kech2",
+      "title": "Chemistry Part II",
       "grade": 11,
       "medium": "English"
     },
@@ -2307,6 +2313,12 @@
       "medium": "Hindi"
     },
     {
+      "code": "khch1",
+      "title": "Rasayan Vigyan bhag-I",
+      "grade": 11,
+      "medium": "Hindi"
+    },
+    {
       "code": "khch2",
       "title": "Rasayan Vigyan bhag-II",
       "grade": 11,
@@ -2512,7 +2524,7 @@
     },
     {
       "code": "kuch1",
-      "title": "Keemiya I\");\t\n\t\t\t\n\t\t}\n\t\tif(pm==\"kech2\")\n\t\t{\n\t\tdocument.write(\"Chemistry Part II",
+      "title": "Keemiya I",
       "grade": 11,
       "medium": "Urdu"
     },
@@ -3311,12 +3323,6 @@
     {
       "code": "lups1",
       "title": "Aasri Alami Siyasat",
-      "grade": 12,
-      "medium": "Urdu"
-    },
-    {
-      "code": "lups2",
-      "title": "Short Stories",
       "grade": 12,
       "medium": "Urdu"
     },

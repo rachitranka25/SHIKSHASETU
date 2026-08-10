@@ -111,6 +111,27 @@ def test_parse_catalog_keeps_the_first_title_for_a_code():
     assert titles["jesc1"] == "Science"
 
 
+def test_parse_catalog_recovers_a_title_from_an_unclosed_strong_tag():
+    """
+    Two class 11 chemistry blocks on the live page open <strong> and never
+    close it. The non-greedy match then ran to the *next* block's </strong>,
+    and the title came out as 'Chemistry Part-I");\\n\\t\\tif(pm=="khch1")...'
+    — a mangled label that would have been shown to students in the library.
+    """
+    html = """
+    <script>
+    if(pm=="kech1"){document.write("<strong>Chemistry Part-I");
+    }
+    if(pm=="kech2"){document.write("<strong>Chemistry Part-II</strong>");
+    }
+    </script>
+    """
+
+    titles = {b.code: b.title for b in parse_catalog(html)}
+    assert titles["kech1"] == "Chemistry Part-I"
+    assert titles["kech2"] == "Chemistry Part-II"
+
+
 def test_parse_catalog_on_an_unrecognisable_page_returns_nothing():
     """A redesign should yield an empty catalog, not garbage entries."""
     assert parse_catalog("<html><body>Site under maintenance</body></html>") == []
