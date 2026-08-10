@@ -54,13 +54,61 @@ STYLE = (
     "Flat vector cartoon illustration for a children's school textbook. "
     "Clean white background, bright cheerful colours, simple bold shapes, "
     "no shading, no gradients, no photorealism. "
+    # Without this the model draws correct but tiny subjects in one corner and
+    # leaves most of the frame empty — the first life-cycle attempt put four
+    # small figures along the bottom edge of an otherwise blank page.
+    "Fill the whole frame: large, clear subjects, centred, evenly spaced, "
+    "close-up composition with little empty space. "
     "IMPORTANT: no text, no words, no letters, no numbers, no labels anywhere "
     "in the image."
 )
 
 
+# A picture that is very nearly one flat colour has nothing in it.
+#
+# FLUX sometimes returns a blank frame and still reports finishReason SUCCESS,
+# so the API cannot be asked whether it drew anything. Two ways it fails: an
+# all-black frame, and a near-white one — "the human life cycle" came back at
+# 8 KB with a brightness spread of 2 across the whole image, against 205 for a
+# good water cycle. Human figures seem the likelier trigger.
+#
+# Spread separates the two cases cleanly and needs no knowledge of which
+# happened. A real illustration on a white ground still has dark outlines.
+MIN_BRIGHTNESS_SPREAD = 40
+BLANK_RETRIES = 1
+
+
 class IllustrationError(RuntimeError):
     """Image generation failed. Never carries the API key."""
+
+
+def is_blank(raw: bytes) -> bool:
+    """
+    Whether an image is effectively empty.
+
+    Downsampled to 32x24 first: the question is whether the picture has content
+    at all, and a thumbnail answers it for a thousandth of the work.
+    """
+    try:
+        import io
+
+        from PIL import Image
+
+        thumb = Image.open(io.BytesIO(raw)).convert("L").resize((32, 24))
+        pixels = list(thumb.getdata())
+    except Exception as exc:  # noqa: BLE001 - an unreadable image is unusable anyway
+        logger.warning("Could not inspect the illustration: %s", exc)
+        return True
+
+    spread = max(pixels) - min(pixels)
+    if spread < MIN_BRIGHTNESS_SPREAD:
+        logger.info(
+            "Illustration came back blank (brightness spread %s, mean %.0f)",
+            spread, sum(pixels) / len(pixels),
+        )
+        return True
+
+    return False
 
 
 def _redact(text: str, key: str) -> str:
@@ -100,69 +148,81 @@ def generate_illustration(
         logger.debug("No NVIDIA_API_KEY; skipping illustration")
         return None
 
-    payload = {
-        "prompt": build_scene_prompt(concept, description),
-        "width": WIDTH,
-        "height": HEIGHT,
-        "steps": STEPS,
-        "cfg_scale": CFG_SCALE,
-    }
-    if seed is not None:
-        # A fixed seed makes the same lesson reproduce the same picture, which
-        # matters for a textbook and for anyone trying to reproduce a result.
-        payload["seed"] = seed
+    prompt = build_scene_prompt(concept, description)
 
-    started = time.perf_counter()
+    # Retry once on a blank frame. A different seed is usually enough; if the
+    # subject itself is the problem the second attempt fails the same way and
+    # the student simply gets no picture, which is the right outcome.
+    for attempt in range(BLANK_RETRIES + 1):
+        payload = {
+            "prompt": prompt,
+            "width": WIDTH,
+            "height": HEIGHT,
+            "steps": STEPS,
+            "cfg_scale": CFG_SCALE,
+        }
+        if seed is not None:
+            # A fixed seed makes the same lesson reproduce the same picture,
+            # which matters for a textbook and for reproducing a result.
+            payload["seed"] = seed + attempt
 
-    try:
-        response = httpx.post(
-            IMAGE_ENDPOINT,
-            headers={"Authorization": f"Bearer {key}", "Accept": "application/json"},
-            json=payload,
-            timeout=TIMEOUT,
+        started = time.perf_counter()
+
+        try:
+            response = httpx.post(
+                IMAGE_ENDPOINT,
+                headers={"Authorization": f"Bearer {key}", "Accept": "application/json"},
+                json=payload,
+                timeout=TIMEOUT,
+            )
+        except httpx.HTTPError as exc:
+            logger.warning("Illustration unreachable: %s", _redact(str(exc), key))
+            return None
+
+        if response.status_code != 200:
+            logger.warning(
+                "Illustration failed with HTTP %s: %s",
+                response.status_code,
+                _redact(response.text, key)[:200],
+            )
+            return None
+
+        artifacts = response.json().get("artifacts") or []
+        if not artifacts:
+            logger.warning("Illustration returned no image")
+            return None
+
+        encoded = artifacts[0].get("base64") or artifacts[0].get("b64_json")
+        if not encoded:
+            return None
+
+        try:
+            raw = base64.b64decode(encoded)
+        except Exception:  # noqa: BLE001
+            logger.warning("Illustration was not decodable base64")
+            return None
+
+        # finishReason is SUCCESS even for an empty frame, so the picture has to
+        # be looked at rather than trusted.
+        if is_blank(raw):
+            if attempt < BLANK_RETRIES:
+                logger.info("Retrying the illustration with a different seed")
+                continue
+            logger.info("Illustration blank after %s attempts; sending none", attempt + 1)
+            return None
+
+        mime = _sniff_mime(raw[:8])
+        if mime is None:
+            logger.warning("Illustration was not a recognised image; discarding")
+            return None
+
+        logger.info(
+            "Illustration drawn in %.1fs (%.0f KB, %s)",
+            time.perf_counter() - started, len(raw) / 1024, mime,
         )
-    except httpx.HTTPError as exc:
-        logger.warning("Illustration unreachable: %s", _redact(str(exc), key))
-        return None
+        return f"data:{mime};base64,{encoded}"
 
-    if response.status_code != 200:
-        logger.warning(
-            "Illustration failed with HTTP %s: %s",
-            response.status_code,
-            _redact(response.text, key)[:200],
-        )
-        return None
-
-    artifacts = response.json().get("artifacts") or []
-    if not artifacts:
-        logger.warning("Illustration returned no image")
-        return None
-
-    encoded = artifacts[0].get("base64") or artifacts[0].get("b64_json")
-    if not encoded:
-        return None
-
-    logger.info(
-        "Illustration drawn in %.1fs (%.0f KB)",
-        time.perf_counter() - started,
-        len(encoded) * 0.75 / 1024,
-    )
-
-    # Read the format off the bytes rather than assuming it. FLUX returns JPEG,
-    # not PNG — the first version hard-coded image/png, validated against the
-    # PNG signature, and threw every picture away.
-    try:
-        head = base64.b64decode(encoded[:32], validate=False)[:8]
-    except Exception:  # noqa: BLE001
-        logger.warning("Illustration was not decodable base64")
-        return None
-
-    mime = _sniff_mime(head)
-    if mime is None:
-        logger.warning("Illustration was not a recognised image; discarding")
-        return None
-
-    return f"data:{mime};base64,{encoded}"
+    return None
 
 
 def _sniff_mime(head: bytes) -> str | None:
@@ -171,6 +231,4 @@ def _sniff_mime(head: bytes) -> str | None:
         return "image/jpeg"
     if head.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
-    if head.startswith(b"RIFF") or head[:4] == b"GIF8":
-        return None  # not expected from this model; refuse rather than guess
     return None
