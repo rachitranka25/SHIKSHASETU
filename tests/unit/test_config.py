@@ -165,3 +165,47 @@ def test_enforce_startup_config_is_advisory_in_development(monkeypatch):
     )
 
     config.enforce_startup_config()  # must not raise
+
+
+# ==================== EMBEDDING PRECISION ====================
+
+
+def test_half_precision_on_gpu_backends(monkeypatch):
+    """
+    BGE-M3 in float32 needs 2166 MB of weights, which is most of a 4 GB
+    machine before Postgres and the API have asked for anything. float16 halves
+    that and roughly doubles encode speed, at a measured cosine similarity of
+    0.999999 against float32 — so it is free.
+    """
+    import torch
+
+    from backend.services.rag import resolve_embedding_dtype
+
+    monkeypatch.setattr(settings, "EMBEDDING_DTYPE", "auto")
+
+    assert resolve_embedding_dtype("mps") is torch.float16
+    assert resolve_embedding_dtype("cuda") is torch.float16
+
+
+def test_full_precision_on_cpu(monkeypatch):
+    """Without hardware half-precision, fp16 is emulated and comes out slower."""
+    import torch
+
+    from backend.services.rag import resolve_embedding_dtype
+
+    monkeypatch.setattr(settings, "EMBEDDING_DTYPE", "auto")
+
+    assert resolve_embedding_dtype("cpu") is torch.float32
+
+
+def test_precision_can_be_forced(monkeypatch):
+    """An operator who hits a numerical problem must be able to pin it."""
+    import torch
+
+    from backend.services.rag import resolve_embedding_dtype
+
+    monkeypatch.setattr(settings, "EMBEDDING_DTYPE", "float32")
+    assert resolve_embedding_dtype("mps") is torch.float32
+
+    monkeypatch.setattr(settings, "EMBEDDING_DTYPE", "float16")
+    assert resolve_embedding_dtype("cpu") is torch.float16

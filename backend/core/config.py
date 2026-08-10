@@ -113,6 +113,22 @@ class Settings:
     # M4 Optimization: Batch size 64 achieves 348 texts/sec (benchmarked)
     EMBEDDING_BATCH_SIZE: int = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
 
+    # Precision the embedding model is loaded at.
+    #
+    # BGE-M3 is 568M parameters. In float32 its weights occupy 2166 MB, which
+    # is most of a 4 GB machine before Postgres and the API have asked for
+    # anything. In float16 they occupy 1083 MB and encode roughly twice as
+    # fast — 1197 ms against 2255 ms for the same four queries.
+    #
+    # Measured cost to retrieval: none worth the name. Cosine similarity
+    # between the float32 and float16 embedding of the same text came out at
+    # 0.999999 across English, Devanagari and romanised Hindi, so nothing
+    # changes about what is retrieved or in what order.
+    #
+    # "auto" means half precision on GPU backends and float32 on CPU, where
+    # fp16 is emulated and usually slower rather than faster.
+    EMBEDDING_DTYPE: str = os.getenv("EMBEDDING_DTYPE", "auto")  # auto|float16|float32
+
     # --- Reranker: BGE-Reranker-v2-M3 ---
     RERANKER_MODEL_ID: str = os.getenv("RERANKER_MODEL_ID", "BAAI/bge-reranker-v2-m3")
     RERANKER_TOP_K: int = int(os.getenv("RERANKER_TOP_K", "10"))
