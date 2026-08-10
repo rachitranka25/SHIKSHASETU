@@ -24,6 +24,7 @@ import time
 import uuid
 import zipfile
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -151,6 +152,11 @@ def download_book(
     if missing_marker.exists():
         logger.debug("%s known to have no zip, skipping", book.code)
         return None
+
+    # Spacing between requests. The loop used to pace this; downloads now run
+    # on a prefetch thread, so the courtesy has to live where the request is
+    # actually made. This is a public education ministry host.
+    time.sleep(REQUEST_DELAY_SECONDS)
 
     owns_client = client is None
     client = client or httpx.Client(
@@ -507,9 +513,14 @@ def ingest_book(
     force: bool = False,
     ocr_engine=None,
     discard_download: bool = False,
+    zip_path: Path | None = None,
 ) -> tuple[int, int]:
     """
     Ingest one textbook end to end.
+
+    Args:
+        zip_path: An already-downloaded archive. Passed by ingest_books, which
+            fetches the next book while the current one is being embedded.
 
     Returns:
         (chapters stored, chunks stored). (0, 0) means skipped or unavailable.
@@ -518,7 +529,8 @@ def ingest_book(
         logger.info("%s: already in database, skipping", book.code)
         return 0, 0
 
-    zip_path = download_book(book, download_dir=download_dir, client=client)
+    if zip_path is None:
+        zip_path = download_book(book, download_dir=download_dir, client=client)
     if zip_path is None:
         return 0, 0
 
@@ -561,6 +573,12 @@ def ingest_books(
 
     A single unreachable book or malformed PDF must not end a run that may take
     hours, so failures are counted and logged rather than raised.
+
+    The next book is downloaded while the current one is being embedded. Those
+    are the two dominant costs and they use different resources — one waits on
+    a slow government web server, the other saturates the GPU — so running them
+    in sequence left each idle for the other. Measured at 97 seconds a book
+    before overlapping, against a catalog of 558.
     """
     stats = IngestStats()
 
@@ -568,12 +586,36 @@ def ingest_books(
         timeout=DOWNLOAD_TIMEOUT,
         follow_redirects=True,
         headers={"User-Agent": USER_AGENT},
-    ) as client:
+    ) as client, ThreadPoolExecutor(max_workers=1, thread_name_prefix="prefetch") as pool:
+
+        def start_download(index: int):
+            """Begin fetching books[index], if there is one."""
+            if index >= len(books):
+                return None
+            # A separate client per prefetch: httpx.Client is thread-safe, but
+            # the download runs while the main thread may also be using one,
+            # and an isolated connection pool keeps the two from interfering.
+            return pool.submit(download_book, books[index], download_dir, None)
+
+        pending = start_download(0)
+
         for position, book in enumerate(books, 1):
+            try:
+                # Whatever the prefetcher fetched for this book. A failed
+                # download surfaces here rather than in the worker thread.
+                zip_path = pending.result() if pending is not None else None
+            except Exception as exc:  # noqa: BLE001
+                logger.error("%s: prefetch failed: %s", book.code, exc)
+                zip_path = None
+
+            # Start the next download now, so it runs during this book's
+            # extraction and embedding rather than after them.
+            pending = start_download(position)
+
             try:
                 chapters, chunks = ingest_book(
                     db, book, embedder, download_dir, client, force, ocr_engine,
-                    discard_downloads,
+                    discard_downloads, zip_path,
                 )
                 if chapters:
                     stats.books_done += 1
@@ -588,7 +630,5 @@ def ingest_books(
 
             if on_progress:
                 on_progress(position, len(books), book, stats)
-
-            time.sleep(REQUEST_DELAY_SECONDS)
 
     return stats
