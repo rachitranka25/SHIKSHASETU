@@ -13,12 +13,16 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import {
   GraduationCap,
   Languages,
   Loader2,
   AlertCircle,
-  ExternalLink,
   Sparkles,
   BookOpenCheck,
 } from 'lucide-react';
@@ -290,12 +294,21 @@ export default function Learn() {
             </div>
 
             <div className={`rounded-card border p-4 ${panel}`}>
-              <p
-                className="whitespace-pre-wrap text-body"
+              {/* Markdown with math. The model writes LaTeX for anything with a
+                  formula, and rendering it as plain text showed students
+                  "$$c = \\sqrt{25}$$" where the square root should be. Same
+                  pipeline the chat transcript uses. */}
+              <div
+                className="prose-answer text-body [&_p]:mb-3 [&_li]:mb-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 style={readingSupport ? readingStyle(preferences) : undefined}
               >
-                {result.answer}
-              </p>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                >
+                  {result.answer}
+                </ReactMarkdown>
+              </div>
             </div>
 
             {readingSupport && (
@@ -377,38 +390,6 @@ export default function Learn() {
               </figure>
             )}
 
-            {result.sources.length > 0 && (
-              <section>
-                <h2 className={`mb-2 text-body-sm font-medium ${faint}`}>
-                  Taught from
-                </h2>
-                <ul className="space-y-1.5">
-                  {result.sources.slice(0, 4).map((source, index) => (
-                    <li
-                      key={`${source.url}-${index}`}
-                      className={`flex flex-wrap items-center gap-2 text-body-sm ${muted}`}
-                    >
-                      <span>
-                        Class {source.grade} {source.subject}
-                        {source.chapter != null && `, chapter ${source.chapter}`}
-                      </span>
-                      {source.url && (
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="inline-flex items-center gap-1 rounded text-[#F4D47A] hover:underline
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F4D47A]"
-                        >
-                          open
-                          <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
           </article>
         )}
       </div>

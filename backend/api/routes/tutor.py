@@ -30,6 +30,7 @@ abandoned.
 
 import logging
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -433,14 +434,33 @@ async def explain(request: ExplainRequest, db: Session = Depends(get_db)) -> Exp
         # for SVG produced a rectangle with four floating words; the 70B took
         # 145 seconds to do it worse than the 8B did in 8. See
         # backend/services/illustration.py.
+        # Geometry first. An image model draws scenes well and constructions
+        # badly — asked for Pythagoras it produced three decorative triangles.
+        # A language model writing SVG does no better: the coordinates have to
+        # be computed. The standard figures are therefore drawn by hand, and
+        # everything else falls through to the image model.
+        from ...services.geometry_diagrams import render as render_geometry
+
+        drawn = render_geometry(request.question, answer)
+        if drawn is not None:
+            svg, template_name = drawn
+            diagram = "data:image/svg+xml;utf8," + quote(svg)
+            diagram_note = (
+                "Constructed diagram, drawn to scale — the right angle is a right "
+                "angle and the squares match their sides. NCERT's own figures live "
+                "inside the textbook PDFs and are not part of the corpus."
+            )
+            logger.info("Diagram: geometry template %s", template_name)
+
         from ...services.illustration import generate_illustration
 
         subject = usable[0].subject or "this topic"
-        diagram = generate_illustration(
-            concept=f"{request.question.strip()} ({subject}, Class {grade})",
-            description=answer[:400],
-        )
-        if diagram:
+        if diagram is None:
+            diagram = generate_illustration(
+                concept=f"{request.question.strip()} ({subject}, Class {grade})",
+                description=answer[:400],
+            )
+        if diagram and diagram_note is None:
             diagram_note = (
                 "Illustration drawn for this explanation. It carries no text, "
                 "because image models misspell words — the labelled facts are in "
