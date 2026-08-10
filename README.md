@@ -2,7 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
-[![Tests](https://img.shields.io/badge/tests-329%20passing-brightgreen.svg)](#project-status)
+[![Tests](https://img.shields.io/badge/tests-445%20passing-brightgreen.svg)](#project-status)
+[![Architecture](https://img.shields.io/badge/docs-architecture-blue.svg)](docs/ARCHITECTURE.md)
 
 **Open AI for Education & Noble Purposes**
 
@@ -11,6 +12,12 @@ A local-first, unrestricted AI platform that empowers learning, research, creati
 > **Content policy:** this platform ships **unrestricted**. Output filtering is
 > off by default. See [Content Policy](#content-policy) before deploying it to
 > students.
+
+**[→ docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how every part works, with
+the measurements behind each decision: request lifecycle, model choices and the
+benchmarks that drove them, the ingestion pipeline, why Hinglish retrieval was
+broken and how it was fixed, memory optimisation and the 4 GB path, akshara
+segmentation for dyslexic readers, and the security findings.
 
 ---
 
@@ -213,7 +220,16 @@ section describes what is currently verified, so you can tell the two apart.
 **Verified**
 
 - 72 routes register and the app boots.
-- 329 tests, no failures. Roughly 33 skip themselves when a prerequisite is
+- The tutor answers in 13 languages independently of the question's language —
+  Hinglish in, English out, verified end to end.
+- Illustrations are drawn by an image model in ~5 s and blank frames are
+  rejected rather than shown.
+- Reading support measurably lowers decoding load: grade 6.9 against the NCERT
+  source's 7.0, having first made it *worse* at 8.2 before the measure-and-keep
+  -the-better loop was added.
+- BGE-M3 loads at half precision: 1,083 MB instead of 2,166, roughly twice the
+  encode speed, cosine 0.999999 against float32.
+- 445 tests, no failures. Roughly 33 skip themselves when a prerequisite is
   absent — no running server for the e2e suite, no loaded model for the
   benchmarks, no greenlet for the async-database tests.
 - Auth: bcrypt hashing at 12 rounds, JWT access/refresh with the token type
