@@ -1,4 +1,4 @@
-# STATUS — 11 August 2026, 14:05 IST
+# STATUS — 11 August 2026, 15:54 IST
 
 Terminal ka rendering toot gaya, isliye ye file likhi hai. Cursor mein khul rahi hai,
 toh yahan sab kuch hai.
@@ -23,17 +23,17 @@ shayad reboot ke baad. Data ya kaam kuch nahi gaya.
 
 ---
 
-## Ingestion — CHAL RAHI HAI
+## Ingestion — CHAL RAHI HAI, ~1 GHANTA BAAKI
 
 | | |
 |---|---|
-| **Books** | **128** |
-| Chapters | 1,357 |
-| Chunks | 35,643 |
-| Embeddings | 35,643 — chunks ke barabar, yaani koi adhoora book nahi |
+| **Books ho gaye** | **135** |
+| Chunks | 37,187 |
 | Classes | **1 se 12, saari** |
+| **Bache** | **28** — sab class 12 ki (`lehe1`, `lehs1`, `lelm1` ...) |
+| **ETA** | **~1.1 ghanta** (140 s/book ke measured rate pe) |
 
-Subah 30 books the. Ab 128.
+Subah 30 books the. Ab 135.
 
 **Khud check karne ke liye** (terminal theek hone ke baad):
 
@@ -80,14 +80,14 @@ Commit `e84edf3`. Uske baad 75 → 128 books.
 ## Final count 263 nahi hoga — ye paper mein likhna padega
 
 ```
-ho gaye            128 books
-dead-end / 404      93 books
-bache               ~42 books   ->  ~1.5 ghante
+ho gaye            135 books
+dead-end / 404     108 books
+bache               28 books   ->  ~1 ghanta
                    ─────────
-realistic final    ~170 books   (263 nahi)
+final banega      ~163 books   (263 nahi)
 ```
 
-Wo 93 books: kuch ke zip NCERT ne publish hi nahi kiye, ek corrupt hai, aur kaafi
+Wo 108 books: kuch ke zip NCERT ne publish hi nahi kiye, ek corrupt hai, aur kaafi
 legacy-font Hindi readers hain. **Sab marked hain reason ke saath**, toh paper mein
 exact likha ja sakta hai. Ye honest limitation hai — chhupane wali cheez nahi, aur
 ek reviewer isse achha maanega.
