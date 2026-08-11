@@ -20,6 +20,7 @@ from backend.services.ingestion.ncert_catalog import (
 from backend.services.ingestion.ncert_ingest import (
     MIN_CHUNK_CHARS,
     is_legacy_font_text,
+    record_dead_end,
     OCR_IMAGE_DENSITY,
     OCR_MIN_PAGE_CHARS,
     chunk_text,
@@ -430,3 +431,43 @@ def test_a_short_sample_is_given_the_benefit_of_the_doubt():
     book = Textbook(code="jhks1", title="Kshitij-2", grade=10, medium="Hindi")
 
     assert not is_legacy_font_text("figure 3.1", book)
+
+
+# ==================== DEAD ENDS ====================
+
+
+def test_a_dead_end_is_marked_so_a_batched_run_stops_retrying(tmp_path):
+    """
+    A book is committed in one transaction, so a failure leaves no trace in the
+    database, and the batched runner selects whatever is not yet in the
+    database. Anything that reliably fails is therefore reliably reselected.
+    One overnight run spent 1,178 batches to ingest 16 books: class 5 Rimjhim
+    has a corrupt archive and was chosen again every single time.
+    """
+    book = Textbook(code="ehhn1", title="Rimjhim", grade=5, medium="Hindi")
+
+    record_dead_end(book, tmp_path, "BadZipFile: Bad CRC-32 for ehhn105.pdf")
+
+    marker = tmp_path / "ehhn1.unavailable"
+    assert marker.exists()
+    assert "Bad CRC-32" in marker.read_text()
+
+
+def test_the_reason_is_kept_so_dead_ends_stay_auditable(tmp_path):
+    """A book rejected for legacy fonts is a different problem from a 404."""
+    book = Textbook(code="ghvs1", title="Vasant", grade=7, medium="Hindi")
+
+    record_dead_end(book, tmp_path, "yielded no usable chapters")
+
+    assert "no usable chapters" in (tmp_path / "ghvs1.unavailable").read_text()
+
+
+def test_an_existing_marker_is_not_overwritten(tmp_path):
+    """The first diagnosis is the useful one; later passes must not bury it."""
+    book = Textbook(code="ehhn1", title="Rimjhim", grade=5, medium="Hindi")
+    marker = tmp_path / "ehhn1.unavailable"
+    marker.write_text("original reason\n")
+
+    record_dead_end(book, tmp_path, "a later, vaguer reason")
+
+    assert marker.read_text() == "original reason\n"

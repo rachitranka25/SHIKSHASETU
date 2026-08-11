@@ -623,6 +623,32 @@ def ingest_book(
     return len(chapters), total_chunks
 
 
+def record_dead_end(book: Textbook, download_dir: Path, reason: str) -> None:
+    """
+    Mark a book that cannot be ingested, so a batched run stops retrying it.
+
+    A book is committed in one transaction, so a failure rolls back completely
+    and the book never appears in the database. The batched runner selects
+    whatever is not yet in the database, which means anything that reliably
+    fails is reliably reselected -- an unbounded retry loop. One overnight run
+    spent 1,178 batches to ingest 16 books because class 5 Rimjhim has a corrupt
+    archive (`Bad CRC-32 for ehhn105.pdf`) and was chosen again every time, in
+    company with legacy-font Hindi books that are correctly rejected chapter by
+    chapter and therefore also never land.
+
+    404s already had a marker; these two outcomes did not. The reason is written
+    into the file so the set of dead ends stays auditable, and deleting the file
+    is all it takes to retry a book once its cause is fixed.
+    """
+    marker = download_dir / f"{book.code}.unavailable"
+    if marker.exists():
+        return
+
+    download_dir.mkdir(parents=True, exist_ok=True)
+    marker.write_text(f"{book.code}\t{book.title}\t{reason}\n", encoding="utf-8")
+    logger.warning("%s marked as a dead end: %s", book.code, reason)
+
+
 def ingest_books(
     db: Session,
     books: list[Textbook],
@@ -688,10 +714,12 @@ def ingest_books(
                     stats.chunks += chunks
                 else:
                     stats.books_skipped += 1
+                    record_dead_end(book, download_dir, "yielded no usable chapters")
             except Exception as exc:  # noqa: BLE001 - a long run must not die on one book
                 db.rollback()
                 stats.books_failed += 1
                 logger.error("%s: ingestion failed: %s", book.code, exc)
+                record_dead_end(book, download_dir, f"{type(exc).__name__}: {exc}")
 
             if on_progress:
                 on_progress(position, len(books), book, stats)
