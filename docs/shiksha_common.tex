@@ -162,7 +162,7 @@ Three rows are stated against our own interest: generation is not local, the sys
 \section{System Architecture}
 %===================================================================
 
-A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. Fig.~\ref{fig:pipeline} shows those six with their measured latencies on an 8~GB Apple~M1, arranged by the property this paper is about, which is which side of the machine boundary each one runs on.
+A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. The latencies below were taken on the development machine; what the platform \emph{requires} is the 2{,}094~MB of Section~VI, which is what puts it inside 4~GB. Fig.~\ref{fig:pipeline} shows those six with their measured latencies on an 8~GB Apple~M1, arranged by the property this paper is about, which is which side of the machine boundary each one runs on.
 
 \begin{figure}[t]
 \centering
@@ -182,10 +182,10 @@ A student's question traverses an eight-stage pipeline from input to response, s
 \node[t, anchor=south, sOrange!90] at (52mm,4.5mm) {\textsc{network}};
 
 \node[loc] (q)  at (14mm,  0mm)   {student's question};
-\node[net] (rw) at (52mm, -8mm)   {1\, rewrite to English\\[-1pt]$\sim$0.6\,s};
-\node[loc] (em) at (14mm, -16mm)  {2\, embed query\\[-1pt]$\sim$0.1\,s};
-\node[loc] (rt) at (14mm, -25mm)  {3--5\, retrieve, score by\\[-1pt]class, retrieve again\\[-1pt]$\sim$0.05\,s};
-\node[net] (gn) at (52mm, -33mm)  {6\, generate answer\\[-1pt]$\sim$2.0\,s};
+\node[net] (rw) at (52mm, -8mm)   {1\, rewrite to English\\[-1pt]$\sim$0.5\,s, cached};
+\node[loc] (em) at (14mm, -16mm)  {2\, embed query\\[-1pt]0.11\,s};
+\node[loc] (rt) at (14mm, -25mm)  {3--5\, retrieve, score by\\[-1pt]class, retrieve again\\[-1pt]0.11\,s};
+\node[net] (gn) at (52mm, -33mm)  {6\, generate answer\\[-1pt]4.2\,s};
 \node[loc] (gr) at (14mm, -41mm)  {grounding check\\[-1pt]regenerate if ${<}0.715$};
 
 \draw[cross, sOrange!85] (q)  -- (rw);
@@ -198,7 +198,7 @@ A student's question traverses an eight-stage pipeline from input to response, s
 \node[t, anchor=west, black!65] at (33mm,-23.5mm) {and all retrieval stay};
 \node[t, anchor=west, black!65] at (33mm,-26.5mm) {on the left of this line};
 \end{tikzpicture}
-\caption{The mandatory request path, warm cache, on an 8~GB Apple~M1. The dashed line is the machine boundary. Everything on its left, including the corpus and the whole of retrieval, stays on the machine; the two hosted calls are the only points at which a question leaves it, and the answer crosses back for grounding. Stages~3--5 are drawn as one box because they are three vector operations totalling ${\sim}0.05$\,s. Stage~6 produces a complete answer and is therefore slower than the fixed short completion used for model selection\ifconf\else\ (Table~\ref{tab:latency})\fi. The grounding check carries no latency because we did not measure it separately. The two optional stages, reading support and illustration, are omitted here and add ${\sim}0.5$\,s and ${\sim}5.0$\,s; without them a warm request completes in approximately three seconds.}
+\caption{The mandatory request path. Medians over 15 warm requests, five questions run three times on an 8~GB Apple~M1. The dashed line is the machine boundary: the corpus and all retrieval stay left of it. Generation dominates and is least predictable, 4.2\,s median against a 95th percentile of 13.2\,s, because it is hosted. All of retrieval is 0.11\,s. The grounding check carries no latency because it was not measured separately.
 \label{fig:pipeline}
 \end{figure}
 
@@ -751,7 +751,7 @@ That 1.000 should be read for what it measures. The negatives are answers writte
 \section{Consolidated Results}
 %===================================================================
 
-The platform is validated by \textbf{474 automated tests}: 381 unit, 73 integration, 10 end-to-end, 9 performance and 1 manual. \textbf{441 pass and 33 are skipped, with zero failures and zero errors.} The skips are declared, not silent. They are tests requiring a loaded model or a service this environment does not run, and the counts here are read from the suite's own JUnit report, not from a summary line.
+The platform is validated by \textbf{490 automated tests}, of which \textbf{457 pass and 33 are skipped, with zero failures and zero errors.} The skips are declared, not silent. They are tests requiring a loaded model or a service this environment does not run, and the counts here are read from the suite's own JUnit report, not from a summary line.
 
 Table~\ref{tab:results} summarizes key metrics.
 
@@ -778,7 +778,7 @@ Response latency (warm) & ${\sim}3$~s \\
 Grounding threshold (calibrated) & 0.715 \\
 Grounding balanced accuracy & 1.000 \\
 Security vulns fixed & 12 \\
-Automated tests & 441 pass, 33 skip, 0 fail \\
+Automated tests & 457 pass, 33 skip, 0 fail \\
 \bottomrule
 \end{tabular}
 \end{table}

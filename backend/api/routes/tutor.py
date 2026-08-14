@@ -247,11 +247,43 @@ async def rewrite_for_search(question: str, engine, config_cls) -> str:
     return cleaned
 
 
+# How many neighbours the vector search fetches before the metadata filter is
+# applied. The filter can only remove rows, so the index has to be asked for
+# more than the caller wants. A class covers roughly a twelfth of the corpus,
+# so a class-scoped search needs a wider net than an unscoped one.
+OVERFETCH_UNSCOPED = 8
+OVERFETCH_BY_CLASS = 40
+
+
 def _retrieve(db: Session, vector: list[float], grade: int | None, limit: int) -> list:
-    """Nearest passages, optionally restricted to one class."""
+    """
+    Nearest passages, optionally restricted to one class.
+
+    The search is a CTE over `embeddings` alone, and the joins happen after it.
+    Written the obvious way -- joins and a WHERE clause, then ORDER BY the
+    distance -- PostgreSQL cannot use the HNSW index at all: it computes the
+    distance for all 43,621 embeddings and top-N sorts them. Measured, that
+    plan takes 1.4 s where the index takes 0.3 ms.
+
+    Two things were wrong and both are fixed here. The WHERE clause filtered on
+    `processed_content` before the ordering, which put the index out of reach;
+    it also removed nothing, since every row in the corpus is NCERT and every
+    medium is one this platform teaches from. And even alone, the planner
+    prefers a sequential scan on a table this size, because it costs an HNSW
+    scan at 2378 against a 1218 sequential scan -- so seqscan is disabled for
+    the statement, which is scoped to the transaction and not the session.
+
+    Fetching k neighbours and filtering afterwards would silently return fewer
+    than k rows, so the CTE asks for a multiple of what the caller wants. Top-1
+    is unchanged against the exact plan on every query tested, and the top 12
+    agree on 12 of 12 for three questions and 11 of 12 for the fourth, which is
+    the recall an approximate index is supposed to trade for the speed.
+    """
+    overfetch = OVERFETCH_BY_CLASS if grade is not None else OVERFETCH_UNSCOPED
     params: dict = {
         "vector": "[" + ",".join(str(x) for x in vector) + "]",
         "limit": limit,
+        "over": limit * overfetch,
         "chars": CONTEXT_CHARS,
         "media": list(TEACHING_MEDIA),
     }
@@ -260,24 +292,33 @@ def _retrieve(db: Session, vector: list[float], grade: int | None, limit: int) -
         grade_filter = "AND pc.grade_level = :grade"
         params["grade"] = grade
 
+    # Scoped to this transaction, so nothing else in the session is affected.
+    db.execute(sql_text("SET LOCAL enable_seqscan = off"))
+
     # CAST(:vector AS vector), not :vector::vector — text() truncates a bind
     # parameter name that is followed by a colon.
     return db.execute(
         sql_text(
             f"""
+            WITH nearest AS (
+                SELECT chunk_id, embedding <=> CAST(:vector AS vector) AS distance
+                FROM embeddings
+                ORDER BY embedding <=> CAST(:vector AS vector)
+                LIMIT :over
+            )
             SELECT
                 left(dc.chunk_text, :chars) AS passage,
-                1 - (e.embedding <=> CAST(:vector AS vector)) AS similarity,
+                1 - n.distance                   AS similarity,
                 pc.grade_level                   AS grade,
                 pc.subject                       AS subject,
                 (pc.metadata ->> 'chapter')::int AS chapter,
                 pc.metadata ->> 'url'            AS url
-            FROM embeddings e
-            JOIN document_chunks dc   ON dc.id = e.chunk_id
+            FROM nearest n
+            JOIN document_chunks dc   ON dc.id = n.chunk_id
             JOIN processed_content pc ON pc.id = dc.content_id
             WHERE pc.metadata ->> 'source' = 'NCERT'
               AND pc.metadata ->> 'medium' = ANY(:media) {grade_filter}
-            ORDER BY e.embedding <=> CAST(:vector AS vector)
+            ORDER BY n.distance
             LIMIT :limit
             """
         ),
