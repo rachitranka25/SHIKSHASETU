@@ -560,7 +560,7 @@ Gujarati  & r2 & 1    & \multicolumn{3}{l}{} \\
 \end{tabular}
 \end{table}
 
-\textbf{Most of the shortfall is strictness, not absence.} Six queries are not correct under the rank-1 criterion, but four of them place an on-topic passage at rank~2 to~4. Counting a correct passage anywhere in the top five, pooled retrieval succeeds on \textbf{20 of 22}. Only Urdu and Tamil photosynthesis return nothing relevant at all. The strict criterion is the right one to report, because a student reads the first passage, but the distinction matters for what to fix. A system that has already retrieved the right passage and ordered it second needs reranking, not better embeddings. The cross-encoder reranker named in Table~\ref{tab:models} is exactly that component, and it is integrated but not wired into the retrieval path, which makes these four queries the strongest available argument for wiring it in, and the reason we report the component as present instead of omitting it.
+\textbf{Most of the shortfall is strictness, not absence.} Six queries are not correct under the rank-1 criterion, but four of them place an on-topic passage at rank~2 to~4. Counting a correct passage anywhere in the top five, pooled retrieval succeeds on \textbf{20 of 22}. Only Urdu and Tamil photosynthesis return nothing relevant at all. The strict criterion is the right one to report, because a student reads the first passage, but the distinction matters for what to fix. A system that has already retrieved the right passage and ordered it second needs reranking, not better embeddings. The cross-encoder reranker named in Table~\ref{tab:models} is exactly that component, and it is integrated but not wired into the retrieval path. It is worth saying why not, because the obvious reason turns out to be wrong: peak resident set with the embedder and the reranker both loaded and twelve candidates scored is 2{,}083~MB, against 2{,}094~MB for the embedder alone, so the 4~GB budget is not what excludes it, which makes these four queries the strongest available argument for wiring it in, and the reason we report the component as present instead of omitting it.
 
 \textbf{The two genuine failures share a cause.} Urdu and Tamil photosynthesis are the only queries where nothing on topic appears. Both are compound or borrowed terms whose morphology gives the embedding nothing to attach to. The Urdu \emph{ziyai talif} is Perso-Arabic in origin and shares no root with either the English word or the Sanskrit-derived compounds the other nine languages use, and the Tamil rewrite returned a paraphrase that lost the term instead of normalising it. The failure is lexical, not script-level, which is consistent with the BM25 result, where supplying an English rewrite lifted a method that had returned nothing at all to 45\%.
 \fi
@@ -719,7 +719,7 @@ This defect is characteristic of the class the audit kept finding. It is not a m
 
 \fi
 %===================================================================
-\section{Grounding and Hallucination Detection}
+\section{Grounding and Drift Detection}
 %===================================================================
 
 A retrieval-augmented system can retrieve the correct chapter and still generate a fabricated answer, which is the failure mode surveyed across generation tasks by Ji et al.~\cite{b29} and the one retrieval is supposed to remove. When asked about a specific story from the Hindi curriculum, the system retrieved the correct chapter, then described events that never occurred. The class was correct, the chapter was correct, the language was correct, and every detail was invented.
@@ -755,7 +755,7 @@ Grounding need not be measured against the concatenation of the retrieved passag
 \legend{matched, mismatched}
 \end{axis}
 \end{tikzpicture}
-\caption{Four grounding estimators over 16 matched and 240 mismatched pairs, with one standard deviation. What separates the populations is the distance between the two bars, not the height of either. Scoring against the single best passage raises both means without widening that distance, and scoring sentence by sentence narrows it.}
+\caption{Four grounding estimators over 16 matched and 240 mismatched pairs, with one standard deviation. What separates the populations is the distance between the two bars, not the height of either.}
 \label{fig:estimators}
 \end{figure}
 
