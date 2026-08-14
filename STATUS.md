@@ -97,11 +97,19 @@ ek reviewer isse achha maanega.
 ## Paper — READY hai
 
 ```
-docs/IEEE_PAPER_SHIKSHA_SETU.pdf
+docs/IEEE_CONFERENCE_SHIKSHA_SETU.pdf    7 pages
+docs/IEEE_JOURNAL_SHIKSHA_SETU.pdf       extended version
 ```
 
-**7 pages · 14 tables · citations 1–21 contiguous · 0 broken refs · 0 overfull boxes
-· Times with real bold + italic**
+Dono ek hi source se bante hain — `docs/shiksha_common.tex`. Koi number do jagah
+nahi likha, isliye do copies aapas mein disagree nahi kar saktin. Build:
+
+```
+tectonic docs/IEEE_CONFERENCE_SHIKSHA_SETU.tex
+tectonic docs/IEEE_JOURNAL_SHIKSHA_SETU.tex
+```
+
+**0 broken refs · 0 overfull boxes · Times with real bold + italic**
 
 Audit ke saare 6 items done, plus 4 cheezein jo audit ne miss ki thi. Do sabse
 important:
