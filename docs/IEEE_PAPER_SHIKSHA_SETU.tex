@@ -98,36 +98,39 @@ Zorzi et al.~\cite{b13} found that extra-large letter spacing improved reading s
 \subsection{Efficiency and Readability}
 Kincaid et al.~\cite{b18} derived the Flesch-Kincaid grade-level formula defined on English syllable counts---which is why the platform refuses to compute it for Devanagari text. Xu et al.~\cite{b19} demonstrated that generic simplification routinely loses content, motivating the measure-and-keep-the-easier approach. Micikevicius et al.~\cite{b20} established the safety of half-precision arithmetic for neural network inference, providing the theoretical basis for the fp16 optimization that halves the BGE-M3 memory footprint.
 
-\subsection{Comparison with Existing Approaches}
+\subsection{Comparison with Existing Systems}
 \label{sec:comparison}
-Table~\ref{tab:comparison} places this work against the classes of system a student might otherwise use. It compares \emph{architectural properties}, not performance, and every cell is either a structural fact or is marked as undisclosed.
+Table~\ref{tab:comparison} compares this work with the systems an Indian student is most likely to encounter: Khanmigo, Khan Academy's GPT-4 tutor; BYJU'S, the largest Indian ed-tech platform; Bhashini, the Government of India's national language-technology mission; and a general-purpose assistant used directly.
 
-That restriction is deliberate. Commercial tutoring products publish neither latency distributions, retrieval quality, nor memory footprints, and a table of estimated figures for them would be a table of invented numbers wearing the typography of measurement. Where a competitor has not published, ``n/d'' is the honest entry, and no row in this paper compares our measurements against a number we could not obtain.
+The comparison is confined to \emph{architectural properties}, and every cell is either a structural fact, a figure the vendor has published, or \emph{n/d} where they have not. No row compares a measurement of ours against a number we could not obtain. Commercial products publish neither latency distributions nor retrieval quality nor memory footprints, and a table of plausible estimates for them would be a table of invented numbers set in the typography of measurement.
 
 \begin{table}[htbp]
-\caption{Architectural comparison. \emph{n/d}: not disclosed by the vendor. Rows are structural properties, not performance claims.}
+\caption{Comparison with deployed systems. \emph{n/d}: not disclosed by the operator. Rows are architectural properties, not performance claims.}
 \label{tab:comparison}
 \centering
 \footnotesize
 \begin{tabular}{@{}lcccc@{}}
 \toprule
- & \textbf{Cloud} & \textbf{Cloud} & \textbf{General} & \textbf{This} \\
-\textbf{Property} & \textbf{tutor} & \textbf{RAG} & \textbf{LLM} & \textbf{work} \\
+\textbf{Property} & \textbf{Khanmigo} & \textbf{BYJU'S} & \textbf{Bhashini} & \textbf{Ours} \\
 \midrule
-Curriculum-grounded        & part & yes & no  & yes \\
-Corpus held locally        & no   & no  & --- & yes \\
-Retrieval runs locally     & no   & no  & --- & yes \\
-Generation runs locally    & no   & no  & no  & no  \\
-Works without a network    & no   & no  & no  & no  \\
-Indic script segmentation  & no   & n/d & no  & yes \\
-Grounding score returned   & n/d  & n/d & no  & yes \\
-Corpus corruption auditing & n/d  & n/d & --- & yes \\
-Stated memory target       & n/d  & n/d & n/d & 4~GB \\
+NCERT-aligned corpus     & no  & yes & ---  & yes \\
+Indian languages         & no  & 2   & 22   & 11 \\
+Corpus held locally      & no  & no  & ---  & yes \\
+Retrieval runs locally   & no  & no  & ---  & yes \\
+Generation runs locally  & no  & no  & ---  & no  \\
+Runs without a network   & no  & no  & no   & no  \\
+Brahmic readability aid  & no  & no  & no   & yes \\
+Per-answer grounding     & n/d & n/d & ---  & yes \\
+Corpus corruption audit  & n/d & n/d & ---  & yes \\
+Stated memory target     & n/d & n/d & n/d  & 4~GB \\
+Tutoring function        & yes & yes & no   & yes \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Two rows deserve emphasis because they are the ones usually claimed too broadly. \textbf{Generation runs locally} is ``no'' for this work as measured: the hosted endpoint is what keeps serving inside the memory target, and a local generator is configured but cannot share 4~GB with the embedder. \textbf{Works without a network} follows from it. What is genuinely different here is the row above them---the corpus, its index and the whole of retrieval are local---and the two rows below, which are properties no comparable system appears to report at all: a per-answer grounding score exposed to the caller, and an ingestion pipeline that detects and rejects corrupted source material rather than embedding it.
+Bhashini is dashed rather than marked absent on several rows because it is language infrastructure---translation, speech and transliteration services---and not a tutor, so corpus and retrieval questions do not apply to it. It is included because it is the most capable Indian-language system in public deployment, and because its 22 languages exceed ours: a platform claiming multilingual reach should be compared against the strongest such system rather than only against tutors.
+
+Three rows are stated against our own interest. Generation does not run locally, the system does not work without a network, and BYJU'S covers a curriculum we cover while operating at a scale we do not approach. What remains is the distinguishing set: the corpus, index and retrieval are local; a grounding score accompanies every answer; and the ingestion pipeline audits its own source material rather than embedding whatever it extracts. We have found no comparable system that reports the last two at all, which is a claim about the published record and not about what those systems do internally.
 
 %===================================================================
 \section{System Architecture}
