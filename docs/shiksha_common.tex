@@ -90,11 +90,7 @@ India is home to 1.4 billion people speaking 22 constitutionally recognized lang
 
 Artificial intelligence can bridge this gap, but the dominant paradigm of cloud-hosted large language models introduces three structural failures for Indian education:
 
-\textbf{Language exclusion.} The overwhelming majority of educational AI systems operate in English as their primary language. English is a first language for a negligible share of the population and a second or third language for roughly one Indian in ten~\cite{b24}, so for the great majority such systems are inaccessible at the point of need.
-
-\textbf{Infrastructure dependence.} Cloud-based solutions require consistent high-bandwidth internet connectivity and impose per-query costs through API billing. In Tier~2 and Tier~3 Indian cities and rural areas, this dependency makes sustained educational use economically impractical.
-
-\textbf{Pedagogical misalignment.} General-purpose language models lack awareness of curriculum structure, grade-appropriate complexity, and the specific conceptual progression of NCERT instruction. A class~6 student asking about chemical reactions requires a fundamentally different explanation from a class~12 student on the same topic.
+\textbf{Language exclusion.} Most educational AI systems operate in English. English is a first language for a negligible share of the population and a second or third language for roughly one Indian in ten~\cite{b24}, so for the great majority such systems are inaccessible at the point of need. \textbf{Infrastructure dependence.} Cloud solutions need consistent bandwidth and bill per query, which makes sustained use impractical in the towns and villages where most students are. \textbf{Pedagogical misalignment.} A general-purpose model has no notion of curriculum structure or grade-appropriate complexity, and a class~6 student asking about chemical reactions needs a different answer from a class~12 student on the same topic.
 
 This paper presents Shiksha Setu, a platform that addresses the first and third failures and \emph{partially} the second, through a measurement-driven engineering approach.
 
@@ -106,7 +102,7 @@ This work contributes an ingestion pipeline covering all 559 NCERT textbooks, wh
 \section{Related Work}
 %===================================================================
 
-Lewis et al.~\cite{b2} introduced retrieval-augmented generation (RAG) for knowledge-intensive NLP tasks, establishing the paradigm of conditioning language model output on retrieved passages. Shiksha Setu adopts this architecture with a critical modification: a grade-level filter inserted between retrieval and generation, because the same topic at class~6 and class~12 requires different explanations. Karpukhin et al.~\cite{b3} demonstrated the superiority of dense passage retrieval over BM25. Ma et al.~\cite{b4} showed that query rewriting before embedding improves retrieval quality. The technique that resolves the romanized Hindi failure\ifconf\else\ of Section~\ref{sec:romanized}\fi. Nogueira and Cho~\cite{b5} established passage re-ranking with cross-encoder models. The BGE-Reranker component exists in the codebase but is not yet wired into the retrieval path.
+Lewis et al.~\cite{b2} introduced retrieval-augmented generation (RAG) for knowledge-intensive NLP tasks, since surveyed at length~\cite{b28}, establishing the paradigm of conditioning language model output on retrieved passages. Shiksha Setu adopts this architecture with a critical modification: a grade-level filter inserted between retrieval and generation, because the same topic at class~6 and class~12 requires different explanations. Karpukhin et al.~\cite{b3} demonstrated the superiority of dense passage retrieval over BM25. Ma et al.~\cite{b4} showed that query rewriting before embedding improves retrieval quality. The technique that resolves the romanized Hindi failure\ifconf\else\ of Section~\ref{sec:romanized}\fi. Nogueira and Cho~\cite{b5} established passage re-ranking with cross-encoder models. The BGE-Reranker component exists in the codebase but is not yet wired into the retrieval path.
 
 Chen et al.~\cite{b6} presented BGE-M3, a multilingual embedding model supporting over 100 languages in a unified 1024-dimensional vector space. Its cross-lingual property, that semantically equivalent passages in different languages map to nearby vectors, allows a Hindi question to retrieve an English passage without explicit translation. Gala et al.~\cite{b7} developed IndicTrans2 covering all 22 scheduled Indian languages, serving as the translation backbone. Kakwani et al.~\cite{b1} provided monolingual corpora and evaluation benchmarks for Indian languages. Khanuja et al.~\cite{b8} trained MuRIL on transliterated text, directly relevant to the romanized Hindi failure\ifconf\else\ documented in Section~\ref{sec:romanized}\fi.
 
@@ -129,7 +125,7 @@ Kincaid et al.~\cite{b18} derived the Flesch-Kincaid grade-level formula defined
 \label{sec:comparison}
 Table~\ref{tab:comparison} compares this work with the systems an Indian student is most likely to encounter: Khanmigo~\cite{b21}, Khan Academy's GPT-4 tutor; BYJU'S, the largest Indian ed-tech platform; and Bhashini~\cite{b22}, the Government of India's national language-technology mission.
 
-The comparison is confined to \emph{architectural properties}, and every cell is either a structural fact, a figure the vendor has published, or \emph{n/d} where they have not. No row compares a measurement of ours against a number we could not obtain. Commercial products publish neither latency distributions nor retrieval quality nor memory footprints, and a table of plausible estimates for them would be a table of invented numbers set in the typography of measurement.
+The comparison is confined to \emph{architectural properties}. Every cell is a structural fact, a figure the vendor has published, or \emph{n/d} where they have not, and no row sets a measurement of ours against a number we could not obtain. Commercial products publish neither latency distributions nor retrieval quality nor memory footprints, and a table of plausible estimates for them would be a table of invented numbers set in the typography of measurement.
 
 \begin{table}[htbp]
 \caption{Comparison with deployed systems. \emph{n/d}: not disclosed by the operator. Rows are architectural properties, not performance claims.}
@@ -160,7 +156,7 @@ Tutoring function        & yes & yes & no   & yes \\
 Bhashini is dashed on several rows, not marked absent, because it is language infrastructure (translation, speech, transliteration) and not a tutor, so corpus and retrieval questions do not apply. It is included because its 22 languages~\cite{b22} exceed ours, and a platform claiming multilingual reach should be measured against the strongest such system.
 \fi
 
-Three rows are stated against our own interest. Generation does not run locally, the system does not work without a network, and BYJU'S covers a curriculum we cover while operating at a scale we do not approach. What remains is the distinguishing set. The corpus, index and retrieval are local, a grounding score accompanies every answer, and the ingestion pipeline audits its own source material instead of embedding whatever it extracts. We have found no comparable system that reports the last two at all, which is a claim about the published record and not about what those systems do internally.
+Three rows are stated against our own interest: generation is not local, the system needs a network, and BYJU'S covers our curriculum at a scale we do not approach. What distinguishes this work is the rest. The corpus, index and retrieval are local, a grounding score accompanies every answer, and the pipeline audits its own sources instead of embedding whatever it extracts. We have found no comparable system reporting the last two, which is a claim about the published record and not about what those systems do internally.
 
 %===================================================================
 \section{System Architecture}
@@ -457,8 +453,8 @@ Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical base
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
-  width=\columnwidth, height=4.3cm,
-  xbar, bar width=7pt, xmin=0, xmax=1.0,
+  width=\columnwidth, height=3.9cm,
+  xbar, bar width=6pt, xmin=0, xmax=1.0,
   enlarge y limits=0.18,
   xlabel={correct at rank~1},
   xtick={0,0.25,0.5,0.75,1.0}, xticklabels={0,.25,.50,.75,1},
@@ -478,20 +474,20 @@ Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical base
  };
 \end{axis}
 \end{tikzpicture}
-\caption{The five retrieval configurations over 22 queries, with 95\% Wilson intervals: BM25 0/22, with rewriting 10/22, dense 11/22, dense with rewriting 14/22, and the deployed pooling of both 16/22. The intervals overlap across the three dense configurations, which is why this paper claims an ordering and not a margin. The lexical baseline's interval excludes all three, and no sample-size argument softens that.}
+\caption{The five retrieval configurations over 22 queries, with 95\% Wilson score intervals~\cite{b26}: BM25 0/22, with rewriting 10/22, dense 11/22, dense with rewriting 14/22, and the deployed pooling of both 16/22. The intervals overlap across the three dense configurations, which is why this paper claims an ordering and not a margin. The lexical baseline's interval excludes all three, and no sample-size argument softens that.}
 \label{fig:ablation}
 \end{figure}
 
-\textbf{The lexical baseline retrieves nothing at all.} BM25 returns zero hits for all 22 queries, not merely poor ones. A Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. Lexical retrieval is not weaker at this task, it is structurally incapable of it, and that is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (45\%), which locates the difficulty precisely. The barrier is the script, not the vocabulary.
+\textbf{The lexical baseline retrieves nothing at all.} BM25~\cite{b25} returns zero hits for all 22 queries, not merely poor ones. A Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. Lexical retrieval is not weaker at this task, it is structurally incapable of it, and that is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (45\%), which locates the difficulty precisely. The barrier is the script, not the vocabulary.
 
-The two arms fail on different inputs, and that is the result. Embedding the question directly handles ordinary vocabulary well (9 of 11) and collapses on compound terms (2 of 11), because the embedding attends to the constituent morphemes and retrieves optics for a word that means ``light-joining''. Rewriting inverts both. It normalises the compound to its English canonical form and recovers 9 of 11, while losing three ordinary-vocabulary cases whose original phrasing had been more precise than its English paraphrase.
+Multilingual RAG has been studied as a setting in its own right~\cite{b9}, including the tendency of such pipelines to answer in the language of the retrieved context instead of the question~\cite{b10}, which the separation of query language from answer language here is designed to prevent. The two arms fail on different inputs, and that is the result. Embedding the question directly handles ordinary vocabulary well (9 of 11) and collapses on compound terms (2 of 11), because the embedding attends to the constituent morphemes and retrieves optics for a word that means ``light-joining''. Rewriting inverts both. It normalises the compound to its English canonical form and recovers 9 of 11, while losing three ordinary-vocabulary cases whose original phrasing had been more precise than its English paraphrase.
 
 Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses instead of averaging them.
 
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[scale=1.0,font=\scriptsize]
-\def\R{22mm}
+\def\R{19mm}
 % grid
 \foreach \r in {0.25,0.5,0.75,1.0}{
   \draw[black!12, line width=0.3pt] (0,0) circle (\r*\R);
@@ -580,11 +576,12 @@ Cosine fidelity & --- & 0.999999 \\
 
 Half precision yields 50\% memory reduction and ${\sim}1.88\times$ speedup with no measurable quality degradation. A cosine similarity of 0.999999 cannot reorder any result list.
 
+\ifconf\else  % journal only: every number in it is in the prose alongside
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}
 \begin{axis}[shikshabar,
-  width=0.94\columnwidth, height=4.2cm,
+  width=0.94\columnwidth, height=3.8cm,
   ymin=0, ymax=2450, ylabel={peak resident set (MB)},
   symbolic x coords={start,config,loaded,encoded,searched},
   xtick=data, x tick label style={font=\tiny},
@@ -597,6 +594,7 @@ Half precision yields 50\% memory reduction and ${\sim}1.88\times$ speedup with 
 \caption{Peak resident set through the serving pipeline, from interpreter start through configuration import, model load, the first query encoding, and a completed vector search. The dashed line is the 1,600~MB an earlier analysis predicted by summing component sizes. Loading the weights accounts for 534~MB because \texttt{safetensors} memory-maps them; the 1,560~MB that follows arrives on the first forward pass, when those pages become resident and the attention workspaces are allocated.}
 \label{fig:memory}
 \end{figure}
+\fi
 
 \textbf{Measurement against arithmetic.} An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}, a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model \ifconf\else\ (Table~\ref{tab:footprint})\fi.
 
@@ -702,9 +700,9 @@ This defect is characteristic of the class the audit kept finding. It is not a m
 \section{Grounding and Hallucination Detection}
 %===================================================================
 
-A retrieval-augmented system can retrieve the correct chapter and still generate a fabricated answer. When asked about a specific story from the Hindi curriculum, the system retrieved the correct chapter, then described events that never occurred. The class was correct, the chapter was correct, the language was correct, and every detail was invented.
+A retrieval-augmented system can retrieve the correct chapter and still generate a fabricated answer, which is the failure mode surveyed across generation tasks by Ji et al.~\cite{b29} and the one retrieval is supposed to remove. When asked about a specific story from the Hindi curriculum, the system retrieved the correct chapter, then described events that never occurred. The class was correct, the chapter was correct, the language was correct, and every detail was invented.
 
-The \textbf{grounding score} computes cosine similarity between the generated answer and the source passages. Lexical overlap cannot serve this purpose because the platform produces answers in a different language from the source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case.
+The \textbf{grounding score} computes cosine similarity between the generated answer and the source passages. Reference-free RAG evaluation frameworks score a comparable property, faithfulness, with a language model as judge~\cite{b27}; the metric used here is a single cosine similarity, which costs one encoder pass and no second model. Lexical overlap cannot serve the purpose because the platform produces answers in a different language from the source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case.
 
 \textbf{Calibrating on a distribution.} The threshold was originally set at 0.55 from four hand-verified answers, three correct at 0.583--0.701 and one fabricated at 0.489. Four points that happen to separate are not a calibration, and the difficulty is obtaining ungrounded answers in quantity. A model instructed to hallucinate does not fail the way a grounded pipeline fails.
 
@@ -717,8 +715,8 @@ Grounding need not be measured against the concatenation of the retrieved passag
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
-  width=\columnwidth, height=4.6cm,
-  ybar, bar width=7pt, ymin=0, ymax=1.0,
+  width=\columnwidth, height=4.1cm,
+  ybar, bar width=6pt, ymin=0, ymax=1.0,
   ylabel={cosine similarity},
   symbolic x coords={concat,{best psg.},{top 3},sentence},
   xtick=data, enlarge x limits=0.18,
@@ -931,12 +929,8 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b6} J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, ``BGE M3-Embedding: Multi-lingual, multi-functionality, multi-granularity text embeddings through self-knowledge distillation,'' \textit{arXiv preprint arXiv:2402.03216}, 2024.
 \bibitem{b7} A. Gala \textit{et al.}, ``IndicTrans2: Towards high-quality and accessible machine translation models for all 22 scheduled Indian languages,'' \textit{Trans. Mach. Learn. Res. (TMLR)}, 2023.
 \bibitem{b8} S. Khanuja \textit{et al.}, ``MuRIL: Multilingual representations for Indian languages,'' 2021.
-\ifshort\else  % cited only by material the six-page build drops
 \bibitem{b9} Z. Xu \textit{et al.}, ``Multilingual retrieval-augmented generation for knowledge-intensive task,'' \textit{arXiv preprint arXiv:2504.03616}, 2025.
-\fi
-\ifshort\else  % cited only by material the six-page build drops
 \bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual retrieval-augmented generation: Characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.
-\fi
 \bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.
 \bibitem{b12} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP}, 2019, pp. 3982--3992.
 \ifconf\else  % journal only -- cited only by the accessibility and readability sections
@@ -954,6 +948,11 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \ifshort\else  % cited only by material the six-page build drops
 \bibitem{b23} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
 \fi
+\bibitem{b25} S. Robertson and H. Zaragoza, ``The probabilistic relevance framework: BM25 and beyond,'' \textit{Foundations and Trends in Information Retrieval}, vol.~3, no.~4, pp.~333--389, 2009.
+\bibitem{b26} E. B. Wilson, ``Probable inference, the law of succession, and statistical inference,'' \textit{J.~Amer. Statist. Assoc.}, vol.~22, no.~158, pp.~209--212, 1927.
+\bibitem{b27} S. Es, J. James, L. Espinosa-Anke, and S. Schockaert, ``RAGAs: Automated evaluation of retrieval augmented generation,'' in \textit{Proc. EACL: System Demonstrations}, 2024, pp.~150--158.
+\bibitem{b28} Y. Gao \textit{et al.}, ``Retrieval-augmented generation for large language models: A survey,'' \textit{arXiv preprint arXiv:2312.10997}, 2023.
+\bibitem{b29} Z. Ji \textit{et al.}, ``Survey of hallucination in natural language generation,'' \textit{ACM Comput. Surv.}, vol.~55, no.~12, art.~248, 2023.
 \bibitem{b24} Office of the Registrar General and Census Commissioner, India, ``Census of India 2011: Bilingualism and trilingualism (Table C-17),'' Ministry of Home Affairs, Government of India, 2011.
 \end{thebibliography}
 
