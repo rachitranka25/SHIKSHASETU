@@ -110,9 +110,27 @@ TEACHING_MEDIA = ("English", "Hindi")
 #                     ("Don't give a light rope to Rahiman's children")
 #
 # Correct answers sat at 0.58-0.70 and the invented one at 0.49, so the
-# boundary goes between them rather than at a round number. Four points is a
-# small sample and this is a starting value, not a validated one.
-GROUNDING_MIN = 0.55
+# boundary went between them rather than at a round number. That was four
+# points, and four points that happen to separate are not a calibration.
+#
+# scripts/benchmarks/grounding_estimators.py replaces them with a distribution.
+# Every answer is generated normally from its own passages, then scored against
+# those passages (matched) and against every other question's passages
+# (mismatched) -- fluent, well-formed, on a different subject, which is exactly
+# the failure this threshold exists to catch. 16 questions give 16 matched and
+# 240 mismatched pairs, and the two runs agreed:
+#
+#     matched      0.830 +/- 0.044
+#     mismatched   0.470 +/- 0.069
+#
+# At 0.55 the separation is real but the boundary sits too low: 35 of the 240
+# mismatched pairs score above it and pass as grounded. At 0.715 none do, and
+# no matched pair falls below it -- balanced accuracy 1.000 against 0.927.
+#
+# Raising it costs nothing in false regeneration on this sample (0 of 16
+# grounded answers flagged at either value); it only closes the gap that let
+# one drifted answer in seven through.
+GROUNDING_MIN = 0.715
 
 
 class ExplainRequest(BaseModel):

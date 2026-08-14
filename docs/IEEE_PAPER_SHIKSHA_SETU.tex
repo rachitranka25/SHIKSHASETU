@@ -42,7 +42,7 @@ rankarachit5@gmail.com}
 \maketitle
 
 \begin{abstract}
-Artificial intelligence holds transformative potential for education in linguistically diverse nations, yet existing systems overwhelmingly depend on cloud infrastructure, operate primarily in English, and lack alignment with national curricula. This paper presents Shiksha Setu, a local-first AI tutoring platform whose ingestion pipeline addresses the complete National Council of Educational Research and Training (NCERT) catalog---559 textbooks spanning classes 1 through 12 in three publication languages---and which delivers retrieval-augmented instruction in eleven Indian languages. The curriculum, its embeddings and the whole of retrieval are local: no textbook content, index or search traffic leaves the machine. Generation is a hosted call, so a question's text does leave it, and the paper is explicit about which half is which rather than claiming the system is offline. All results reported here are measured against an ingested corpus of 153 textbooks spanning all twelve classes (42{,}995 indexed passages); the remaining books of the taught curriculum are unobtainable rather than pending, chiefly because NCERT publishes no archive for them. The system employs BGE-M3 multilingual embeddings with HNSW-indexed vector search over PostgreSQL, achieving cross-lingual retrieval cosine similarities of 0.612--0.637 on the successful three of five queries issued in four Indian languages against an English-language corpus, with the two failures traced to a compound-term effect that persists unchanged when the corpus is enlarged fivefold. Through half-precision inference, the embedding pipeline reduces its memory footprint from 2,166~MB to 1,083~MB at a measured cosine fidelity of 0.999999 against full precision, enabling deployment on machines with as little as 4~GB of RAM---verified through kernel-level peak resident set size measurement rather than arithmetic estimation. The ingestion pipeline processes the 263-book taught curriculum at 140 seconds per book---a 1.38$\times$ speedup over sequential execution, established by re-ingesting an identical book set with prefetching disabled--- and the platform discovers and addresses two classes of corpus corruption: legacy Devanagari fonts that render 66\% of Hindi textbooks as Latin gibberish, and mathematical symbol erasure in PDF text layers. A security audit identifies and repairs twelve vulnerabilities, including a safety pipeline that silently failed open and a JWT implementation that accepted refresh tokens as access credentials. Reading support for dyslexic learners introduces akshara-level segmentation for nine Brahmic scripts, replacing the Latin-alphabet assumptions of conventional readability tooling. The system is validated by 445 automated tests with zero failures across unit, integration, and end-to-end suites.
+Artificial intelligence holds transformative potential for education in linguistically diverse nations, yet existing systems overwhelmingly depend on cloud infrastructure, operate primarily in English, and lack alignment with national curricula. This paper presents Shiksha Setu, a local-first AI tutoring platform whose ingestion pipeline addresses the complete National Council of Educational Research and Training (NCERT) catalog---559 textbooks spanning classes 1 through 12 in three publication languages---and which delivers retrieval-augmented instruction in eleven Indian languages. The curriculum, its embeddings and the whole of retrieval are local: no textbook content, index or search traffic leaves the machine. Generation is a hosted call, so a question's text does leave it, and the paper is explicit about which half is which rather than claiming the system is offline. All results reported here are measured against an ingested corpus of 153 textbooks spanning all twelve classes (42{,}995 indexed passages); the remaining books of the taught curriculum are unobtainable rather than pending, chiefly because NCERT publishes no archive for them. The system employs BGE-M3 multilingual embeddings with HNSW-indexed vector search over PostgreSQL, retrieving an on-topic passage at rank~1 for $16\pm1$ of 22 queries spanning eleven Indian languages against the English-medium corpus, measured against four alternative configurations: a lexical baseline retrieves nothing at all, dense retrieval alone 11, and query rewriting alone 14, so the deployed pooling of both arms is justified by measurement rather than by reasoning. The residual failures are traced to a compound-term effect that persists unchanged when the corpus is enlarged fivefold. Through half-precision inference, the embedding pipeline reduces its memory footprint from 2,166~MB to 1,083~MB at a measured cosine fidelity of 0.999999 against full precision, enabling deployment on machines with as little as 4~GB of RAM---verified through kernel-level peak resident set size measurement rather than arithmetic estimation. The ingestion pipeline processes the obtainable corpus at 140 seconds per book---a 1.38$\times$ speedup over sequential execution, established by re-ingesting an identical book set with prefetching disabled--- and the platform discovers and addresses two classes of corpus corruption: legacy Devanagari fonts that render 66\% of Hindi textbooks as Latin gibberish, and mathematical symbol erasure in PDF text layers. A security audit identifies and repairs twelve vulnerabilities, including a safety pipeline that silently failed open and a JWT implementation that accepted refresh tokens as access credentials. Reading support for dyslexic learners introduces akshara-level segmentation for nine Brahmic scripts, replacing the Latin-alphabet assumptions of conventional readability tooling. The system is validated by 445 automated tests with zero failures across unit, integration, and end-to-end suites.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -69,11 +69,11 @@ The qualification is deliberate. Retrieval is entirely local---the corpus, its e
 
 \begin{enumerate}
 \item An ingestion pipeline addressing all 559 NCERT textbooks, with automatic detection and rejection of legacy-font corruption that renders 27 of 41 Hindi books unreadable---discovered only through measurement.
-\item A cross-lingual retrieval system enabling questions in eleven Indian languages to retrieve relevant passages from an English corpus, with a controlled ablation over 22 queries in eleven languages establishing that query rewriting and direct embedding fail on disjoint inputs, so that pooling them retrieves correctly for 17 of 22 where either alone manages 11 or 14.
+\item A cross-lingual retrieval system enabling questions in eleven Indian languages to retrieve relevant passages from an English corpus, with a controlled ablation over 22 queries in eleven languages establishing that query rewriting and direct embedding fail on disjoint inputs, so that pooling them retrieves correctly for $16\pm1$ of 22 where either alone manages 11 or 14, and a lexical baseline none.
 \item A memory optimization strategy verified through kernel-level measurement enabling the serving pipeline to operate within a 4~GB memory budget, correcting an earlier arithmetic estimate that understated consumption by 31\%.
 \item Akshara-level readability measurement for nine Brahmic scripts, replacing Latin-alphabet syllable counting with script-appropriate segmentation.
 \item A security audit documenting twelve vulnerabilities---all repaired---including a safety pipeline that failed open due to an import error.
-\item A grounding metric detecting when fluent, confident answers have drifted from source material---a failure mode indistinguishable from a correct answer without quantitative measurement.
+\item A grounding metric detecting when fluent, confident answers have drifted from source material---a failure mode indistinguishable from a correct answer without quantitative measurement---calibrated on 256 answer/passage pairs rather than on hand-checked examples, and compared against three alternative estimators.
 \end{enumerate}
 
 %===================================================================
@@ -251,7 +251,7 @@ The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hin
 \subsection{Ingestion Pipeline}
 The pipeline processes each book through five stages: ZIP download, per-chapter PDF extraction via PyMuPDF, text cleanup, semantic chunking (1200 characters, 200-character overlap, paragraph-boundary preference), BGE-M3 embedding (fp16), and storage in PostgreSQL. Each book is committed as a single database transaction for resumability. Download and embedding contend for no shared resource: one waits on a remote web server, the other saturates the GPU. Executed sequentially they idle in turn, so the next book's archive is fetched on a prefetch thread while the current book is embedded.
 
-The speedup was established by a controlled comparison rather than inferred. The same three books (classes 6--8 \textit{Curiosity}) were ingested twice, once with prefetching disabled through \texttt{INGEST\_PREFETCH=0}, producing byte-identical output in both runs (37 chapters, 1{,}130 chunks): \textbf{193~s per book sequentially against 140~s per book with prefetching, a 1.38$\times$ speedup}. Extrapolated, the 263-book taught curriculum requires approximately 10.2 hours on a single Apple~M1.
+The speedup was established by a controlled comparison rather than inferred. The same three books (classes 6--8 \textit{Curiosity}) were ingested twice, once with prefetching disabled through \texttt{INGEST\_PREFETCH=0}, producing byte-identical output in both runs (37 chapters, 1{,}130 chunks): \textbf{193~s per book sequentially against 140~s per book with prefetching, a 1.38$\times$ speedup}. Extrapolated, the 153 obtainable books require approximately 6.0 hours on a single Apple~M1. The figure is quoted over the obtainable books rather than the full 263-book curriculum, because the remainder cannot be ingested at any rate.
 
 We note that a naive comparison of figures taken under different conditions would have reported this backwards. An earlier sequential measurement of 97~s per book was recorded on a different, smaller book set; read against the 140~s figure it appears to show prefetching making ingestion \textit{slower}. Only the paired measurement on identical inputs is informative, and unpaired throughput figures are excluded here for that reason.
 
@@ -484,25 +484,37 @@ Vulnerability \#1 is the most consequential: the safety pipeline was designed as
 
 A retrieval-augmented system can retrieve the correct chapter and still generate a fabricated answer. When asked about a specific story from the Hindi curriculum, the system retrieved the correct chapter, then described events that never occurred. The class was correct, the chapter was correct, the language was correct, and every detail was invented.
 
-The \textbf{grounding score} computes cosine similarity between the generated answer and the source passages. Lexical overlap cannot serve this purpose because the platform produces answers in a different language from source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case. Calibrated against four hand-verified answers (Table~\ref{tab:grounding}):
+The \textbf{grounding score} computes cosine similarity between the generated answer and the source passages. Lexical overlap cannot serve this purpose because the platform produces answers in a different language from the source passages; BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case.
+
+\subsection{Calibration on a Distribution}
+The threshold was originally set at 0.55 from four hand-verified answers, three correct at 0.583--0.701 and one fabricated at 0.489. Four points that happen to separate are not a calibration, and the difficulty is obtaining ungrounded answers in quantity: a model instructed to hallucinate does not fail the way a grounded pipeline fails.
+
+The negatives are therefore constructed rather than solicited. Every answer is generated normally from its own retrieved passages, then scored twice: against the passages it was written from (\emph{matched}), and against another question's passages (\emph{mismatched}). A mismatched pair is precisely the failure the metric exists to catch---fluent, well-formed, on a different subject---and it requires no human labelling and no second generation pass. Sixteen questions spanning subjects and classes yield 16 matched and 240 mismatched pairs.
+
+Grounding need not be measured against the concatenation of the retrieved passages, so four estimators were compared over identical generations (Table~\ref{tab:estimators}). The two runs of the experiment, with independently generated answers, agreed to within 0.007 on every entry.
 
 \begin{table}[htbp]
-\caption{Grounding Score Calibration}
-\label{tab:grounding}
+\caption{Grounding estimators over 16 matched and 240 mismatched pairs. Balanced accuracy is at each estimator's own best threshold; chance is 0.500.}
+\label{tab:estimators}
 \centering
-\begin{tabular}{@{}rll@{}}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Score} & \textbf{Verdict} & \textbf{Description} \\
+\textbf{Estimator} & \textbf{Match} & \textbf{Mismatch} & \textbf{Gap} & \textbf{$t$} & \textbf{Acc.} \\
 \midrule
-0.701 & Correct & Poetry couplets from chapter \\
-0.668 & Correct & Poem quoting its own lines \\
-0.583 & Correct & Story events described accurately \\
-0.489 & \textbf{Fabricated} & Content bearing no relation to source \\
+\textbf{Concatenated} & 0.830 & 0.470 & \textbf{0.360} & 0.715 & \textbf{1.000} \\
+Best passage & 0.854 & 0.502 & 0.352 & 0.720 & 1.000 \\
+Mean of top 3 & 0.822 & 0.486 & 0.336 & 0.695 & 0.996 \\
+Per sentence & 0.676 & 0.455 & 0.221 & 0.555 & 0.985 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\texttt{GROUNDING\_MIN = 0.55} is set between the correct and incorrect answers. Below this threshold, the answer is regenerated with the detected drift named in the prompt.
+The simplest estimator is also the best: scoring the answer against all retrieved passages joined separates the two populations by 0.360, and no refinement improves on it. Scoring against the single best passage raises both means without widening the gap, and scoring sentence by sentence narrows it---a correct answer contains connective and pedagogical sentences that appear in no passage, and averaging over them dilutes the signal the metric depends on.
+
+\subsection{The Threshold Was Too Low}
+The distribution shows that 0.55 separates the populations but sits in the wrong place. Thirty-five of the 240 mismatched pairs---one drifted answer in seven---score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it: balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were not wrong, merely too few to locate the boundary.
 
 %===================================================================
 \section{Consolidated Results}
@@ -524,16 +536,18 @@ Table~\ref{tab:results} summarizes key metrics.
 \midrule
 NCERT catalog coverage & 559 textbooks \\
 Taught curriculum & 263 textbooks \\
-Supported languages & 10 \\
+Ingested corpus (all results) & 153 textbooks \\
+Supported languages & 11 \\
 API routes & 72 \\
 Ingestion throughput & 140 s/book (1.38$\times$) \\
-Full curriculum time & ${\sim}10.2$ hours \\
+Ingestion time, 153 books & ${\sim}6.0$ hours \\
 Peak serving memory (fp16) & 2,094~MB \\
 fp16 cosine fidelity & 0.999999 \\
 Memory reduction (fp16) & 50\% \\
 Encoding speedup (fp16) & 1.88$\times$ \\
 Response latency (warm) & ${\sim}3$~s \\
-Grounding threshold & 0.55 \\
+Grounding threshold (calibrated) & 0.715 \\
+Grounding balanced accuracy & 1.000 \\
 Security vulns fixed & 12 \\
 Automated tests passing & 445/445 \\
 \bottomrule
@@ -548,15 +562,15 @@ The measurement-driven methodology reveals a recurring pattern: intuitive engine
 
 The legacy font detection illustrates this most starkly. A quality metric searching for damaged Devanagari ranked the most corrupted books as the best---because corruption manifested as the \textit{absence} of Devanagari, which the metric interpreted as perfection. The memory estimation follows the same pattern: summing static sizes to 1.6~GB misses the 2.1~GB transient peak. The grounding score addresses a fundamental RAG limitation: a system can retrieve correctly, generate fluently, pass every surface check, and still fabricate content.
 
-\textbf{Limitations.} (1)~The grounding threshold is preliminarily calibrated on only four answers due to manual verification limits; this statistically small sample size requires expansion. (2)~Cross-lingual retrieval is evaluated on two topics per language; broader topic coverage would tighten the estimate. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
+\textbf{Limitations.} (1)~The grounding negatives are constructed by mismatching answers to other questions' passages rather than collected from observed hallucinations; this captures topical drift, which is the failure we have seen, but not an answer that stays on topic and invents a detail within it. (2)~Cross-lingual retrieval is evaluated on two topics per language; broader topic coverage would tighten the estimate. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
 
 %===================================================================
 \section{Conclusion and Future Work}
 %===================================================================
 
-This paper presented Shiksha Setu, a local-retrieval AI tutoring platform whose pipeline addresses the complete NCERT catalog of 559 textbooks and which delivers instruction in ten Indian languages on consumer hardware with as little as 4~GB of RAM. The reported evaluation rests on 153 ingested textbooks and 42{,}995 indexed passages spanning all twelve classes. Every performance claim has been substantiated through kernel-level measurement, and engineering failures have been documented alongside their corrections.
+This paper presented Shiksha Setu, a local-retrieval AI tutoring platform whose pipeline addresses the complete NCERT catalog of 559 textbooks and which delivers instruction in eleven Indian languages on consumer hardware with as little as 4~GB of RAM. The reported evaluation rests on 153 ingested textbooks and 42{,}995 indexed passages spanning all twelve classes. Every performance claim has been substantiated through kernel-level measurement, and engineering failures have been documented alongside their corrections.
 
-The principal contributions are: (1)~corpus construction with legacy-font corruption detection affecting 66\% of Hindi textbooks, (2)~cross-lingual retrieval measured over 22 queries in eleven languages, with an ablation showing that pooling the raw and rewritten queries retrieves correctly for 17 of 22 against 11 and 14 for either alone, (3)~a grounding metric detecting hallucinated responses invisible to surface-level evaluation, (4)~half-precision inference halving memory at 0.999999 cosine fidelity, (5)~akshara-level readability for nine Brahmic scripts, and (6)~a security audit repairing twelve production vulnerabilities.
+The principal contributions are: (1)~corpus construction with legacy-font corruption detection affecting 66\% of Hindi textbooks, (2)~cross-lingual retrieval measured over 22 queries in eleven languages, with an ablation showing that pooling the raw and rewritten queries retrieves correctly for $16\pm1$ of 22 against 11 and 14 for either alone, and that a lexical baseline retrieves none, (3)~a grounding metric separating grounded from drifted answers by 0.360 in cosine similarity over 256 pairs, at a calibrated threshold that admits none of the 240 negatives where the previously shipped value admitted 35, (4)~half-precision inference halving memory at 0.999999 cosine fidelity, (5)~akshara-level readability for nine Brahmic scripts, and (6)~a security audit repairing twelve production vulnerabilities.
 
 Future work targets: conducting a human-in-the-loop pilot study with actual educators to evaluate pedagogical utility, expanding the hallucination annotation dataset (100+ response pairs) for robust grounding calibration, integrating a cross-encoder reranker to resolve compound-term failures (e.g., photosynthesis), implementing Entity Linking for polysemous term disambiguation, and developing a Walkman-Chanakya-to-Unicode transliterator.
 
