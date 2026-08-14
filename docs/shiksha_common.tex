@@ -10,6 +10,21 @@
 \usepackage{multirow}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,fit,backgrounds,shapes.geometric}
+% Character protrusion and font expansion. This removes no content and adds
+% no rules: it lets the engine break lines slightly better, which recovers
+% a page across a paper this dense and reads marginally better while doing
+% it. Under XeTeX protrusion is the part that works, so expansion is off.
+\usepackage[protrusion=true,expansion=false,final]{microtype}
+% Floats sat further from the text than IEEE needs.
+\setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+% Room for more than the default two floats per page, and permission to
+% give most of a page to them, so none is deferred until it is lost.
+\setcounter{topnumber}{3}\setcounter{bottomnumber}{2}\setcounter{totalnumber}{5}
+\renewcommand{\topfraction}{0.92}\renewcommand{\bottomfraction}{0.55}
+\renewcommand{\textfraction}{0.07}\renewcommand{\floatpagefraction}{0.75}
+\setlength{\floatsep}{7pt plus 2pt minus 2pt}
+\setlength{\intextsep}{7pt plus 2pt minus 2pt}
 \usepackage{pgfplots}
 % Two hues, checked with a colour-vision validator before use, not by eye:
 % worst-pair CVD dE 24.7 and normal-vision dE 33.6, both clear of the floors,
@@ -164,7 +179,7 @@ Three rows are stated against our own interest: generation is not local, the sys
 
 A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. The latencies below were taken on the development machine; what the platform \emph{requires} is the 2{,}094~MB of Section~VI, which is what puts it inside 4~GB. Fig.~\ref{fig:pipeline} shows those six with their measured latencies on an 8~GB Apple~M1, arranged by the property this paper is about, which is which side of the machine boundary each one runs on.
 
-\begin{figure}[t]
+\begin{figure}[!tb]
 \centering
 \footnotesize
 \begin{tikzpicture}[
@@ -198,7 +213,7 @@ A student's question traverses an eight-stage pipeline from input to response, s
 \node[t, anchor=west, black!65] at (33mm,-23.5mm) {and all retrieval stay};
 \node[t, anchor=west, black!65] at (33mm,-26.5mm) {on the left of this line};
 \end{tikzpicture}
-\caption{The mandatory request path. Medians over 15 warm requests, five questions run three times on an 8~GB Apple~M1. The dashed line is the machine boundary: the corpus and all retrieval stay left of it. Generation dominates and is least predictable, 4.2\,s median against a 95th percentile of 13.2\,s, because it is hosted. All of retrieval is 0.11\,s. The grounding check carries no latency because it was not measured separately.
+\caption{The mandatory request path. Medians over 15 warm requests, five questions run three times on an 8~GB Apple~M1. The dashed line is the machine boundary: the corpus and all retrieval stay left of it. Generation dominates and is least predictable, 4.2\,s median against a 95th percentile of 13.2\,s, because it is hosted. All of retrieval is 0.11\,s. The grounding check carries no latency because it was not measured separately.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -449,7 +464,7 @@ Retrieval was evaluated over \textbf{22 queries: two topics in each of the eleve
 Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical baseline to the deployed system. A query counts as correct only when the \emph{top} passage is on topic.
 
 
-\begin{figure}[t]
+\begin{figure}[!tb]
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
@@ -484,7 +499,7 @@ Multilingual RAG has been studied as a setting in its own right~\cite{b9}, inclu
 
 Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses instead of averaging them.
 
-\begin{figure}[t]
+\begin{figure}[!tb]
 \centering
 \begin{tikzpicture}[scale=1.0,font=\scriptsize]
 \def\R{19mm}
@@ -577,7 +592,7 @@ Cosine fidelity & --- & 0.999999 \\
 Half precision yields 50\% memory reduction and ${\sim}1.88\times$ speedup with no measurable quality degradation. A cosine similarity of 0.999999 cannot reorder any result list.
 
 \ifconf\else  % journal only: every number in it is in the prose alongside
-\begin{figure}[t]
+\begin{figure}[!tb]
 \centering
 \begin{tikzpicture}
 \begin{axis}[shikshabar,
@@ -711,7 +726,7 @@ The negatives are therefore constructed, not solicited. Every answer is generate
 Grounding need not be measured against the concatenation of the retrieved passages, so four estimators were compared over identical generations (Fig.~\ref{fig:estimators}). The two runs of the experiment, with independently generated answers, agreed to within 0.007 on every entry.
 
 
-\begin{figure}[t]
+\begin{figure}[!tb]
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
@@ -920,18 +935,28 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \begin{thebibliography}{00}
 % Conference page limit: the reference list is the last thing that should be cut to
 % meet it, so it is set smaller and tighter instead of shorter.
-\ifconf\footnotesize\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}\fi
-\bibitem{b1} D. Kakwani \textit{et al.}, ``IndicNLPSuite: Monolingual corpora, evaluation benchmarks and pre-trained multilingual language models for Indian languages,'' in \textit{Findings of EMNLP}, 2020.
+\ifshort\scriptsize\else\ifconf\footnotesize\fi\fi
+\ifconf
+  \setlength{\itemsep}{0pt}%
+  \setlength{\parskip}{0pt}%
+  % A narrower hanging indent gives each entry more line width, so the
+  % list loses lines without losing references.
+  \setlength{\leftmargin}{11pt}%
+  \setlength{\labelwidth}{9pt}%
+  \setlength{\labelsep}{2pt}%
+  \setlength{\itemindent}{0pt}%
+\fi
+\bibitem{b1} D. Kakwani \textit{et al.}, ``IndicNLPSuite: corpora, benchmarks and pre-trained models for Indian languages,'' in \textit{Findings of EMNLP}, 2020.
 \bibitem{b2} P. Lewis \textit{et al.}, ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' in \textit{Proc. NeurIPS}, 2020.
 \bibitem{b3} V. Karpukhin \textit{et al.}, ``Dense passage retrieval for open-domain question answering,'' in \textit{Proc. EMNLP}, 2020, pp. 6769--6781.
 \bibitem{b4} X. Ma, Y. Gong, P. He, H. Zhao, and N. Duan, ``Query rewriting for retrieval-augmented large language models,'' in \textit{Proc. EMNLP}, 2023.
 \bibitem{b5} R. Nogueira and K. Cho, ``Passage re-ranking with BERT,'' \textit{arXiv preprint arXiv:1901.04085}, 2019.
-\bibitem{b6} J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, ``BGE M3-Embedding: Multi-lingual, multi-functionality, multi-granularity text embeddings through self-knowledge distillation,'' \textit{arXiv preprint arXiv:2402.03216}, 2024.
-\bibitem{b7} A. Gala \textit{et al.}, ``IndicTrans2: Towards high-quality and accessible machine translation models for all 22 scheduled Indian languages,'' \textit{Trans. Mach. Learn. Res. (TMLR)}, 2023.
+\bibitem{b6} J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, ``BGE M3-Embedding: multi-lingual, multi-granularity text embeddings via self-knowledge distillation,'' \textit{arXiv preprint arXiv:2402.03216}, 2024.
+\bibitem{b7} A. Gala \textit{et al.}, ``IndicTrans2: accessible machine translation for all 22 scheduled Indian languages,'' \textit{Trans. Mach. Learn. Res. (TMLR)}, 2023.
 \bibitem{b8} S. Khanuja \textit{et al.}, ``MuRIL: Multilingual representations for Indian languages,'' 2021.
 \bibitem{b9} Z. Xu \textit{et al.}, ``Multilingual retrieval-augmented generation for knowledge-intensive task,'' \textit{arXiv preprint arXiv:2504.03616}, 2025.
-\bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual retrieval-augmented generation: Characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.
-\bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.
+\bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual RAG: characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.
+\bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using HNSW graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.
 \bibitem{b12} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP}, 2019, pp. 3982--3992.
 \ifconf\else  % journal only -- cited only by the accessibility and readability sections
 \bibitem{b13} M. Zorzi \textit{et al.}, ``Extra-large letter spacing improves reading in dyslexia,'' \textit{Proc. Nat. Acad. Sci. (PNAS)}, vol. 109, no. 28, pp. 11455--11459, 2012.
@@ -943,8 +968,8 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b19} W. Xu, C. Callison-Burch, and C. Napoles, ``Problems in current text simplification research: New data can help,'' \textit{Trans. Assoc. Comput. Linguist. (TACL)}, vol. 3, pp. 283--297, 2015.
 \fi
 \bibitem{b20} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. ICLR}, 2018.
-\bibitem{b21} Khan Academy, ``Khanmigo: an AI-powered tutor for learners and assistant for teachers,'' 2023. [Online]. Available: https://www.khanmigo.ai
-\bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: https://bhashini.gov.in
+\bibitem{b21} Khan Academy, ``Khanmigo: an AI tutor for learners and assistant for teachers,'' 2023. [Online]. Available: khanmigo.ai
+\bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: bhashini.gov.in
 \ifshort\else  % cited only by material the six-page build drops
 \bibitem{b23} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
 \fi
@@ -953,7 +978,7 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b27} S. Es, J. James, L. Espinosa-Anke, and S. Schockaert, ``RAGAs: Automated evaluation of retrieval augmented generation,'' in \textit{Proc. EACL: System Demonstrations}, 2024, pp.~150--158.
 \bibitem{b28} Y. Gao \textit{et al.}, ``Retrieval-augmented generation for large language models: A survey,'' \textit{arXiv preprint arXiv:2312.10997}, 2023.
 \bibitem{b29} Z. Ji \textit{et al.}, ``Survey of hallucination in natural language generation,'' \textit{ACM Comput. Surv.}, vol.~55, no.~12, art.~248, 2023.
-\bibitem{b24} Office of the Registrar General and Census Commissioner, India, ``Census of India 2011: Bilingualism and trilingualism (Table C-17),'' Ministry of Home Affairs, Government of India, 2011.
+\bibitem{b24} Office of the Registrar General, India, ``Census of India 2011, Table C-17: bilingualism and trilingualism,'' Min. Home Affairs, 2011.
 \end{thebibliography}
 
 \end{document}
