@@ -144,3 +144,8 @@ data/ncert/
 *.synctex.gz
 *.fls
 *.fdb_latexmk
+
+
+# Cached generations for the grounding benchmark. Re-creatable by rerunning it,
+# and large enough that a diff of it is unreadable.
+.grounding_cache*.json
