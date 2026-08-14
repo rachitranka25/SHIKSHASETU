@@ -33,11 +33,14 @@
 
 \title{Shiksha Setu: A Measurement-Driven, Local-First AI Tutoring Platform for Multilingual Indian Education}
 
-\author{\IEEEauthorblockN{Rachit Ranka}
-\IEEEauthorblockA{\textit{Department of Computer Science} \\
-\textit{Chandigarh University}\\
-Mohali, Punjab, India \\
-rankarachit5@gmail.com}
+% All five authors share one department, so IEEEtran's shared-affiliation form
+% is both the correct one and the compact one -- five separate blocks would
+% wrap to a third row and cost most of a column on page one.
+\author{\IEEEauthorblockN{Rachit Ranka, Aaditya Saini, Priyanka Devi, Yogesh Kohli, Ruhani Mehta}
+\IEEEauthorblockA{\textit{Department of Computer Science Engineering} \\
+\textit{Chandigarh University}, Mohali 140413, Punjab, India \\
+rankarachit5@gmail.com, aadityasaini899@gmail.com, pjangra9105@gmail.com, \\
+ykohli2005@gmail.com, ruhanimehta019@gmail.com}
 }
 
 \maketitle
@@ -94,7 +97,9 @@ Lewis et al.~\cite{b2} introduced retrieval-augmented generation (RAG) for knowl
 Chen et al.~\cite{b6} presented BGE-M3, a multilingual embedding model supporting over 100 languages in a unified 1024-dimensional vector space. Its cross-lingual property, that semantically equivalent passages in different languages map to nearby vectors, allows a Hindi question to retrieve an English passage without explicit translation. Gala et al.~\cite{b7} developed IndicTrans2 covering all 22 scheduled Indian languages, serving as the translation backbone. Kakwani et al.~\cite{b1} provided monolingual corpora and evaluation benchmarks for Indian languages. Khanuja et al.~\cite{b8} trained MuRIL on transliterated text, directly relevant to the romanized Hindi failure\ifconf\else\ documented in Section~\ref{sec:romanized}\fi.
 
 \subsection{Output Language Drift and tRAG}
+\ifshort\else  % six-page build: related work, not load-bearing
 Recent literature categorizes multilingual retrieval into frameworks such as MultiRAG (direct retrieval) and tRAG (translation-RAG). The platform described in this work formally implements a tRAG architecture~\cite{b9}, rewriting queries to a high-resource language (English) before retrieval. This architectural choice unknowingly resolves a newly documented vulnerability in large language models: Output Language Drift~\cite{b10}. Studies show that when a multilingual RAG system processes a query in a target language but retrieves context in a dominant high-resource language, the model mixes languages and outputs the final answer in the high-resource language. The strict separation of the generation language from the delivery language via the translation layer elegantly neutralizes this cognitive drift.
+\fi
 
 \subsection{Vector Search}
 The retrieval layer uses the HNSW graph structure proposed by Malkov and Yashunin~\cite{b11}, implemented through the pgvector extension for PostgreSQL. The index parameters ($m=16$, $ef\_construction=64$) balance build time against recall; the resulting search latency is reported in Fig.~\ref{fig:pipeline} rather than here. Reimers and Gurevych~\cite{b12} established the sentence-level embedding formulation used to load BGE-M3.
@@ -142,7 +147,9 @@ Tutoring function        & yes & yes & no   & yes \\
 \end{tabular}
 \end{table}
 
+\ifshort\else  % six-page build: the table's own caption carries the rule
 Bhashini is dashed rather than absent on several rows because it is language infrastructure (translation, speech, transliteration) rather than a tutor, so corpus and retrieval questions do not apply. It is included because its 22 languages~\cite{b22} exceed ours, and a platform claiming multilingual reach should be measured against the strongest such system.
+\fi
 
 Three rows are stated against our own interest. Generation does not run locally, the system does not work without a network, and BYJU'S covers a curriculum we cover while operating at a scale we do not approach. What remains is the distinguishing set: the corpus, index and retrieval are local; a grounding score accompanies every answer; and the ingestion pipeline audits its own source material rather than embedding whatever it extracts. We have found no comparable system that reports the last two at all, which is a claim about the published record and not about what those systems do internally.
 
@@ -182,12 +189,15 @@ A student's question traverses an eight-stage pipeline from input to response. F
 \label{fig:pipeline}
 \end{figure}
 
+\ifshort\else  % six-page build: the point is made with numbers elsewhere
 The design separates the question's language from the answer's language. A student may type in romanized Hindi and receive a response in Tamil. This independence is critical because NCERT publishes in only three languages while the platform serves eleven. Translation is a serving-layer responsibility handled by IndicTrans2~\cite{b7}.
+\fi
 
 \subsection{Model Stack}
 \label{sec:models}
-The platform integrates twenty-eight model identifiers, of which \textbf{five} are exercised on the critical path and measured in this work; the remainder are configured alternatives that this evaluation does not characterize. Table~\ref{tab:models} separates the two, because a model stack presented as a single list would imply an empirical basis that only the first group has.
+The platform integrates twenty-eight model identifiers, of which \textbf{five} are exercised on the critical path and measured in this work; the remainder are configured alternatives that this evaluation does not characterize.\ifshort\ The five are BGE-M3 (568~M parameters, embeddings and grounding, the only one resident locally), and four hosted models: LLaMA-3.1-8B for generation and query rewriting, FLUX.1-dev for illustration, Nemotron-Nano-12B for vision OCR, and LLaMA-3.3-70B, compared and not adopted.\else\ Table~\ref{tab:models} separates the two, because a model stack presented as a single list would imply an empirical basis that only the first group has.\fi
 
+\ifshort\else  % six-page build: replaced by the sentence below
 \begin{table}[htbp]
 \caption{Model Stack. Upper block: measured on the critical path. Lower block: integrated, not evaluated here. $\dagger$~denotes a hosted model; all others are resident locally.}
 \label{tab:models}
@@ -212,12 +222,17 @@ Reranking & BGE-Reranker-v2-M3 & 568M \\
 \bottomrule
 \end{tabular}
 \end{table}
+\fi
 
+\ifshort\else  % six-page build: the point is made with numbers elsewhere
 Exactly one model is resident locally on the critical path. This is not an accident of packaging but the property that makes the memory budget of Section~VI achievable: embedding must be local because every chunk in the corpus passes through it during ingestion, whereas generation, illustration and OCR are per-request and therefore hosted, leaving no language-model weights resident during serving.
+\fi
 
 BGE-M3 is used twice for distinct purposes: retrieving passages, and later scoring how far an answer strayed from them (Section~V-D). Both uses depend on the same property, cross-lingual embedding in a shared space, which is what permits a Devanagari passage and an English answer to be compared numerically at all.
 
+\ifshort\else  % six-page build
 Two integrated models are named but unusable in this deployment and are reported as such rather than omitted. The local OCR path (GOT-OCR2) requires CUDA and cannot execute on Apple silicon; its Python module additionally failed to import because \texttt{torchvision} was an undeclared dependency, which presented as a hardware limitation for some time before being diagnosed as a packaging one. The Tesseract fallback is installed without Devanagari training data, leaving it unable to read the script that most needs recovery (Section~IV-C).
+\fi
 
 The choice of the 8B model over the 70B variant was driven by measurement\ifconf: on one fixed prompt at approximately 70 completion tokens against the same endpoint, LLaMA-3.1-8B returned in 0.9~s where LLaMA-3.3-70B took 17--125~s, highly variable\else\ (Table~\ref{tab:latency})\fi.
 
@@ -240,13 +255,15 @@ nvidia/llama-3.1-nemotron-nano-8b-v1 & Timeout \\
 \fi
 
 \subsection{Data Layer}
-The persistence layer combines PostgreSQL~17 with pgvector for HNSW-indexed similarity search, Redis~7 for response caching, and SQLite for the third cache tier. The multi-tier architecture (L1: in-memory LRU $\to$ L2: Redis $\to$ L3: SQLite) serves read-heavy endpoints. Cache keys incorporate a SHA-256 hash of the authorization header to prevent cross-user leakage. The vector index uses cosine distance:
+The persistence layer combines PostgreSQL~17 with pgvector for HNSW-indexed similarity search\ifshort. Response caching is tiered, and cache keys incorporate a SHA-256 hash of the authorization header so that one student's answer cannot be served to another.\else, Redis~7 for response caching, and SQLite for the third cache tier. The multi-tier architecture (L1: in-memory LRU $\to$ L2: Redis $\to$ L3: SQLite) serves read-heavy endpoints. Cache keys incorporate a SHA-256 hash of the authorization header to prevent cross-user leakage. The vector index uses cosine distance:\fi
+\ifshort\else  % six-page build: the parameters are stated in the sentence above
 \begin{verbatim}
 CREATE INDEX idx_emb_hnsw_cosine
   ON embeddings USING hnsw
   (embedding vector_cosine_ops)
   WITH (m=16, ef_construction=64);
 \end{verbatim}
+\fi
 
 An earlier migration stored embeddings as \texttt{double precision[]} rather than \texttt{vector(1024)}, making index creation impossible and condemning every search to a sequential scan.
 
@@ -257,9 +274,11 @@ The 4~GB target is a claim about the machines schools own, and those are predomi
 
 Device selection is resolved at load time in the order CUDA, Metal (MPS), CPU, and half precision is selected per device (Section~\ref{sec:precision}). Everything the platform needs to know about its host (installed memory, available memory, swap, peak resident set) is read through a single abstraction over \texttt{psutil}, which reports identically on Linux, Windows and macOS.
 
+\ifshort\else  % six-page build: the claim stays, the detail goes
 That abstraction replaced direct system calls that answered only on macOS: \texttt{sysctl hw.memsize} for installed memory, \texttt{memory\_pressure} and \texttt{sysctl vm.swapusage} for the ingestion memory guard, and \texttt{getrusage} for peak footprint. One call site was not inside an exception handler, so on Windows it raised rather than degrading; and the benchmark that substantiates the 4~GB figure imported the POSIX-only \texttt{resource} module at module scope, making it unrunnable on precisely the platform whose claim it exists to support.
 
 Peak resident set is the one quantity with no portable source: \texttt{getrusage} is POSIX-only and Windows exposes a peak through the process handle. The abstraction reads whichever exists and returns a flag when it has had to fall back to current resident set, rather than presenting a smaller number as a high-water mark. A related unit bug is worth recording because it is silent: \texttt{ru\_maxrss} is bytes on macOS and kilobytes on Linux, so the same code reports figures a factor of 1024 apart on two POSIX systems.
+\fi
 
 \fi
 All measurements in this paper were taken on an Apple~M1 with 8~GB of unified memory. We report no figures for hardware we did not run on.
@@ -273,14 +292,18 @@ NCERT encodes every textbook with a five-character code: \texttt{jesc1} represen
 
 The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hindi, and 159 in Urdu. The platform teaches from a deliberate subset of \textbf{263 books}: every English edition, plus the 54 subjects that exist only in Devanagari.
 
+\ifshort\else  % six-page build: a scoping decision, not a result
 \textbf{The 159 Urdu editions are excluded from the taught corpus entirely}, and are neither ingested nor retrieved from. They are translations of books already held in English, so including them would triple the storage for that curriculum while adding no content, and cross-lingual retrieval was observed to cite an Urdu chapter as the source of an English answer, a citation the student can neither read nor check. Urdu remains available as an \emph{answer} language, and appears as a query language in the retrieval evaluation of Section~\ref{sec:crossling}: what a student writes in and reads back is independent of which edition the system learned from.
+\fi
 
 \subsection{Ingestion Pipeline}
 The pipeline processes each book through five stages: ZIP download, per-chapter PDF extraction via PyMuPDF, text cleanup, semantic chunking (1200 characters, 200-character overlap, paragraph-boundary preference), BGE-M3 embedding (fp16), and storage in PostgreSQL. Each book is committed as a single database transaction for resumability. Download and embedding contend for no shared resource: one waits on a remote web server, the other saturates the GPU. Executed sequentially they idle in turn, so the next book's archive is fetched on a prefetch thread while the current book is embedded.
 
 The speedup was established by a controlled comparison rather than inferred. The same three books (classes 6--8 \textit{Curiosity}) were ingested twice, once with prefetching disabled through \texttt{INGEST\_PREFETCH=0}, producing byte-identical output in both runs (37 chapters, 1{,}130 chunks): \textbf{193~s per book sequentially against 140~s per book with prefetching, a 1.38$\times$ speedup}. Extrapolated, the 153 obtainable books require approximately 6.0 hours on a single Apple~M1. The figure is quoted over the obtainable books rather than the full 263-book curriculum, because the remainder cannot be ingested at any rate.
 
+\ifshort\else  % six-page build: a methodological aside, not a result
 We note that a naive comparison of figures taken under different conditions would have reported this backwards. An earlier sequential measurement of 97~s per book was recorded on a different, smaller book set; read against the 140~s figure it appears to show prefetching making ingestion \textit{slower}. Only the paired measurement on identical inputs is informative, and unpaired throughput figures are excluded here for that reason.
+\fi
 
 \subsection{Legacy Font Corruption}
 \label{sec:legacy}
@@ -300,7 +323,9 @@ Unicode font (Kokila, Arya) & 14 & 97.9--100\% \\
 \end{tabular}
 \end{table}
 
+\ifshort\else  % six-page build: the corrected detector is described above
 \textbf{The measurement that was inverted.} An earlier quality assessment counted broken Devanagari sequences and reported the 27 legacy-font books as the \textit{cleanest} in the corpus, because a detector searching for damaged Devanagari finds nothing in a book containing no Devanagari at all. 133 chunks of Latin gibberish entered the retrieval corpus before the error was caught. The corrected detection identifies Hindi books whose extracted text is overwhelmingly Latin.
+\fi
 
 \ifconf\else  % journal only -- OCR fidelity in mathematics: corpus detail
 \subsection{Text Layer Fidelity in Mathematics}
@@ -854,8 +879,12 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b6} J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, ``BGE M3-Embedding: Multi-lingual, multi-functionality, multi-granularity text embeddings through self-knowledge distillation,'' \textit{arXiv preprint arXiv:2402.03216}, 2024.
 \bibitem{b7} A. Gala \textit{et al.}, ``IndicTrans2: Towards high-quality and accessible machine translation models for all 22 scheduled Indian languages,'' \textit{Trans. Mach. Learn. Res. (TMLR)}, 2023.
 \bibitem{b8} S. Khanuja \textit{et al.}, ``MuRIL: Multilingual representations for Indian languages,'' 2021.
+\ifshort\else  % cited only by material the six-page build drops
 \bibitem{b9} Z. Xu \textit{et al.}, ``Multilingual retrieval-augmented generation for knowledge-intensive task,'' \textit{arXiv preprint arXiv:2504.03616}, 2025.
+\fi
+\ifshort\else  % cited only by material the six-page build drops
 \bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual retrieval-augmented generation: Characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.
+\fi
 \bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.
 \bibitem{b12} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP}, 2019, pp. 3982--3992.
 \ifconf\else  % journal only -- cited only by the accessibility and readability sections
@@ -870,7 +899,9 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b20} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. ICLR}, 2018.
 \bibitem{b21} Khan Academy, ``Khanmigo: an AI-powered tutor for learners and assistant for teachers,'' 2023. [Online]. Available: https://www.khanmigo.ai
 \bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: https://bhashini.gov.in
+\ifshort\else  % cited only by material the six-page build drops
 \bibitem{b23} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
+\fi
 \bibitem{b24} Office of the Registrar General and Census Commissioner, India, ``Census of India 2011: Bilingualism and trilingualism (Table C-17),'' Ministry of Home Affairs, Government of India, 2011.
 \end{thebibliography}
 
