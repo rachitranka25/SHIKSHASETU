@@ -371,7 +371,7 @@ Passages are 1{,}200-character windows with 200 characters of overlap, but the w
 \label{sec:grade}
 The platform must decide which class's material answers a question, because the same topic at class~6 and class~12 requires different explanations. The decision is made from the retrieved passages themselves: each class is scored as \textbf{the sum of its three strongest passages}, and the highest-scoring class wins. The rule is narrow, and it was reached by discarding the two obvious alternatives, each of which fails in a way we observed.
 
-\emph{Summing every passage lets a class win on volume.} A chemistry question matched eight weak passages in class~1 picture books and three strong ones in the class~10 chapter that actually teaches it. Class~1 won. With a corpus in which English science and mathematics books outnumber the Hindi readers roughly nine to one, a retriever that defaults to the majority of its corpus would answer every Hindi-literature question from a science chapter, which is why this is a test rather than a formality.
+\emph{Summing every passage lets a class win on volume.} A chemistry question matched eight weak passages in class~1 picture books and three strong ones in the class~10 chapter that actually teaches it. Class~1 won. The corpus composition that makes this a real risk rather than a hypothetical one is given in Section~\ref{sec:evalcorpus}.
 
 \emph{Taking the single best passage fails in the opposite direction}, and so does averaging: a class with one passage at 0.66 beats a class with three at 0.60--0.62 because its mean is that lone passage. One high match can be a passing mention that happens to share wording. Three consistent ones mean the topic is taught there.
 

@@ -18,6 +18,7 @@ one embedding per chunk.
 
 import io
 import logging
+import math
 import os
 import re
 import tempfile
@@ -490,6 +491,9 @@ def store_chapter(
         return 0
 
     vectors = embedder.encode_documents_chunked(chunks, chunk_size=32)
+    chunks, vectors = _drop_unusable_vectors(book, chapter, chunks, vectors)
+    if not chunks:
+        return 0
 
     content_id = uuid.uuid4()
     db.execute(
@@ -623,6 +627,37 @@ def ingest_book(
     return len(chapters), total_chunks
 
 
+def _drop_unusable_vectors(book: Textbook, chapter, chunks: list, vectors):
+    """
+    Discard chunks whose embedding is not finite, and keep the rest.
+
+    One chunk of the class 11 Physics text embedded to a vector of NaN. The
+    column rejected it -- `NaN not allowed in vector` -- and because a book
+    commits in a single transaction, the whole textbook rolled back and was
+    recorded as a dead end. One chunk cost 15 chapters.
+
+    A non-finite vector is unusable either way: pgvector will not store it, and
+    were the column permissive it would sit in the index at an undefined
+    distance from every query, which is invisible rather than loud. Dropping the
+    chunk keeps the cost proportional to the damage.
+    """
+    keep_chunks, keep_vectors, dropped = [], [], 0
+    for chunk, vector in zip(chunks, vectors, strict=True):
+        values = list(map(float, vector))
+        if all(math.isfinite(value) for value in values):
+            keep_chunks.append(chunk)
+            keep_vectors.append(values)
+        else:
+            dropped += 1
+
+    if dropped:
+        logger.warning(
+            "%s chapter %s: dropped %s of %s chunks with non-finite embeddings",
+            book.code, chapter.number, dropped, len(chunks),
+        )
+    return keep_chunks, keep_vectors
+
+
 def record_dead_end(book: Textbook, download_dir: Path, reason: str) -> None:
     """
     Mark a book that cannot be ingested, so a batched run stops retrying it.
@@ -647,6 +682,73 @@ def record_dead_end(book: Textbook, download_dir: Path, reason: str) -> None:
     download_dir.mkdir(parents=True, exist_ok=True)
     marker.write_text(f"{book.code}\t{book.title}\t{reason}\n", encoding="utf-8")
     logger.warning("%s marked as a dead end: %s", book.code, reason)
+
+
+# A book that fails because its archive is corrupt will fail the same way
+# forever, and marking it is what stops the retry loop. A book that fails
+# because this machine ran out of disk will succeed on the next run, and
+# marking it loses the book for a reason that has nothing to do with the book.
+# An audit of 118 markers found two of the latter -- one ENOSPC, one NaN
+# vector -- and one of the two was the class 11 Physics text.
+#
+# Only failures attributable to the published material are recorded on sight.
+MAX_TRANSIENT_ATTEMPTS = 3
+
+
+def _is_source_defect(exc: BaseException) -> bool:
+    """Whether this failure is a property of the archive rather than of this run."""
+    if isinstance(exc, zipfile.BadZipFile):
+        return True
+    # PyMuPDF raises a bare RuntimeError/ValueError for a damaged PDF; the
+    # message is the only signal it gives.
+    text = str(exc).lower()
+    return any(
+        marker in text
+        for marker in ("bad crc-32", "not a zip file", "cannot open broken document",
+                       "no objects found", "damaged")
+    )
+
+
+def record_failure(book: Textbook, download_dir: Path, exc: BaseException) -> None:
+    """
+    Record a failed book, permanently only when the book is what failed.
+
+    A source defect is marked at once. Anything else -- a full disk, a dropped
+    connection, a defect of ours such as an embedding that came back NaN -- gets
+    an attempt tally instead, and only becomes a dead end after
+    MAX_TRANSIENT_ATTEMPTS. That keeps the retry loop bounded, which is why the
+    markers exist, without spending a textbook on a transient cause.
+    """
+    reason = f"{type(exc).__name__}: {exc}"
+    if _is_source_defect(exc):
+        record_dead_end(book, download_dir, reason)
+        return
+
+    download_dir.mkdir(parents=True, exist_ok=True)
+    attempts_file = download_dir / f"{book.code}.attempts"
+    try:
+        attempts = int(attempts_file.read_text(encoding="utf-8").split("\t", 1)[0])
+    except (OSError, ValueError):
+        attempts = 0
+    attempts += 1
+
+    if attempts >= MAX_TRANSIENT_ATTEMPTS:
+        record_dead_end(
+            book, download_dir, f"after {attempts} attempts, last was {reason}"
+        )
+        attempts_file.unlink(missing_ok=True)
+        return
+
+    attempts_file.write_text(f"{attempts}\t{reason}\n", encoding="utf-8")
+    logger.warning(
+        "%s failed (attempt %s/%s), will retry: %s",
+        book.code, attempts, MAX_TRANSIENT_ATTEMPTS, reason,
+    )
+
+
+def clear_failure_record(book: Textbook, download_dir: Path) -> None:
+    """Forget earlier failures once a book lands."""
+    (download_dir / f"{book.code}.attempts").unlink(missing_ok=True)
 
 
 def ingest_books(
@@ -712,14 +814,18 @@ def ingest_books(
                     stats.books_done += 1
                     stats.chapters += chapters
                     stats.chunks += chunks
+                    clear_failure_record(book, download_dir)
                 else:
+                    # Every chapter was rejected, which is a property of the
+                    # book -- legacy-font Hindi readers reach here -- so this
+                    # one is recorded on sight.
                     stats.books_skipped += 1
                     record_dead_end(book, download_dir, "yielded no usable chapters")
             except Exception as exc:  # noqa: BLE001 - a long run must not die on one book
                 db.rollback()
                 stats.books_failed += 1
                 logger.error("%s: ingestion failed: %s", book.code, exc)
-                record_dead_end(book, download_dir, f"{type(exc).__name__}: {exc}")
+                record_failure(book, download_dir, exc)
 
             if on_progress:
                 on_progress(position, len(books), book, stats)
