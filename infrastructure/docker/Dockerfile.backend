@@ -124,8 +124,8 @@ COPY --chown=appuser:appuser alembic/ /app/alembic/
 COPY --chown=appuser:appuser alembic.ini /app/alembic.ini
 
 # Copy startup scripts
-COPY --chown=appuser:appuser scripts/deployment/start-backend /app/scripts/start-backend
-RUN chmod +x /app/scripts/start-backend
+COPY --chown=appuser:appuser scripts/deployment/start-backend.sh /app/scripts/start-backend.sh
+RUN chmod +x /app/scripts/start-backend.sh
 
 # Security hardening
 RUN chmod 755 /app && \
@@ -146,4 +146,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Default command
-CMD ["/app/scripts/start-backend"]
+CMD ["/app/scripts/start-backend.sh"]

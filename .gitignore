@@ -64,7 +64,6 @@ logs/*.pid
 !logs/.gitkeep
 
 # Runtime artifacts
-*.lock
 *.pid
 .env.local
 
@@ -87,9 +86,9 @@ frontend/dist/
 frontend/build/
 frontend/.next/
 frontend/out/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# Lockfiles are committed. This is an application, not a library: pinning the
+# exact dependency tree is what makes a build reproducible, and `npm ci`
+# requires the lockfile to exist.
 
 # Storage (Keep structure, not files)
 storage/uploads/*

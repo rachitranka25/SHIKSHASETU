@@ -1,0 +1,14 @@
+# Test dependencies.
+#
+# CI installs this alongside requirements.txt to run the suite. It was
+# referenced by .github/workflows/ci.yml and did not exist, so the Backend
+# Tests job failed at the install step on every push and never reached a test.
+#
+# Versions are pinned to the majors the suite is known to pass under, and the
+# floor on pytest-asyncio matters: pytest.ini sets asyncio_mode = auto, which
+# earlier releases do not honour.
+
+pytest>=8.0,<10.0
+pytest-asyncio>=1.0,<2.0
+pytest-cov>=6.0,<8.0
+coverage>=7.0,<8.0
