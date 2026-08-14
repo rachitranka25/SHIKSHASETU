@@ -99,11 +99,18 @@ Recent literature categorizes multilingual retrieval into frameworks such as Mul
 \subsection{Vector Search}
 The retrieval layer uses the HNSW graph structure proposed by Malkov and Yashunin~\cite{b11}, implemented through the pgvector extension for PostgreSQL. The index parameters ($m=16$, $ef\_construction=64$) balance build time against recall; the resulting search latency is reported in Fig.~\ref{fig:pipeline} rather than here. Reimers and Gurevych~\cite{b12} established the sentence-level embedding formulation used to load BGE-M3.
 
+\ifconf\else  % journal only -- the conference version presents no accessibility contribution
 \subsection{Reading Accessibility and Brahmic Scripts}
 Zorzi et al.~\cite{b13} found that extra-large letter spacing improved reading speed and halved errors in dyslexic children---the single typographic intervention with strong experimental support and the default accessibility control in the platform. Rello and Baeza-Yates~\cite{b14} and Kuster et al.~\cite{b15} found no reliable advantage for dyslexia-specific typefaces. Nag~\cite{b16} and Nag and Snowling~\cite{b17} demonstrated that akshara-based literacy develops differently from alphabetic literacy, motivating the akshara-level segmentation\ifconf\else\ described in Section~\ref{sec:accessibility}\fi.
+\fi
 
+\ifconf
+\subsection{Efficiency}
+Micikevicius et al.~\cite{b20} established the safety of half-precision arithmetic for neural network inference, providing the basis for the fp16 optimization that halves the BGE-M3 memory footprint.
+\else
 \subsection{Efficiency and Readability}
 Kincaid et al.~\cite{b18} derived the Flesch-Kincaid grade-level formula defined on English syllable counts---which is why the platform refuses to compute it for Devanagari text. Xu et al.~\cite{b19} demonstrated that generic simplification routinely loses content, motivating the measure-and-keep-the-easier approach. Micikevicius et al.~\cite{b20} established the safety of half-precision arithmetic for neural network inference, providing the theoretical basis for the fp16 optimization that halves the BGE-M3 memory footprint.
+\fi
 
 \subsection{Comparison with Existing Systems}
 \label{sec:comparison}
@@ -551,6 +558,10 @@ The simplest estimator is also the best: scoring the answer against all retrieve
 \subsection{The Threshold Was Too Low}
 The distribution shows that 0.55 separates the populations but sits in the wrong place. Thirty-five of the 240 mismatched pairs---one drifted answer in seven---score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it: balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were not wrong, merely too few to locate the boundary.
 
+That 1.000 should be read for what it measures. The negatives are answers written from \emph{another question's} passages, so the task the score is perfect at is separating an answer from a different subject---topical drift, which is the failure we observed in deployment. It is not a measurement of hallucination detection in general, and an answer that stays on its retrieved topic while inventing a detail inside it would score as grounded here. The threshold is calibrated for the failure it was built to catch, and we claim no more than that.
+
+\textbf{The embedder is not judging its own geometry.} BGE-M3 retrieved these passages and then scored the answers against them, so the separation could be a property of one embedding space rather than of the text. Re-scoring the same generations settles it: character 3--5 gram TF-IDF, not neural at all, separates the populations by 0.359, and a distilled multilingual MiniLM by 0.471, against BGE-M3's 0.360 (balanced accuracy 1.000, 0.996, 1.000). The gap is a property of the answers; only the threshold is particular to the embedder deployed.
+
 \ifconf\else  % journal only -- Consolidated Results: every figure in it is stated where it was measured
 %===================================================================
 \section{Consolidated Results}
@@ -605,6 +616,10 @@ The measurement-driven methodology reveals a recurring pattern: intuitive engine
 The legacy font detection illustrates this most starkly. A quality metric searching for damaged Devanagari ranked the most corrupted books as the best---because corruption manifested as the \textit{absence} of Devanagari, which the metric interpreted as perfection. The memory estimation follows the same pattern: summing static sizes to 1.6~GB misses the 2.1~GB transient peak. The grounding score addresses a fundamental RAG limitation: a system can retrieve correctly, generate fluently, pass every surface check, and still fabricate content.
 \fi
 
+\textbf{Availability.} The platform, the ingestion pipeline and every benchmark reported here, including the 22 cross-lingual queries in their original scripts and the grounding calibration, are available at \url{https://github.com/rachitranka25/SHIKSHASETU}. The corpus itself is not redistributed; the pipeline reconstructs it from NCERT's own published archives.
+
+\textbf{Rights and ethics.} NCERT publishes these textbooks for free public download; the system stores only locally derived text and vectors, redistributed with neither the code nor this paper, and a deployment beyond research use should confirm the applicable terms rather than infer them from availability. No human subjects took part and no student data was collected: every measurement here is taken from the system itself.
+
 \textbf{Limitations.} (1)~The grounding negatives are constructed by mismatching answers to other questions' passages rather than collected from observed hallucinations; this captures topical drift, which is the failure we have seen, but not an answer that stays on topic and invents a detail within it. (2)~Cross-lingual retrieval is evaluated on two topics per language; broader topic coverage would tighten the estimate. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
 
 %===================================================================
@@ -643,6 +658,7 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual retrieval-augmented generation: Characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.
 \bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.
 \bibitem{b12} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP}, 2019, pp. 3982--3992.
+\ifconf\else  % journal only -- cited only by the accessibility and readability sections
 \bibitem{b13} M. Zorzi \textit{et al.}, ``Extra-large letter spacing improves reading in dyslexia,'' \textit{Proc. Nat. Acad. Sci. (PNAS)}, vol. 109, no. 28, pp. 11455--11459, 2012.
 \bibitem{b14} L. Rello and R. Baeza-Yates, ``Good fonts for dyslexia,'' in \textit{Proc. ACM SIGACCESS Conf. Comput. Accessibility (ASSETS)}, 2013.
 \bibitem{b15} S. M. Kuster, M. van Weerdenburg, M. Gompel, and A. Bosman, ``Dyslexie font does not benefit reading in children with or without dyslexia,'' \textit{Annals of Dyslexia}, vol. 68, pp. 25--42, 2018.
@@ -650,6 +666,7 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b17} S. Nag and M. J. Snowling, ``Reading in an alphasyllabary: Implications for a language-universal theory of learning to read,'' \textit{Sci. Stud. Reading}, vol. 16, no. 5, pp. 404--423, 2012.
 \bibitem{b18} J. P. Kincaid, R. P. Fishburne, R. L. Rogers, and B. S. Chissom, ``Derivation of new readability formulas for Navy enlisted personnel,'' Naval Tech. Training Command, Rep. 8-75, 1975.
 \bibitem{b19} W. Xu, C. Callison-Burch, and C. Napoles, ``Problems in current text simplification research: New data can help,'' \textit{Trans. Assoc. Comput. Linguist. (TACL)}, vol. 3, pp. 283--297, 2015.
+\fi
 \bibitem{b20} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. ICLR}, 2018.
 \bibitem{b21} Khan Academy, ``Khanmigo: an AI-powered tutor for learners and assistant for teachers,'' 2023. [Online]. Available: https://www.khanmigo.ai
 \bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: https://bhashini.gov.in
