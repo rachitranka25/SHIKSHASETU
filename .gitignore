@@ -135,3 +135,12 @@ data/uploads/
 
 # NCERT corpus: large and re-downloadable. The catalog JSON is kept.
 data/ncert/
+
+# LaTeX build artefacts. The .tex is the source of truth for the paper; a
+# second rendered copy in the repo is a copy that can disagree with it.
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
