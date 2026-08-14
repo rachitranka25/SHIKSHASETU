@@ -20,6 +20,13 @@
 % Architecture in another, so the same figure introduced itself a section
 % early depending on which version you read.
 \usepackage[section]{placeins}
+% Discourage a paragraph's first line from being stranded at the foot of a
+% column, or its last line at the head of the next. LaTeX's defaults (150)
+% treat these as mild; in a two-column layout they are what makes a page
+% look broken.
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
 \usepackage{float}
 % Floats sat further from the text than IEEE needs.
 \setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
