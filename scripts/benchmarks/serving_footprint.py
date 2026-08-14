@@ -9,14 +9,13 @@ work a served request does and reports what the kernel actually charged.
 
     venv/bin/python scripts/benchmarks/serving_footprint.py
 
-Reads peak RSS from getrusage(RUSAGE_SELF), which is a high-water mark for the
-life of the process, so it survives the pages being swapped out afterwards --
-`ps` reported 46 MB for a process holding a 1 GB model, because the machine had
-paged it out.
+Reads a high-water mark for the life of the process, so the figure survives the
+pages being swapped out afterwards -- `ps` reported 46 MB for a process holding
+a 1 GB model, because the machine had paged it out. The mark comes from
+getrusage on POSIX and from the process memory counters on Windows.
 """
 
 import os
-import resource
 import sys
 import time
 from pathlib import Path
@@ -27,9 +26,17 @@ QUESTION = "What is photosynthesis and why do plants need sunlight?"
 
 
 def peak_mb() -> float:
-    """Peak RSS in MB. Darwin reports bytes; Linux reports kilobytes."""
-    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return peak / (1024 * 1024) if sys.platform == "darwin" else peak / 1024
+    """
+    Peak RSS in MB, on whatever the platform is.
+
+    `resource` is POSIX-only, so importing it here made this benchmark --- the
+    one that substantiates the 4 GB claim --- unrunnable on Windows, which is
+    what a 4 GB school machine usually runs.
+    """
+    from backend.core.platform_info import peak_rss_mb
+
+    value, _ = peak_rss_mb()
+    return value
 
 
 def report(label: str) -> None:

@@ -55,21 +55,26 @@ export INGEST_DATABASE_URL="${INGEST_DATABASE_URL:-postgresql://postgres@localho
 # demand, so "937 MB free" was reported while 65% of RAM was idle. What
 # actually preceded the wedge was both numbers being bad at once — free memory
 # down to 18% with swap nearly full — so both are required now.
-memory_free_pct() {
-    memory_pressure 2>/dev/null \
-        | sed -n 's/.*System-wide memory free percentage: \([0-9]*\)%.*/\1/p'
+# Both figures come from psutil rather than `memory_pressure` and
+# `sysctl vm.swapusage`, which exist only on macOS. A school's 4 GB machine is
+# far more likely to be running Windows, and a guard that silently reports
+# nothing there would let the very wedge it exists to prevent happen unseen.
+read_memory() {
+    "$PYTHON" - <<'PYEOF' 2>/dev/null
+from backend.core.platform_info import memory
+m = memory()
+print(f"{m.available_percent:.0f} {m.swap_free_mb:.0f}")
+PYEOF
 }
 
-swap_free_mb() {
-    sysctl vm.swapusage 2>/dev/null \
-        | sed -n 's/.*free = \([0-9.]*\)M.*/\1/p' \
-        | cut -d. -f1
-}
+memory_free_pct() { read_memory | cut -d' ' -f1; }
+swap_free_mb()    { read_memory | cut -d' ' -f2; }
 
 memory_is_exhausted() {
-    local mem swap
-    mem="$(memory_free_pct)"
-    swap="$(swap_free_mb)"
+    local reading mem swap
+    reading="$(read_memory)"
+    mem="$(echo "$reading" | cut -d' ' -f1)"
+    swap="$(echo "$reading" | cut -d' ' -f2)"
 
     [ -z "$mem" ] || [ -z "$swap" ] && return 1          # cannot tell: proceed
     [ "$mem" -lt 20 ] && [ "$swap" -lt 800 ] && return 0 # both bad: stop

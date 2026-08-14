@@ -499,16 +499,10 @@ class DeviceRouter:
 
     def _detect_apple_silicon_details(self, caps: DeviceCapabilities):
         """Detect Apple Silicon chip details."""
-        import subprocess
-
         try:
-            result = subprocess.run(
-                ["sysctl", "-n", "machdep.cpu.brand_string"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            chip_name = result.stdout.strip()
+            from ..platform_info import cpu_description
+
+            chip_name = cpu_description()
             caps.chip_name = chip_name
 
             # Detect M4 and configure cores
@@ -535,13 +529,9 @@ class DeviceRouter:
                 caps.efficiency_cores = 4
 
             # Get memory
-            result = subprocess.run(
-                ["sysctl", "-n", "hw.memsize"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            caps.memory_gb = int(result.stdout.strip()) / (1024**3)
+            from ..platform_info import total_memory_gb
+
+            caps.memory_gb = total_memory_gb()
 
         except Exception as e:
             logger.warning(f"[DeviceRouter] Apple Silicon detection error: {e}")

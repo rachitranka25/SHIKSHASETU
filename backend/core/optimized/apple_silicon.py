@@ -170,15 +170,11 @@ def get_mps_memory_info() -> dict:
 
         # MPS doesn't expose memory stats like CUDA
         # Return estimated info based on unified memory
-        import subprocess
+        # Was `sysctl -n hw.memsize`, unguarded: on Windows the binary does
+        # not exist and this raised rather than degrading.
+        from ..platform_info import total_memory_gb
 
-        result = subprocess.run(
-            ["sysctl", "-n", "hw.memsize"],
-            capture_output=True,
-            text=True,
-        )
-        total_bytes = int(result.stdout.strip())
-        total_gb = total_bytes / (1024**3)
+        total_gb = total_memory_gb()
 
         return {
             "total_gb": total_gb,
