@@ -75,49 +75,32 @@ This paper presents Shiksha Setu, a platform that addresses the first and third 
 
 The qualification is deliberate. Retrieval is entirely local. The corpus, its embeddings and the vector index never leave the machine, but generation is served by a hosted endpoint, so a question's text does leave it and does incur a per-query cost. The system therefore removes the dependency for the component that dominates storage and latency without removing it altogether. Local generation is configured and available (Section~\ref{sec:models}), but a language model cannot share a 4~GB machine with the embedder, so the offline configuration and the 4~GB configuration are alternatives, not the same system. We state this plainly because ``local-first'' is otherwise read as ``offline'', and the measurements in this paper were taken in the hosted configuration. Every claim is backed by an experiment whose procedure, data, and result are reported, including experiments that produced wrong results before being corrected. The contributions are:
 
-\begin{enumerate}
-\item An ingestion pipeline addressing all 559 NCERT textbooks, with automatic detection and rejection of legacy-font corruption that renders 27 of 41 Hindi books unreadable, discovered only through measurement.
-\item A cross-lingual retrieval system enabling questions in eleven Indian languages to retrieve relevant passages from an English corpus, with a controlled ablation over 22 queries in eleven languages establishing that query rewriting and direct embedding fail on disjoint inputs, so that pooling them retrieves correctly for $16\pm1$ of 22 where either alone manages 11 or 14, and a lexical baseline none.
-\item A memory optimization strategy verified through kernel-level measurement enabling the serving pipeline to operate within a 4~GB memory budget, correcting an earlier arithmetic estimate that understated consumption by 31\%.
-\ifconf\else  % journal only -- matches the sections above
-\item Akshara-level readability measurement for nine Brahmic scripts, replacing Latin-alphabet syllable counting with script-appropriate segmentation.
-\item A security audit documenting twelve vulnerabilities, all repaired, including a safety pipeline that failed open due to an import error.
-\fi
-\item A grounding metric detecting when fluent, confident answers have drifted from source material, a failure mode indistinguishable from a correct answer without quantitative measurement, calibrated on 256 answer/passage pairs instead of hand-checked examples, and compared against three alternative estimators.
-\end{enumerate}
+This work contributes an ingestion pipeline covering all 559 NCERT textbooks, which detects and rejects the legacy-font corruption that renders 27 of 41 Hindi books unreadable, a defect found only by measuring for it. It contributes a cross-lingual retrieval system that answers questions in eleven Indian languages from an English corpus, with a controlled ablation over 22 queries establishing that query rewriting and direct embedding fail on disjoint inputs, so that pooling them retrieves correctly for $16\pm1$ of 22 where either alone manages 11 or 14 and a lexical baseline manages none. It contributes a memory strategy verified by kernel-level measurement, which brings the serving pipeline inside a 4~GB budget and corrects an earlier arithmetic estimate that understated consumption by 31\%. And it contributes a grounding metric that detects when fluent, confident answers have drifted from their source material, a failure indistinguishable from a correct answer without quantitative measurement, calibrated here on 256 answer and passage pairs instead of hand-checked examples and compared against three alternative estimators.\ifconf\else\ The journal version additionally reports akshara-level readability measurement for nine Brahmic scripts, which replaces Latin-alphabet syllable counting with script-appropriate segmentation, and a security audit documenting twelve vulnerabilities, all repaired, among them a safety pipeline that failed open because of an import error.\fi
 
 %===================================================================
 \section{Related Work}
 %===================================================================
 
-\subsection{Retrieval-Augmented Generation}
 Lewis et al.~\cite{b2} introduced retrieval-augmented generation (RAG) for knowledge-intensive NLP tasks, establishing the paradigm of conditioning language model output on retrieved passages. Shiksha Setu adopts this architecture with a critical modification: a grade-level filter inserted between retrieval and generation, because the same topic at class~6 and class~12 requires different explanations. Karpukhin et al.~\cite{b3} demonstrated the superiority of dense passage retrieval over BM25. Ma et al.~\cite{b4} showed that query rewriting before embedding improves retrieval quality. The technique that resolves the romanized Hindi failure\ifconf\else\ of Section~\ref{sec:romanized}\fi. Nogueira and Cho~\cite{b5} established passage re-ranking with cross-encoder models. The BGE-Reranker component exists in the codebase but is not yet wired into the retrieval path.
 
-\subsection{Multilingual Embeddings and Indian Language NLP}
 Chen et al.~\cite{b6} presented BGE-M3, a multilingual embedding model supporting over 100 languages in a unified 1024-dimensional vector space. Its cross-lingual property, that semantically equivalent passages in different languages map to nearby vectors, allows a Hindi question to retrieve an English passage without explicit translation. Gala et al.~\cite{b7} developed IndicTrans2 covering all 22 scheduled Indian languages, serving as the translation backbone. Kakwani et al.~\cite{b1} provided monolingual corpora and evaluation benchmarks for Indian languages. Khanuja et al.~\cite{b8} trained MuRIL on transliterated text, directly relevant to the romanized Hindi failure\ifconf\else\ documented in Section~\ref{sec:romanized}\fi.
 
-\subsection{Output Language Drift and tRAG}
 \ifshort\else  % six-page build: related work, not load-bearing
 Recent literature categorizes multilingual retrieval into frameworks such as MultiRAG (direct retrieval) and tRAG (translation-RAG). The platform described in this work formally implements a tRAG architecture~\cite{b9}, rewriting queries to a high-resource language (English) before retrieval. This architectural choice unknowingly resolves a newly documented vulnerability in large language models: Output Language Drift~\cite{b10}. Studies show that when a multilingual RAG system processes a query in a target language but retrieves context in a dominant high-resource language, the model mixes languages and outputs the final answer in the high-resource language. The strict separation of the generation language from the delivery language via the translation layer elegantly neutralizes this cognitive drift.
 \fi
 
-\subsection{Vector Search}
 The retrieval layer uses the HNSW graph structure proposed by Malkov and Yashunin~\cite{b11}, implemented through the pgvector extension for PostgreSQL. The index parameters ($m=16$, $ef\_construction=64$) balance build time against recall. The resulting search latency is reported in Fig.~\ref{fig:pipeline}, not here. Reimers and Gurevych~\cite{b12} established the sentence-level embedding formulation used to load BGE-M3.
 
 \ifconf\else  % journal only -- the conference version presents no accessibility contribution
-\subsection{Reading Accessibility and Brahmic Scripts}
 Zorzi et al.~\cite{b13} found that extra-large letter spacing improved reading speed and halved errors in dyslexic children, the single typographic intervention with strong experimental support and the default accessibility control in the platform. Rello and Baeza-Yates~\cite{b14} and Kuster et al.~\cite{b15} found no reliable advantage for dyslexia-specific typefaces. Nag~\cite{b16} and Nag and Snowling~\cite{b17} demonstrated that akshara-based literacy develops differently from alphabetic literacy, motivating the akshara-level segmentation\ifconf\else\ described in Section~\ref{sec:accessibility}\fi.
 \fi
 
 \ifconf
-\subsection{Efficiency}
 Micikevicius et al.~\cite{b20} established the safety of half-precision arithmetic for neural network inference, providing the basis for the fp16 optimization that halves the BGE-M3 memory footprint.
 \else
-\subsection{Efficiency and Readability}
 Kincaid et al.~\cite{b18} derived the Flesch-Kincaid grade-level formula defined on English syllable counts, which is why the platform refuses to compute it for Devanagari text. Xu et al.~\cite{b19} demonstrated that generic simplification routinely loses content, motivating the measure-and-keep-the-easier approach. Micikevicius et al.~\cite{b20} established the safety of half-precision arithmetic for neural network inference, providing the theoretical basis for the fp16 optimization that halves the BGE-M3 memory footprint.
 \fi
 
-\subsection{Comparison with Existing Systems}
 \label{sec:comparison}
 Table~\ref{tab:comparison} compares this work with the systems an Indian student is most likely to encounter: Khanmigo~\cite{b21}, Khan Academy's GPT-4 tutor; BYJU'S, the largest Indian ed-tech platform; and Bhashini~\cite{b22}, the Government of India's national language-technology mission.
 
@@ -128,9 +111,10 @@ The comparison is confined to \emph{architectural properties}, and every cell is
 \label{tab:comparison}
 \centering
 \footnotesize
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
-\textbf{Property} & \textbf{Khanmigo} & \textbf{BYJU'S} & \textbf{Bhashini} & \textbf{Ours} \\
+\textbf{Property} & \textbf{Khanmigo} & \textbf{BYJU'S} & \textbf{Bhashini} & \textbf{Shiksha Setu} \\
 \midrule
 NCERT-aligned corpus     & no  & yes & ---  & yes \\
 Indian languages         & no  & n/d & 22   & 11 \\
@@ -157,35 +141,43 @@ Three rows are stated against our own interest. Generation does not run locally,
 \section{System Architecture}
 %===================================================================
 
-\subsection{Request Lifecycle}
-A student's question traverses an eight-stage pipeline from input to response. Fig.~\ref{fig:pipeline} shows the stages, their measured latencies on an 8~GB Apple~M1, and, the property this paper is about, which side of the machine boundary each one runs on.
+A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. Fig.~\ref{fig:pipeline} shows those six with their measured latencies on an 8~GB Apple~M1, arranged by the property this paper is about, which is which side of the machine boundary each one runs on.
 
 \begin{figure}[t]
 \centering
 \footnotesize
 \begin{tikzpicture}[
-  node distance=2.2mm,
-  box/.style={draw, rounded corners=1pt, align=left, inner sep=1.8pt,
-              text width=52mm, font=\footnotesize},
-  loc/.style={box, fill=black!4},
-  rem/.style={box, fill=black!12, dashed},
-  opt/.style={box, densely dotted, fill=white},
-  fl/.style={-{Latex[length=1.4mm]}, shorten >=0.4pt}]
-\node[box, fill=white] (q)  {\textbf{Question} \textperiodcentered\ any of 11 languages};
-\node[rem, below=of q]  (r) {1\, Rewrite to English \hfill ${\sim}0.6$\,s\\[-1pt]\scriptsize LLaMA-3.1-8B \textperiodcentered\ hosted};
-\node[loc, below=of r]  (e) {2\, Embed query \hfill ${\sim}0.1$\,s\\[-1pt]\scriptsize BGE-M3 fp16 \textperiodcentered\ local};
-\node[loc, below=of e]  (w) {3\, Wide retrieval \hfill ${\sim}0.02$\,s\\[-1pt]\scriptsize pgvector HNSW \textperiodcentered\ local};
-\node[loc, below=of w]  (c) {4\, Class scoring \hfill ${<}0.01$\,s\\[-1pt]\scriptsize sum of top 3 \textperiodcentered\ local};
-\node[loc, below=of c]  (n) {5\, Narrow retrieval \hfill ${\sim}0.02$\,s\\[-1pt]\scriptsize pgvector HNSW \textperiodcentered\ local};
-\node[rem, below=of n]  (g) {6\, Generate answer \hfill ${\sim}2.0$\,s\\[-1pt]\scriptsize LLaMA-3.1-8B \textperiodcentered\ hosted};
-\node[opt, below=of g] (gr) {\scriptsize grounding check \textperiodcentered\ BGE-M3, local \textperiodcentered\ regenerate if ${<}0.715$};
-\node[opt, below=of gr] (o) {7\, Reading support \hfill ${\sim}0.5$\,s\\[-1pt]8\, Illustration / FLUX.1-dev \hfill ${\sim}5.0$\,s\\[-1pt]\scriptsize both optional};
-\foreach \a/\b in {q/r, r/e, e/w, w/c, c/n, n/g, g/gr, gr/o} \draw[fl] (\a) -- (\b);
-\begin{scope}[on background layer]
-  \node[fit=(e)(n), draw=black!45, rounded corners=2pt, inner sep=2.4pt] {};
-\end{scope}
+  font=\footnotesize,
+  stage/.style={draw, minimum height=5.2mm, inner xsep=2pt, align=center, font=\scriptsize},
+  loc/.style  ={stage, fill=black!5,  text width=27mm},
+  net/.style  ={stage, fill=black!14, text width=27mm},
+  t/.style    ={font=\scriptsize, inner sep=1pt},
+  fl/.style   ={-{Latex[length=1.3mm]}, thick},
+  cross/.style={-{Latex[length=1.3mm]}, thick, densely dashed}]
+
+% the machine boundary, which is what the figure exists to show
+\draw[dashed, black!55] (32mm,4mm) -- (32mm,-46mm);
+\node[t, anchor=south, black!65] at (14mm,4.5mm) {\textsc{this machine}};
+\node[t, anchor=south, black!65] at (52mm,4.5mm) {\textsc{network}};
+
+\node[loc] (q)  at (14mm,  0mm)   {student's question};
+\node[net] (rw) at (52mm, -8mm)   {1\, rewrite to English\\[-1pt]$\sim$0.6\,s};
+\node[loc] (em) at (14mm, -16mm)  {2\, embed query\\[-1pt]$\sim$0.1\,s};
+\node[loc] (rt) at (14mm, -25mm)  {3--5\, retrieve, score by\\[-1pt]class, retrieve again\\[-1pt]$\sim$0.05\,s};
+\node[net] (gn) at (52mm, -33mm)  {6\, generate answer\\[-1pt]$\sim$2.0\,s};
+\node[loc] (gr) at (14mm, -41mm)  {grounding check\\[-1pt]regenerate if ${<}0.715$};
+
+\draw[cross] (q)  -- (rw);
+\draw[cross] (rw) -- (em);
+\draw[fl]    (em) -- (rt);
+\draw[cross] (rt) -- (gn);
+\draw[cross] (gn) -- (gr);
+
+\node[t, anchor=west, black!65] at (33mm,-20.5mm) {the corpus, its index};
+\node[t, anchor=west, black!65] at (33mm,-23.5mm) {and all retrieval stay};
+\node[t, anchor=west, black!65] at (33mm,-26.5mm) {on the left of this line};
 \end{tikzpicture}
-\caption{Request lifecycle, warm cache, on an 8~GB Apple~M1. Shaded-dashed stages are hosted calls. The outlined group is the whole of retrieval and never leaves the machine. Stage~6 produces a complete answer and is therefore slower than the fixed short completion used for model selection\ifconf\else\ (Table~\ref{tab:latency})\fi. The grounding check is drawn without a latency because we did not measure it separately. Without the optional stages a warm request completes in approximately three seconds.}
+\caption{The mandatory request path, warm cache, on an 8~GB Apple~M1. The dashed line is the machine boundary. Everything on its left, including the corpus and the whole of retrieval, stays on the machine; the two hosted calls are the only points at which a question leaves it, and the answer crosses back for grounding. Stages~3--5 are drawn as one box because they are three vector operations totalling ${\sim}0.05$\,s. Stage~6 produces a complete answer and is therefore slower than the fixed short completion used for model selection\ifconf\else\ (Table~\ref{tab:latency})\fi. The grounding check carries no latency because we did not measure it separately. The two optional stages, reading support and illustration, are omitted here and add ${\sim}0.5$\,s and ${\sim}5.0$\,s; without them a warm request completes in approximately three seconds.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -193,7 +185,6 @@ A student's question traverses an eight-stage pipeline from input to response. F
 The design separates the question's language from the answer's language. A student may type in romanized Hindi and receive a response in Tamil. This independence is critical because NCERT publishes in only three languages while the platform serves eleven. Translation is a serving-layer responsibility handled by IndicTrans2~\cite{b7}.
 \fi
 
-\subsection{Model Stack}
 \label{sec:models}
 The platform integrates twenty-eight model identifiers, of which \textbf{five} are exercised on the critical path and measured in this work. The remainder are configured alternatives that this evaluation does not characterize.\ifshort\ The five are BGE-M3 (568~M parameters, embeddings and grounding, the only one resident locally), and four hosted models: LLaMA-3.1-8B for generation and query rewriting, FLUX.1-dev for illustration, Nemotron-Nano-12B for vision OCR, and LLaMA-3.3-70B, compared and not adopted.\else\ Table~\ref{tab:models} separates the two, because a model stack presented as a single list would imply an empirical basis that only the first group has.\fi
 
@@ -254,7 +245,6 @@ nvidia/llama-3.1-nemotron-nano-8b-v1 & Timeout \\
 \end{table}
 \fi
 
-\subsection{Data Layer}
 The persistence layer combines PostgreSQL~17 with pgvector for HNSW-indexed similarity search\ifshort. Response caching is tiered, and cache keys incorporate a SHA-256 hash of the authorization header so that one student's answer cannot be served to another.\else, Redis~7 for response caching, and SQLite for the third cache tier. The multi-tier architecture (L1: in-memory LRU $\to$ L2: Redis $\to$ L3: SQLite) serves read-heavy endpoints. Cache keys incorporate a SHA-256 hash of the authorization header to prevent cross-user leakage. The vector index uses cosine distance:\fi
 \ifshort\else  % six-page build: the parameters are stated in the sentence above
 \begin{verbatim}
@@ -268,7 +258,6 @@ CREATE INDEX idx_emb_hnsw_cosine
 An earlier migration stored embeddings as \texttt{double precision[]} instead of \texttt{vector(1024)}, making index creation impossible and condemning every search to a sequential scan.
 
 \ifconf  % the journal carries this at length in the Deployment section
-\subsection{Hardware Portability}
 \label{sec:hardware}
 The 4~GB target is a claim about the machines schools own, and those are predominantly Windows desktops, not the Apple hardware this work was developed on. Portability is therefore part of the claim, not an afterthought.
 
@@ -287,7 +276,6 @@ All measurements in this paper were taken on an Apple~M1 with 8~GB of unified me
 \section{Corpus Construction}
 %===================================================================
 
-\subsection{The NCERT Catalog}
 NCERT encodes every textbook with a five-character code: \texttt{jesc1} represents Class~10, English medium, Science, book~1. The subject letters are not algorithmically derivable. Science is \texttt{sc} for classes~7--10 but \texttt{cu} (Curiosity) for class~6, and splits into \texttt{ph}, \texttt{ch}, \texttt{bo} at classes~11--12. The catalog is scraped from NCERT's textbook picker and cached locally.
 
 The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hindi, and 159 in Urdu. The platform teaches from a deliberate subset of \textbf{263 books}, every English edition, plus the 54 subjects that exist only in Devanagari.
@@ -296,7 +284,6 @@ The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hin
 \textbf{The 159 Urdu editions are excluded from the taught corpus entirely}, and are neither ingested nor retrieved from. They are translations of books already held in English, so including them would triple the storage for that curriculum while adding no content, and cross-lingual retrieval was observed to cite an Urdu chapter as the source of an English answer, a citation the student can neither read nor check. Urdu remains available as an \emph{answer} language, and appears as a query language in the retrieval evaluation of Section~\ref{sec:crossling}: what a student writes in and reads back is independent of which edition the system learned from.
 \fi
 
-\subsection{Ingestion Pipeline}
 The pipeline processes each book through five stages: ZIP download, per-chapter PDF extraction via PyMuPDF, text cleanup, semantic chunking (1200 characters, 200-character overlap, paragraph-boundary preference), BGE-M3 embedding (fp16), and storage in PostgreSQL. Each book is committed as a single database transaction for resumability. Download and embedding contend for no shared resource. One waits on a remote web server, the other saturates the GPU. Executed sequentially they idle in turn, so the next book's archive is fetched on a prefetch thread while the current book is embedded.
 
 The speedup was established by a controlled comparison, not inferred. The same three books (classes 6--8 \textit{Curiosity}) were ingested twice, once with prefetching disabled through \texttt{INGEST\_PREFETCH=0}, producing byte-identical output in both runs (37 chapters, 1{,}130 chunks): \textbf{193~s per book sequentially against 140~s per book with prefetching, a 1.38$\times$ speedup}. Extrapolated, the 153 obtainable books require approximately 6.0 hours on a single Apple~M1. The figure is quoted over the obtainable books instead of the full 263-book curriculum, because the remainder cannot be ingested at any rate.
@@ -305,7 +292,6 @@ The speedup was established by a controlled comparison, not inferred. The same t
 We note that a naive comparison of figures taken under different conditions would have reported this backwards. An earlier sequential measurement of 97~s per book was recorded on a different, smaller book set. Read against the 140~s figure it appears to show prefetching making ingestion \textit{slower}. Only the paired measurement on identical inputs is informative, and unpaired throughput figures are excluded here for that reason.
 \fi
 
-\subsection{Legacy Font Corruption}
 \label{sec:legacy}
 Two-thirds of the Hindi curriculum is rendered unreadable by every PDF text extractor tested. NCERT's older Hindi textbooks are typeset in \textbf{Walkman-Chanakya 905}, a legacy font mapping Devanagari glyphs onto ASCII codepoints with no \texttt{ToUnicode} table. Text extraction returns raw byte values. The analysis covers 41 of the 54 Devanagari-only books in the taught curriculum. The method samples a single chapter PDF per book, and for the remaining 13 books NCERT publishes no individual chapter files, returning HTTP~404 for chapters~1 through~3 at the documented URL scheme. Those 13 are absent for lack of a retrievable sample, not by selection, and no result here is conditioned on their contents (Table~\ref{tab:legacy}):
 
@@ -328,7 +314,6 @@ Unicode font (Kokila, Arya) & 14 & 97.9--100\% \\
 \fi
 
 \ifconf\else  % journal only -- OCR fidelity in mathematics: corpus detail
-\subsection{Text Layer Fidelity in Mathematics}
 PyMuPDF's text layer is lossy on mathematical content. Class~10 Mathematics chapter~4 defines a quadratic as $ax^2 + bx + c,\ a \neq 0$. The text layer yields ``$ax2 + bx + c,\ a\text{~~}0$'': the superscript flattened and the inequality deleted. Pages requiring OCR are identified by image density (Table~\ref{tab:ocr}).
 
 \begin{table}[htbp]
@@ -351,7 +336,6 @@ Cloud OCR (Nemotron VL) correctly recovers symbols but introduces substitution e
 \fi
 
 \ifconf\else  % journal only -- the audit behind the corpus figures
-\subsection{What the Dead-End Records Say}
 \label{sec:deadends}
 A book that cannot be ingested leaves a marker naming the reason, so the shortfall can be checked instead of assumed. There are 118 such markers, of which 110 fall inside the taught curriculum and account exactly for the gap between the 263 books taught and the 153 ingested, and the remaining 8 are Urdu or dual-medium editions outside it. Table~\ref{tab:deadends} groups them.
 
@@ -389,10 +373,8 @@ The \texttt{NaN} is the more interesting of the two. A single chunk embedding to
 
 Two implementation choices sit underneath every retrieval number in this paper, and both were arrived at by watching a simpler version fail.
 
-\subsection{Chunk Boundaries}
 Passages are 1{,}200-character windows with 200 characters of overlap, but the window is not taken at the character count. Each window is trimmed back to the last paragraph break within its final quarter, or failing that the last sentence end. A chunk cut mid-sentence embeds poorly and, because retrieved passages are shown to the student as the source of the answer, also reads as broken. The trim bounds how much text a boundary adjustment can discard while ensuring a chunk almost always ends where a human would end it.
 
-\subsection{Which Class a Question Belongs To}
 \label{sec:grade}
 The platform must decide which class's material answers a question, because the same topic at class~6 and class~12 requires different explanations. The decision is made from the retrieved passages themselves. Each class is scored as \textbf{the sum of its three strongest passages}, and the highest-scoring class wins. The rule is narrow, and it was reached by discarding the two obvious alternatives, each of which fails in a way we observed.
 
@@ -409,7 +391,6 @@ Capping the sum at three passages bounds what volume can contribute while still 
 \label{sec:cross_lingual}
 %===================================================================
 
-\subsection{Evaluation Corpus}
 \label{sec:evalcorpus}
 Every retrieval and grounding result in this section and the next was measured against a single corpus state, recorded here so that the numbers are interpretable and reproducible. The database held \textbf{153 textbooks}, 138 English and 15 Hindi, comprising 1{,}542 chapters and \textbf{42{,}995 indexed passages}, with an embedding present for every passage (42{,}995 of 42{,}995; a passage lacking one is invisible to retrieval and is not otherwise detectable). All twelve classes are represented, ranging from 3 books at class~1 to 34 at class~12.
 
@@ -420,7 +401,6 @@ Composition is load-bearing for one result, not incidental to it. English scienc
 Absolute cosine similarities should be read as characteristic of this corpus and not as a property of the method. Recall in particular is not estimated. There is no ground-truth relevant set for these books, and no such claim is made.
 
 \ifconf\else  % journal only -- Romanized Hindi: secondary to the main ablation
-\subsection{The Romanized Hindi Problem}
 \label{sec:romanized}
 BGE-M3's cross-lingual capability does not extend to romanized Hindi, the predominant input mode for Indian students using standard keyboards. The same chemistry question was embedded in three scripts (Table~\ref{tab:scripts}).
 
@@ -442,7 +422,6 @@ Romanized Hindi & Class~1 at 0.520 & \textbf{No} \\
 Romanized Hindi drifts to class~1 picture books matching on surface-level token overlap. This failure provides a natural ablation study comparing naive direct retrieval (MultiRAG) against a translation-then-retrieval (tRAG) approach. Direct retrieval across scripts failed entirely. By rewriting every question into a short English search query before embedding (following Ma et al.~\cite{b4}), the vector search is successfully forced back into the correct semantic neighborhood.
 \fi
 
-\subsection{Cross-Lingual Retrieval Quality}
 \label{sec:crossling}
 Retrieval was evaluated over \textbf{22 queries: two topics in each of the eleven supported Indian languages}, against the English-medium portion of the corpus. Holding the topic constant across languages makes language the only variable that moves. One topic uses ordinary vocabulary (the focusing of the human eye). The other is \emph{photosynthesis}, whose name in most of these languages is a compound of morphemes meaning ``light'' and ``joining''. The queries are committed with the benchmark, not only their results.
 
@@ -474,7 +453,6 @@ The two arms fail on different inputs, and that is the result. Embedding the que
 Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses instead of averaging them.
 
 \ifconf\else  % journal only -- the per-query detail behind the totals
-\subsection{Where the Failures Fall}
 The totals conceal which languages fail and how badly. Table~\ref{tab:perlang} gives the deployed configuration per language and topic, with the rank of the first on-topic passage where it is not first. A third run of the benchmark, reported here, reproduced the totals of Table~\ref{tab:crosslingual} exactly.
 
 \begin{table}[htbp]
@@ -514,7 +492,6 @@ The one query that fails in every configuration is Urdu photosynthesis, whose te
 \section{Memory Optimization}
 %===================================================================
 
-\subsection{Half-Precision Embeddings}
 \label{sec:precision}
 BGE-M3's weights were evaluated at both full (float32) and half (float16) precision (Table~\ref{tab:precision}).
 
@@ -536,8 +513,7 @@ Cosine fidelity & --- & 0.999999 \\
 
 Half precision yields 50\% memory reduction and ${\sim}1.88\times$ speedup with no measurable quality degradation. A cosine similarity of 0.999999 cannot reorder any result list.
 
-\subsection{Serving Footprint: Measurement vs.\ Arithmetic}
-An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}, a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model \ifconf\else\ (Table~\ref{tab:footprint})\fi.
+\textbf{Measurement against arithmetic.} An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}, a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model \ifconf\else\ (Table~\ref{tab:footprint})\fi.
 
 \ifconf\else  % journal only -- every figure in it is stated in the prose below
 \begin{table}[htbp]
@@ -561,7 +537,6 @@ pgvector search complete & 2,094~MB \\
 The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them). The first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), not the 2.4~GB arithmetic implied.
 
 \ifconf\else  % journal only -- Ingestion memory: an operations note
-\subsection{Ingestion Memory Management}
 A single process ingesting 263 books reached book~8 and entered an unrecoverable state: swap at 11.4~GB of 12.2~GB maximum, the process in uninterruptible I/O wait. \texttt{SIGKILL} is not delivered in that state. The solution is batch processing: one process per six books, with ${\sim}20$~seconds of model reloading per batch.
 \fi
 
@@ -571,12 +546,10 @@ A single process ingesting 263 books reached book~8 and entered an unrecoverable
 \label{sec:accessibility}
 %===================================================================
 
-\subsection{Akshara Segmentation}
 Dyslexia support tooling is overwhelmingly designed for English. Most Indian students read a Brahmic script where the fundamental unit is the \textbf{akshara}, a consonant cluster carrying an inherent or explicit vowel. The segmentation algorithm recognizes the virama (halant) in each Brahmic script as the signal that two consonants are conjoined, operating generically across Devanagari, Bengali, Gurmukhi, Gujarati, Odia, Tamil, Telugu, Kannada, and Malayalam.
 
 Two details: (1)~sentence counting must honor the danda, not only the Latin period; (2)~Flesch-Kincaid is computed for English only, since akshara counts are not syllable counts.
 
-\subsection{Measured Simplification Quality}
 The first simplification attempt produced text \textit{harder} than the original (Table~\ref{tab:readability}).
 
 \begin{table}[htbp]
@@ -596,7 +569,6 @@ Measure-and-keep approach & \textbf{6.9} (easier) \\
 
 The corrected approach measures the original, rewrites with readability as sole objective, and retains whichever version is easier.
 
-\subsection{Evidence-Based Typography}
 Letter and word spacing (on by default) is the only intervention with strong evidence~\cite{b13}. Dyslexia-specific fonts are offered as preferences but labeled as weakly evidenced~\cite{b14,b15}. Nothing in the module diagnoses any condition. It adjusts presentation.
 \fi
 
@@ -627,7 +599,6 @@ A comprehensive audit identified twelve vulnerabilities, all repaired (Table~\re
 
 Vulnerability \#1 is the most consequential. The safety pipeline was designed as a three-pass content filter, but an import path error caused the entire pipeline to fail to load. The error was caught by a bare \texttt{except} clause returning \texttt{(response, True)}, making the content safety system structurally incapable of blocking any response since deployment.
 
-\subsection{Two Findings Worth the Space}
 \textbf{A policy that hid the curriculum from everybody (\#7).} Multi-tenancy placed row-level security on the content table with a single policy:
 
 \begin{center}\footnotesize
@@ -650,8 +621,7 @@ A retrieval-augmented system can retrieve the correct chapter and still generate
 
 The \textbf{grounding score} computes cosine similarity between the generated answer and the source passages. Lexical overlap cannot serve this purpose because the platform produces answers in a different language from the source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case.
 
-\subsection{Calibration on a Distribution}
-The threshold was originally set at 0.55 from four hand-verified answers, three correct at 0.583--0.701 and one fabricated at 0.489. Four points that happen to separate are not a calibration, and the difficulty is obtaining ungrounded answers in quantity. A model instructed to hallucinate does not fail the way a grounded pipeline fails.
+\textbf{Calibrating on a distribution.} The threshold was originally set at 0.55 from four hand-verified answers, three correct at 0.583--0.701 and one fabricated at 0.489. Four points that happen to separate are not a calibration, and the difficulty is obtaining ungrounded answers in quantity. A model instructed to hallucinate does not fail the way a grounded pipeline fails.
 
 The negatives are therefore constructed, not solicited. Every answer is generated normally from its own retrieved passages, then scored twice: against the passages it was written from (\emph{matched}), and against another question's passages (\emph{mismatched}). A mismatched pair is precisely the failure the metric exists to catch (fluent, well-formed, on a different subject) and it requires no human labelling and no second generation pass. Sixteen questions spanning subjects and classes yield 16 matched and 240 mismatched pairs.
 
@@ -677,8 +647,7 @@ Per sentence & 0.676 & 0.455 & 0.221 & 0.555 & 0.985 \\
 
 The simplest estimator is also the best. Scoring the answer against all retrieved passages joined separates the two populations by 0.360, and no refinement improves on it. Scoring against the single best passage raises both means without widening the gap, and scoring sentence by sentence narrows it, because a correct answer contains connective and pedagogical sentences that appear in no passage, and averaging over them dilutes the signal the metric depends on.
 
-\subsection{The Threshold Was Too Low}
-The distribution shows that 0.55 separates the populations but sits in the wrong place. Thirty-five of the 240 mismatched pairs, one drifted answer in seven, score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it. Balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were not wrong, merely too few to locate the boundary.
+\textbf{The boundary was in the wrong place.} The distribution shows that 0.55 separates the populations but sits too low. Thirty-five of the 240 mismatched pairs, one drifted answer in seven, score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it. Balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were not wrong, merely too few to locate the boundary.
 
 That 1.000 should be read for what it measures. The negatives are answers written from \emph{another question's} passages, so the task the score is perfect at is separating an answer from a different subject: topical drift, which is the failure we observed in deployment. It is not a measurement of hallucination detection in general, and an answer that stays on its retrieved topic while inventing a detail inside it would score as grounded here. The threshold is calibrated for the failure it was built to catch, and we claim no more than that.
 
@@ -690,10 +659,8 @@ That 1.000 should be read for what it measures. The negatives are answers writte
 \section{Consolidated Results}
 %===================================================================
 
-\subsection{Validation Suite}
 The platform is validated by \textbf{474 automated tests}: 381 unit, 73 integration, 10 end-to-end, 9 performance and 1 manual. \textbf{441 pass and 33 are skipped, with zero failures and zero errors.} The skips are declared, not silent. They are tests requiring a loaded model or a service this environment does not run, and the counts here are read from the suite's own JUnit report, not from a summary line.
 
-\subsection{System-Level Metrics}
 Table~\ref{tab:results} summarizes key metrics.
 
 \begin{table}[htbp]
@@ -735,10 +702,8 @@ Automated tests & 441 pass, 33 skip, 0 fail \\
 
 The query rewrite is the one component that improves retrieval and degrades it in the same breath, and the ablation of Section~\ref{sec:crossling} exists because reasoning alone could not say which effect dominated.
 
-\subsection{It Recovers Compounds and Loses Precision}
 Rewriting normalises a compound term to its English canonical form, which is why it lifts photosynthesis retrieval from 2 of 11 to 8 of 11. It also paraphrases, and a paraphrase can be less precise than the original. Three ordinary-vocabulary queries that direct embedding answers correctly are lost when rewritten. The two arms fail on disjoint inputs, so neither dominates and the union outperforms both. This is a property of these failure modes, not a general claim about rewriting.
 
-\subsection{It Is a Model Call, With a Model Call's Failure Modes}
 Three consequences follow from the rewrite being a generation and not a transformation, and all three are visible in the measurements.
 
 It is \emph{not deterministic} at temperature zero. Repeated runs of the same benchmark returned 16 and 17 of 22, which is why the pooled figure is reported as $16\pm1$ and why the claim made from the table is the ordering, not the margin.
@@ -747,7 +712,6 @@ It can \emph{silently substitute}. An early failure replaced ``Rahim'' with ``Ra
 
 It is \emph{hosted}. The rewrite leaves the machine, so a system whose corpus and index are local still transmits the question. The paper states this in the abstract because the alternative, describing the platform as offline on the strength of local retrieval, is the claim this project has already had to retract once.
 
-\subsection{Why Pooling Rather Than Choosing}
 Pooling both retrievals is not an ensemble in any interesting sense. It is a union of two candidate sets before ranking, costing one extra vector search of approximately 20~ms. Choosing between the arms per query would require knowing in advance whether the query contains a compound term, which is the classification problem the rewrite was introduced to avoid. The union is the configuration that requires no such knowledge, and the measurement is what justifies preferring it.
 
 %===================================================================
@@ -757,15 +721,12 @@ Pooling both retrievals is not an ensemble in any interesting sense. It is a uni
 
 The 4~GB target is a claim about the machines Indian schools own, and those are predominantly Windows desktops. A memory measurement taken on Apple hardware is evidence about the software's footprint and not about performance on the target, and the gap between the two is where portability defects live.
 
-\subsection{The Manifest Contradicted the Claim}
 The dependency manifest carried no environment markers, so an installation on any platform fetched \texttt{mlx}, \texttt{mlx-lm} and \texttt{coremltools}. None of the three publishes a wheel outside macOS and the first two are Apple Silicon only, so installation on Windows aborted before any other dependency was fetched. The code was already prepared for their absence. Every import of them sits inside a function behind \texttt{try}/\texttt{except}, and device selection already falls back through CUDA to CPU, so the platform the paper targets was excluded by the manifest alone. The markers now confine them to Apple Silicon, and an unused \texttt{python-magic} dependency was removed instead of marked. Nothing imports it, and on Windows it installs cleanly and then fails at runtime looking for a library pip does not supply.
 
-\subsection{One Abstraction Over the Host}
 Everything the platform needs to know about its host (installed memory, available memory, swap, peak resident set) is read through a single abstraction over \texttt{psutil}, which reports identically on Linux, Windows and macOS. That abstraction replaced direct system calls answering only on macOS: \texttt{sysctl hw.memsize}, \texttt{memory\_pressure}, \texttt{sysctl vm.swapusage} and \texttt{getrusage}. One call site sat outside an exception handler and therefore raised instead of degrading, and the benchmark substantiating the 4~GB figure imported the POSIX-only \texttt{resource} module at module scope, making it unrunnable on precisely the platform whose claim it exists to support.
 
 Peak resident set is the one quantity with no portable source. \texttt{getrusage} is POSIX-only. Windows exposes a peak through the process handle. The abstraction reads whichever exists and returns a flag when it has fallen back to current resident set, rather than presenting a smaller number as a high-water mark. A related unit defect is worth recording because it is silent: \texttt{ru\_maxrss} is bytes on macOS and kilobytes on Linux, so identical code reports figures a factor of 1024 apart on two POSIX systems.
 
-\subsection{What Remains Unverified}
 We have removed the known obstacles to installing and running on Windows and Linux, and we have not measured the result on either. No figure in this paper is offered for a platform we did not run on, and the portability work is reported as the removal of defects, not as evidence of performance.
 
 
@@ -775,15 +736,12 @@ We have removed the known obstacles to installing and running on Windows and Lin
 
 Three defects in this project shared a property worth naming. Each produced a system that reported success while doing nothing. They are recorded because the measurement discipline in this paper exists in response to them, and because a reader deciding how much to trust the numbers is entitled to know what the numbers replaced.
 
-\subsection{An Index That Was Announced but Not Built}
 Vector search had never run. The retrieval code queried with the pgvector cosine operator while \texttt{embeddings.embedding} was declared \texttt{double precision[]}, so every search failed on \texttt{operator does not exist: double precision[] <=> vector}. The migration that should have created the HNSW indexes instead skipped them, logging \emph{``bypassing HNSW index creation due to missing pgvector extension''}, created a plain btree named \texttt{idx\_embeddings\_content\_id\_hnsw}, and then printed that it had built three HNSW indexes. The index name and the log message both described an object that did not exist.
 
 Underneath was an environment fault, not a coding one. Homebrew builds pgvector only for the PostgreSQL versions it packages, so on the 14.19 server in use the extension was present for 17 and 18 and absent for 14. \texttt{CREATE EXTENSION} had been attempted, had failed, and the failure had been handled by continuing.
 
-\subsection{A Retry Loop With No Exit}
 A book commits in a single transaction, so a failure rolls it back entirely and the book never appears in the database. The batched runner selects whatever is \emph{not} in the database. Any book that fails deterministically is therefore selected again on every pass, forever. One overnight run spent \textbf{1,178 batches to ingest 16 books}: a class~5 archive with a \texttt{Bad CRC-32}, and legacy-font Hindi readers whose chapters are all correctly rejected, were chosen and re-chosen indefinitely. Books returning HTTP~404 already left a marker and were skipped. These two failure modes left none. The fix is the dead-end record of Section~\ref{sec:deadends}, and its own limitation, that it does not distinguish a transient cause from a permanent one, is the defect reported there.
 
-\subsection{Permissions as a Silent Empty Result}
 The application role held privileges on none of the 42 tables. Reads returned empty instead of raising, so an empty corpus and an unreadable corpus were indistinguishable from the application's point of view, and the ingestion that appeared to succeed had written nothing the serving path could see.
 
 %===================================================================
