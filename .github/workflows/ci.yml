@@ -225,6 +225,9 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          JWT_SECRET_KEY: ci-only-jwt-secret-not-used-outside-continuous-integration-0123456789
+          SECRET_KEY: ci-only-secret-not-used-outside-continuous-integration
+          ENVIRONMENT: test
         run: alembic upgrade head
 
       - name: Run tests with coverage (parallel)
@@ -232,7 +235,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test-secret-key-for-ci
-          JWT_SECRET_KEY: test-jwt-secret-key-for-ci-must-be-64-chars-long-for-security
+          JWT_SECRET_KEY: ci-only-jwt-secret-not-used-outside-continuous-integration-0123456789
           ENVIRONMENT: test
           RATE_LIMIT_ENABLED: 'false'
           CELERY_TASK_ALWAYS_EAGER: 'true'
