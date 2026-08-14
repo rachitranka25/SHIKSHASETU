@@ -15,6 +15,12 @@
 % a page across a paper this dense and reads marginally better while doing
 % it. Under XeTeX protrusion is the part that works, so expansion is off.
 \usepackage[protrusion=true,expansion=false,final]{microtype}
+% A float may not cross a section boundary. Without this the request-path
+% figure drifted into Related Work in one build and sat with System
+% Architecture in another, so the same figure introduced itself a section
+% early depending on which version you read.
+\usepackage[section]{placeins}
+\usepackage{float}
 % Floats sat further from the text than IEEE needs.
 \setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
 \setlength{\abovecaptionskip}{4pt}
@@ -179,7 +185,7 @@ Three rows are stated against our own interest: generation is not local, the sys
 
 A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. The latencies below were taken on the development machine; what the platform \emph{requires} is the 2{,}094~MB of Section~VI, which is what puts it inside 4~GB. Fig.~\ref{fig:pipeline} shows those six with their measured latencies on an 8~GB Apple~M1, arranged by the property this paper is about, which is which side of the machine boundary each one runs on.
 
-\begin{figure}[!tb]
+\begin{figure}[H]
 \centering
 \footnotesize
 \begin{tikzpicture}[
