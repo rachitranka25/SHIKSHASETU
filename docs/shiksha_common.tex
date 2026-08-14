@@ -33,7 +33,7 @@
 \setlength{\abovecaptionskip}{4pt}
 % Room for more than the default two floats per page, and permission to
 % give most of a page to them, so none is deferred until it is lost.
-\setcounter{topnumber}{3}\setcounter{bottomnumber}{2}\setcounter{totalnumber}{5}
+\setcounter{topnumber}{2}\setcounter{bottomnumber}{1}\setcounter{totalnumber}{3}
 \renewcommand{\topfraction}{0.92}\renewcommand{\bottomfraction}{0.55}
 \renewcommand{\textfraction}{0.07}\renewcommand{\floatpagefraction}{0.75}
 \setlength{\floatsep}{7pt plus 2pt minus 2pt}
@@ -443,7 +443,7 @@ Capping the sum at three passages bounds what volume can contribute while still 
 \label{sec:evalcorpus}
 Every retrieval and grounding result in this section and the next was measured against a single corpus state, recorded here so that the numbers are interpretable and reproducible. The database held \textbf{153 textbooks}, 138 English and 15 Hindi, comprising 1{,}542 chapters and \textbf{42{,}995 indexed passages}, with an embedding present for every passage (42{,}995 of 42{,}995; a passage lacking one is invisible to retrieval and is not otherwise detectable). All twelve classes are represented, ranging from 3 books at class~1 to 34 at class~12.
 
-This is 153 of the 263-book taught curriculum. The remaining 110 are not pending but unobtainable. NCERT publishes no archive for most of them, one class~5 archive is corrupt, and the rest are the legacy-font Hindi readers of Section~\ref{sec:legacy}, which the pipeline rejects instead of storing as gibberish. \ifconf Each is recorded with its reason, so the shortfall can be audited rather than asserted. An audit found two whose loss was this machine's doing and not their source's, and both have since been recovered, taking the corpus to 155 books. Every result here is measured against the 153-book state recorded above. \else Each is recorded with its reason, so the shortfall can be audited rather than asserted. Auditing it found two books whose loss was not the source material's. One run exhausted the disk, and one chunk embedded to a non-finite vector, which a single-transaction commit turned into a whole rolled-back book. Both have since been recovered and the corpus now holds 155 books and 43{,}621 passages. Every result in this paper is measured against the 153-book state recorded here and has not been re-measured against the larger one. \fi
+This is 153 of the 263-book taught curriculum. The remaining 110 are not pending but unobtainable. NCERT publishes no archive for most of them, one class~5 archive is corrupt, and the rest are the legacy-font Hindi readers of Section~\ref{sec:legacy}, which the pipeline rejects instead of storing as gibberish. \ifconf Each is recorded with its reason, so the shortfall can be audited rather than asserted. An audit found two whose loss was this machine's doing, not their source's. Both have since been recovered, taking the corpus to 155 books. Every result here is measured against the 153-book state recorded above. \else Each is recorded with its reason, so the shortfall can be audited rather than asserted. Auditing it found two books whose loss was not the source material's. One run exhausted the disk, and one chunk embedded to a non-finite vector, which a single-transaction commit turned into a whole rolled-back book. Both have since been recovered and the corpus now holds 155 books and 43{,}621 passages. Every result in this paper is measured against the 153-book state recorded here and has not been re-measured against the larger one. \fi
 
 Composition is load-bearing for one result, not incidental to it. English science and mathematics books outnumber the Hindi readers roughly nine to one, which is what makes the grade-attribution result\ifconf\else\ of Section~\ref{sec:grade}\fi{} a test and not a formality. A retriever that defaults to the majority of its corpus would answer every Hindi-literature question from a science chapter.
 
@@ -477,7 +477,7 @@ Retrieval was evaluated over \textbf{22 queries: two topics in each of the eleve
 Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical baseline to the deployed system. A query counts as correct only when the \emph{top} passage is on topic.
 
 
-\begin{figure}[!tb]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
@@ -512,7 +512,7 @@ Multilingual RAG has been studied as a setting in its own right~\cite{b9}, inclu
 
 Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses instead of averaging them. Fig.~\ref{fig:perlang} gives the deployed configuration language by language, as the mean reciprocal rank of its two queries.
 
-\begin{figure}[!tb]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[scale=1.0,font=\scriptsize]
 \def\R{19mm}
@@ -605,25 +605,6 @@ Cosine fidelity (min) & --- & 0.999964 \\
 
 Half precision halves the weights and encodes ${\sim}1.88\times$ faster. Fidelity, measured over 400 corpus passages rather than a handful of queries, is 0.999998 on average and 0.999964 at worst. Whether that matters is a question about rankings, so it was tested as one: over eight queries the top twelve passages are the same twelve under both precisions, in the same order for six of the eight, with the first difference at rank nine. Context is assembled from six passages, so nothing reported here is affected, but half precision can reorder a list rather than cannot.
 
-\ifconf\else  % journal only: every number in it is in the prose alongside
-\begin{figure}[!tb]
-\centering
-\begin{tikzpicture}
-\begin{axis}[shikshabar,
-  width=0.94\columnwidth, height=3.8cm,
-  ymin=0, ymax=2450, ylabel={peak resident set (MB)},
-  symbolic x coords={start,config,loaded,encoded,searched},
-  xtick=data, x tick label style={font=\tiny},
-  enlarge x limits=0.15,
-  extra y ticks={1600}, extra y tick labels={}, extra y tick style={grid=major, grid style={black!45, dashed}},
-]
-\addplot coordinates {(start,14) (config,265) (loaded,534) (encoded,2094) (searched,2094)};
-\end{axis}
-\end{tikzpicture}
-\caption{Peak resident set through the serving pipeline, from interpreter start through configuration import, model load, the first query encoding, and a completed vector search. The dashed line is the 1,600~MB an earlier analysis predicted by summing component sizes. Loading the weights accounts for 534~MB because \texttt{safetensors} memory-maps them; the 1,560~MB that follows arrives on the first forward pass, when those pages become resident and the attention workspaces are allocated.}
-\label{fig:memory}
-\end{figure}
-\fi
 
 \textbf{Measurement against arithmetic.} An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}, a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model \ifconf\else\ (Table~\ref{tab:footprint})\fi.
 
@@ -647,6 +628,26 @@ pgvector search complete & 2,094~MB \\
 \fi
 
 The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted\ifconf\else\ (Fig.~\ref{fig:memory})\fi. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them). The first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), not the 2.4~GB arithmetic implied.
+
+\ifconf\else  % journal only: every number in it is in the prose alongside
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[shikshabar,
+  width=0.94\columnwidth, height=3.8cm,
+  ymin=0, ymax=2450, ylabel={peak resident set (MB)},
+  symbolic x coords={start,config,loaded,encoded,searched},
+  xtick=data, x tick label style={font=\tiny},
+  enlarge x limits=0.15,
+  extra y ticks={1600}, extra y tick labels={}, extra y tick style={grid=major, grid style={black!45, dashed}},
+]
+\addplot coordinates {(start,14) (config,265) (loaded,534) (encoded,2094) (searched,2094)};
+\end{axis}
+\end{tikzpicture}
+\caption{Peak resident set through the serving pipeline, from interpreter start through configuration import, model load, the first query encoding, and a completed vector search. The dashed line is the 1,600~MB an earlier analysis predicted by summing component sizes. Loading the weights accounts for 534~MB because \texttt{safetensors} memory-maps them; the 1,560~MB that follows arrives on the first forward pass, when those pages become resident and the attention workspaces are allocated.}
+\label{fig:memory}
+\end{figure}
+\fi
 
 \ifconf\else  % journal only -- Ingestion memory: an operations note
 A single process ingesting 263 books reached book~8 and entered an unrecoverable state: swap at 11.4~GB of 12.2~GB maximum, the process in uninterruptible I/O wait. \texttt{SIGKILL} is not delivered in that state. The solution is batch processing: one process per six books, with ${\sim}20$~seconds of model reloading per batch.
@@ -740,7 +741,7 @@ The negatives are therefore constructed, not solicited. Every answer is generate
 Grounding need not be measured against the concatenation of the retrieved passages, so four estimators were compared over identical generations (Fig.~\ref{fig:estimators}). The two runs of the experiment, with independently generated answers, agreed to within 0.007 on every entry.
 
 
-\begin{figure}[!tb]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
@@ -992,8 +993,8 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b27} S. Es, J. James, L. Espinosa-Anke, and S. Schockaert, ``RAGAs: Automated evaluation of retrieval augmented generation,'' in \textit{Proc. EACL: System Demonstrations}, 2024, pp.~150--158.
 \bibitem{b28} Y. Gao \textit{et al.}, ``Retrieval-augmented generation for large language models: A survey,'' \textit{arXiv preprint arXiv:2312.10997}, 2023.
 \bibitem{b29} Z. Ji \textit{et al.}, ``Survey of hallucination in natural language generation,'' \textit{ACM Comput. Surv.}, vol.~55, no.~12, art.~248, 2023.
-\bibitem{b30} Department of School Education and Literacy, ``UDISE+ 2024--25 report on unified district information system for education plus,'' Ministry of Education, Government of India, 2025.
-\bibitem{b24} Office of the Registrar General, India, ``Census of India 2011, Table C-17: bilingualism and trilingualism,'' Min. Home Affairs, 2011.
+\bibitem{b30} Dept. of School Education and Literacy, ``UDISE+ 2024--25 report,'' Ministry of Education, India, 2025.
+\bibitem{b24} Registrar General of India, ``Census of India 2011, Table C-17: bilingualism and trilingualism,'' 2011.
 \end{thebibliography}
 
 \end{document}
