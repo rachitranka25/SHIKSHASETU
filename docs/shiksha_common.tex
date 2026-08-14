@@ -8,6 +8,8 @@
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{multirow}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 % Times with real bold and italic. tgtermes/tgcursor are pdfTeX font packages;
@@ -60,7 +62,7 @@ India is home to 1.4 billion people speaking 22 constitutionally recognized lang
 
 Artificial intelligence can bridge this gap, but the dominant paradigm of cloud-hosted large language models introduces three structural failures for Indian education:
 
-\textbf{Language exclusion.} The overwhelming majority of educational AI systems operate in English as their primary language. For the estimated 800 million Indians whose primary language is not English~\cite{b1}, this renders such systems inaccessible at the point of need.
+\textbf{Language exclusion.} The overwhelming majority of educational AI systems operate in English as their primary language. English is a first language for a negligible share of the population and a second or third language for roughly one Indian in ten~\cite{b24}, so for the great majority such systems are inaccessible at the point of need.
 
 \textbf{Infrastructure dependence.} Cloud-based solutions require consistent high-bandwidth internet connectivity and impose per-query costs through API billing. In Tier~2 and Tier~3 Indian cities and rural areas, this dependency makes sustained educational use economically impractical.
 
@@ -95,7 +97,7 @@ Chen et al.~\cite{b6} presented BGE-M3, a multilingual embedding model supportin
 Recent literature categorizes multilingual retrieval into frameworks such as MultiRAG (direct retrieval) and tRAG (translation-RAG). The platform described in this work formally implements a tRAG architecture~\cite{b9}, rewriting queries to a high-resource language (English) before retrieval. This architectural choice unknowingly resolves a newly documented vulnerability in large language models: Output Language Drift~\cite{b10}. Studies show that when a multilingual RAG system processes a query in a target language but retrieves context in a dominant high-resource language, the model mixes languages and outputs the final answer in the high-resource language. The strict separation of the generation language from the delivery language via the translation layer elegantly neutralizes this cognitive drift.
 
 \subsection{Vector Search}
-The retrieval layer uses the HNSW graph structure proposed by Malkov and Yashunin~\cite{b11}, implemented through the pgvector extension for PostgreSQL. The index parameters ($m=16$, $ef\_construction=64$) balance build time against recall; measured search latency of approximately 20~ms for 12-nearest-neighbor queries confirms sub-interactive response times. Reimers and Gurevych~\cite{b12} established the sentence-level embedding formulation used to load BGE-M3.
+The retrieval layer uses the HNSW graph structure proposed by Malkov and Yashunin~\cite{b11}, implemented through the pgvector extension for PostgreSQL. The index parameters ($m=16$, $ef\_construction=64$) balance build time against recall; the resulting search latency is reported in Fig.~\ref{fig:pipeline} rather than here. Reimers and Gurevych~\cite{b12} established the sentence-level embedding formulation used to load BGE-M3.
 
 \subsection{Reading Accessibility and Brahmic Scripts}
 Zorzi et al.~\cite{b13} found that extra-large letter spacing improved reading speed and halved errors in dyslexic children---the single typographic intervention with strong experimental support and the default accessibility control in the platform. Rello and Baeza-Yates~\cite{b14} and Kuster et al.~\cite{b15} found no reliable advantage for dyslexia-specific typefaces. Nag~\cite{b16} and Nag and Snowling~\cite{b17} demonstrated that akshara-based literacy develops differently from alphabetic literacy, motivating the akshara-level segmentation\ifconf\else\ described in Section~\ref{sec:accessibility}\fi.
@@ -119,7 +121,7 @@ The comparison is confined to \emph{architectural properties}, and every cell is
 \textbf{Property} & \textbf{Khanmigo} & \textbf{BYJU'S} & \textbf{Bhashini} & \textbf{Ours} \\
 \midrule
 NCERT-aligned corpus     & no  & yes & ---  & yes \\
-Indian languages         & no  & 2   & 22   & 11 \\
+Indian languages         & no  & n/d & 22   & 11 \\
 Corpus held locally      & no  & no  & ---  & yes \\
 Retrieval runs locally   & no  & no  & ---  & yes \\
 Generation runs locally  & no  & no  & ---  & no  \\
@@ -133,7 +135,7 @@ Tutoring function        & yes & yes & no   & yes \\
 \end{tabular}
 \end{table}
 
-Bhashini is dashed rather than marked absent on several rows because it is language infrastructure---translation, speech and transliteration services---and not a tutor, so corpus and retrieval questions do not apply to it. It is included because it is the most capable Indian-language system in public deployment, and because its 22 languages~\cite{b22} exceed ours: a platform claiming multilingual reach should be compared against the strongest such system rather than only against tutors.
+Bhashini is dashed rather than absent on several rows because it is language infrastructure---translation, speech, transliteration---not a tutor, so corpus and retrieval questions do not apply. It is included because its 22 languages~\cite{b22} exceed ours, and a platform claiming multilingual reach should be measured against the strongest such system.
 
 Three rows are stated against our own interest. Generation does not run locally, the system does not work without a network, and BYJU'S covers a curriculum we cover while operating at a scale we do not approach. What remains is the distinguishing set: the corpus, index and retrieval are local; a grounding score accompanies every answer; and the ingestion pipeline audits its own source material rather than embedding whatever it extracts. We have found no comparable system that reports the last two at all, which is a claim about the published record and not about what those systems do internally.
 
@@ -142,29 +144,38 @@ Three rows are stated against our own interest. Generation does not run locally,
 %===================================================================
 
 \subsection{Request Lifecycle}
-A student's question traverses an eight-stage pipeline from input to response. Table~\ref{tab:lifecycle} summarizes the stages and measured latencies on an 8~GB Apple M1.
+A student's question traverses an eight-stage pipeline from input to response. Fig.~\ref{fig:pipeline} shows the stages, their measured latencies on an 8~GB Apple~M1, and---the property this paper is about---which side of the machine boundary each one runs on.
 
-\begin{table}[htbp]
-\caption{Request Lifecycle Latency Benchmarks}
-\label{tab:lifecycle}
+\begin{figure}[t]
 \centering
-\begin{tabular}{@{}clr@{}}
-\toprule
-\textbf{Stage} & \textbf{Operation / Component} & \textbf{Latency} \\
-\midrule
-1 & Rewrite to English / LLaMA-3.1-8B & ${\sim}0.6$~s \\
-2 & Embed query / BGE-M3 (fp16) & ${\sim}0.1$~s \\
-3 & Wide retrieval / pgvector HNSW & ${\sim}0.02$~s \\
-4 & Class scoring / Sum-of-top-3 & ${<}0.01$~s \\
-5 & Narrow retrieval / pgvector HNSW & ${\sim}0.02$~s \\
-6 & Generate answer / LLaMA-3.1-8B & ${\sim}2.0$~s \\
-7 & Reading support (opt.) & ${\sim}0.5$~s \\
-8 & Illustration (opt.) / FLUX.1-dev & ${\sim}5.0$~s \\
-\bottomrule
-\end{tabular}
-\end{table}
+\footnotesize
+\begin{tikzpicture}[
+  node distance=2.2mm,
+  box/.style={draw, rounded corners=1pt, align=left, inner sep=1.8pt,
+              text width=52mm, font=\footnotesize},
+  loc/.style={box, fill=black!4},
+  rem/.style={box, fill=black!12, dashed},
+  opt/.style={box, densely dotted, fill=white},
+  fl/.style={-{Latex[length=1.4mm]}, shorten >=0.4pt}]
+\node[box, fill=white] (q)  {\textbf{Question} --- any of 11 languages};
+\node[rem, below=of q]  (r) {1\, Rewrite to English \hfill ${\sim}0.6$\,s\\[-1pt]\scriptsize LLaMA-3.1-8B \textperiodcentered\ hosted};
+\node[loc, below=of r]  (e) {2\, Embed query \hfill ${\sim}0.1$\,s\\[-1pt]\scriptsize BGE-M3 fp16 \textperiodcentered\ local};
+\node[loc, below=of e]  (w) {3\, Wide retrieval \hfill ${\sim}0.02$\,s\\[-1pt]\scriptsize pgvector HNSW \textperiodcentered\ local};
+\node[loc, below=of w]  (c) {4\, Class scoring \hfill ${<}0.01$\,s\\[-1pt]\scriptsize sum of top 3 \textperiodcentered\ local};
+\node[loc, below=of c]  (n) {5\, Narrow retrieval \hfill ${\sim}0.02$\,s\\[-1pt]\scriptsize pgvector HNSW \textperiodcentered\ local};
+\node[rem, below=of n]  (g) {6\, Generate answer \hfill ${\sim}2.0$\,s\\[-1pt]\scriptsize LLaMA-3.1-8B \textperiodcentered\ hosted};
+\node[opt, below=of g] (gr) {\scriptsize grounding check \textperiodcentered\ BGE-M3, local \textperiodcentered\ regenerate if ${<}0.715$};
+\node[opt, below=of gr] (o) {7\, Reading support \hfill ${\sim}0.5$\,s\\[-1pt]8\, Illustration / FLUX.1-dev \hfill ${\sim}5.0$\,s\\[-1pt]\scriptsize both optional};
+\foreach \a/\b in {q/r, r/e, e/w, w/c, c/n, n/g, g/gr, gr/o} \draw[fl] (\a) -- (\b);
+\begin{scope}[on background layer]
+  \node[fit=(e)(n), draw=black!45, rounded corners=2pt, inner sep=2.4pt] {};
+\end{scope}
+\end{tikzpicture}
+\caption{Request lifecycle, warm cache, on an 8~GB Apple~M1. Shaded-dashed stages are hosted calls; the outlined group is the whole of retrieval and never leaves the machine. Stage~6 produces a complete answer and is therefore slower than the fixed short completion used for model selection\ifconf\else\ (Table~\ref{tab:latency})\fi. The grounding check is drawn without a latency because we did not measure it separately. Without the optional stages a warm request completes in approximately three seconds.}
+\label{fig:pipeline}
+\end{figure}
 
-Without optional stages, a warm request completes in approximately three seconds. The design separates the question's language from the answer's language. A student may type in romanized Hindi and receive a response in Tamil. This independence is critical because NCERT publishes in only three languages while the platform serves ten. Translation is a serving-layer responsibility handled by IndicTrans2~\cite{b7}.
+The design separates the question's language from the answer's language. A student may type in romanized Hindi and receive a response in Tamil. This independence is critical because NCERT publishes in only three languages while the platform serves eleven. Translation is a serving-layer responsibility handled by IndicTrans2~\cite{b7}.
 
 \subsection{Model Stack}
 \label{sec:models}
@@ -201,10 +212,11 @@ BGE-M3 is used twice for distinct purposes---retrieving passages, and later scor
 
 Two integrated models are named but unusable in this deployment and are reported as such rather than omitted. The local OCR path (GOT-OCR2) requires CUDA and cannot execute on Apple silicon; its Python module additionally failed to import because \texttt{torchvision} was an undeclared dependency, which presented as a hardware limitation for some time before being diagnosed as a packaging one. The Tesseract fallback is installed without Devanagari training data, leaving it unable to read the script that most needs recovery (Section~IV-C).
 
-The choice of the 8B model over the 70B variant was driven by measurement (Table~\ref{tab:latency}).
+The choice of the 8B model over the 70B variant was driven by measurement\ifconf: on one fixed prompt at approximately 70 completion tokens against the same endpoint, LLaMA-3.1-8B returned in 0.9~s where LLaMA-3.3-70B took 17--125~s, highly variable\else\ (Table~\ref{tab:latency})\fi.
 
+\ifconf\else  % journal only -- the figures that matter are in the sentence above
 \begin{table}[htbp]
-\caption{Text Generation Model Latency Comparison}
+\caption{Text generation model latency: one fixed prompt at approximately 70 completion tokens, against the same hosted endpoint. These are model-selection figures and are shorter than the end-to-end generation stage of Fig.~\ref{fig:pipeline}, which produces a full answer.}
 \label{tab:latency}
 \centering
 \begin{tabular}{@{}lr@{}}
@@ -218,6 +230,7 @@ nvidia/llama-3.1-nemotron-nano-8b-v1 & Timeout \\
 \bottomrule
 \end{tabular}
 \end{table}
+\fi
 
 \subsection{Data Layer}
 The persistence layer combines PostgreSQL~17 with pgvector for HNSW-indexed similarity search, Redis~7 for response caching, and SQLite for the third cache tier. The multi-tier architecture (L1: in-memory LRU $\to$ L2: Redis $\to$ L3: SQLite) serves read-heavy endpoints. Cache keys incorporate a SHA-256 hash of the authorization header to prevent cross-user leakage. The vector index uses cosine distance:
@@ -313,7 +326,7 @@ Every retrieval and grounding result in this section and the next was measured a
 
 This is 153 of the 263-book taught curriculum. The remaining 110 are not pending but unobtainable: NCERT publishes no archive for most of them, one class~5 archive is corrupt, and the rest are the legacy-font Hindi readers of Section~\ref{sec:legacy}, which the pipeline rejects rather than store as gibberish. Each is recorded with its reason, so the shortfall is a property of the source material rather than of ingestion time.
 
-Composition is load-bearing for one result rather than incidental to it. English science and mathematics books outnumber the Hindi readers roughly nine to one, which is what makes the grade-attribution result\ifconf\else\ of Section~\ref{sec:grade}\fi a test rather than a formality: a retriever that defaults to the majority of its corpus would answer every Hindi-literature question from a science chapter.
+Composition is load-bearing for one result rather than incidental to it. English science and mathematics books outnumber the Hindi readers roughly nine to one, which is what makes the grade-attribution result\ifconf\else\ of Section~\ref{sec:grade}\fi{} a test rather than a formality: a retriever that defaults to the majority of its corpus would answer every Hindi-literature question from a science chapter.
 
 Absolute cosine similarities should be read as characteristic of this corpus and not as a property of the method. Recall in particular is not estimated: there is no ground-truth relevant set for these books, and no such claim is made.
 
@@ -347,19 +360,20 @@ Retrieval was evaluated over \textbf{22 queries: two topics in each of the eleve
 Five configurations were measured (Table~\ref{tab:crosslingual}), from a lexical baseline to the deployed system. A query counts as correct only when the \emph{top} passage is on topic.
 
 \begin{table}[htbp]
-\caption{Cross-lingual retrieval: 22 queries over 11 languages, against the English-medium corpus. Correct = on-topic passage at rank~1.}
+\caption{Cross-lingual retrieval: 22 queries over 11 languages, against the English-medium corpus. Correct = on-topic passage at rank~1. Intervals are Wilson score intervals at 95\%, appropriate at this $n$ and near the boundaries.}
 \label{tab:crosslingual}
 \centering
 \small
-\begin{tabular}{@{}lccc@{}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-\textbf{Configuration} & \textbf{Eye} & \textbf{Photo.} & \textbf{Overall} \\
+\textbf{Configuration} & \textbf{Eye} & \textbf{Photo.} & \textbf{Overall} & \textbf{95\% CI} \\
 \midrule
-BM25 (lexical)            & 0/11 & 0/11 & 0/22 \phantom{0}(0\%) \\
-BM25 + rewrite            & 6/11 & 4/11 & 10/22 (45\%) \\
-Dense (BGE-M3)            & \textbf{9/11} & 2/11 & 11/22 (50\%) \\
-Dense + rewrite           & 6/11 & \textbf{8/11} & 14/22 (64\%) \\
-\textbf{Pooled} (deployed) & 8/11 & \textbf{8/11} & \textbf{16/22 (73\%)} \\
+BM25 (lexical)            & 0/11 & 0/11 & 0/22 \phantom{0}(0\%) & [0.00, 0.15] \\
+BM25 + rewrite            & 6/11 & 4/11 & 10/22 (45\%) & [0.27, 0.65] \\
+Dense (BGE-M3)            & \textbf{9/11} & 2/11 & 11/22 (50\%) & [0.31, 0.69] \\
+Dense + rewrite           & 6/11 & \textbf{8/11} & 14/22 (64\%) & [0.43, 0.80] \\
+\textbf{Pooled} (deployed) & 8/11 & \textbf{8/11} & \textbf{16/22 (73\%)} & [0.52, 0.87] \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -369,6 +383,8 @@ Dense + rewrite           & 6/11 & \textbf{8/11} & 14/22 (64\%) \\
 The two arms fail on different inputs, and that is the result. Embedding the question directly handles ordinary vocabulary well (9 of 11) and collapses on compound terms (2 of 11), because the embedding attends to the constituent morphemes and retrieves optics for a word that means ``light-joining''. Rewriting inverts both: it normalises the compound to its English canonical form and recovers 9 of 11, while losing three ordinary-vocabulary cases whose original phrasing had been more precise than its English paraphrase.
 
 Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses rather than averaging them.
+
+\textbf{What 22 queries can and cannot establish.} The intervals are wide and overlap for the three dense configurations. Pooling scores two queries above rewriting alone, at most four discordant pairs, which no test resolves at this $n$; we therefore claim only that pooling was never worse and that the ordering held across runs. One comparison is unambiguous: the lexical baseline's $[0.00, 0.15]$ excludes every dense interval, and no sample-size argument rescues a method returning nothing on all 22 queries. Separating the narrower differences needs a query set in the hundreds, which takes native speakers of eleven languages rather than compute.
 
 The rewrite is a language-model call and is not deterministic at temperature zero: repeated runs of this benchmark returned 16 and 17 of 22, so the pooled figure should be read as $16\pm1$. The ordering of the five configurations was stable across runs, which is the claim the table is making. This is an empirical justification for a design that had been adopted on reasoning alone, and it also explains the earlier failure mode in which a mistranslated rewrite (``Rahim'' rendered as ``Rahman'') silently replaced a question that would have retrieved correctly.
 
@@ -406,8 +422,9 @@ Cosine fidelity & --- & 0.999999 \\
 Half precision yields 50\% memory reduction and ${\sim}1.88\times$ speedup with no measurable quality degradation. A cosine similarity of 0.999999 cannot reorder any result list.
 
 \subsection{Serving Footprint: Measurement vs.\ Arithmetic}
-An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}---a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model (Table~\ref{tab:footprint}).
+An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}---a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model \ifconf\else\ (Table~\ref{tab:footprint})\fi.
 
+\ifconf\else  % journal only -- every figure in it is stated in the prose below
 \begin{table}[htbp]
 \caption{Serving Pipeline Memory Footprint (Measured)}
 \label{tab:footprint}
@@ -424,6 +441,7 @@ pgvector search complete & 2,094~MB \\
 \bottomrule
 \end{tabular}
 \end{table}
+\fi
 
 The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them); the first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), not the 2.4~GB arithmetic implied.
 
@@ -610,7 +628,9 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 % The conference version is held to a page limit and the reference list is
 % the last thing that should be cut to meet it, so it is set smaller instead.
 \begin{thebibliography}{00}
-\ifconf\footnotesize\fi
+% Conference page limit: the reference list is the last thing that should be cut to
+% meet it, so it is set smaller and tighter instead of shorter.
+\ifconf\footnotesize\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}\fi
 \bibitem{b1} D. Kakwani \textit{et al.}, ``IndicNLPSuite: Monolingual corpora, evaluation benchmarks and pre-trained multilingual language models for Indian languages,'' in \textit{Findings of EMNLP}, 2020.
 \bibitem{b2} P. Lewis \textit{et al.}, ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' in \textit{Proc. NeurIPS}, 2020.
 \bibitem{b3} V. Karpukhin \textit{et al.}, ``Dense passage retrieval for open-domain question answering,'' in \textit{Proc. EMNLP}, 2020, pp. 6769--6781.
@@ -634,6 +654,7 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b21} Khan Academy, ``Khanmigo: an AI-powered tutor for learners and assistant for teachers,'' 2023. [Online]. Available: https://www.khanmigo.ai
 \bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: https://bhashini.gov.in
 \bibitem{b23} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
+\bibitem{b24} Office of the Registrar General and Census Commissioner, India, ``Census of India 2011: Bilingualism and trilingualism (Table C-17),'' Ministry of Home Affairs, Government of India, 2011.
 \end{thebibliography}
 
 \end{document}
