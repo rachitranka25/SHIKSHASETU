@@ -9,7 +9,32 @@
 \usepackage{url}
 \usepackage{multirow}
 \usepackage{tikz}
-\usetikzlibrary{positioning,arrows.meta,fit,backgrounds}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,shapes.geometric}
+\usepackage{pgfplots}
+% Two hues, checked with a colour-vision validator before use, not by eye:
+% worst-pair CVD dE 24.7 and normal-vision dE 33.6, both clear of the floors,
+% and each above 3:1 against the page. Colour also carries meaning in Fig. 1,
+% where it separates what runs on the machine from what does not.
+\definecolor{sBlue}{HTML}{2A78D6}
+\definecolor{sOrange}{HTML}{EB6834}
+\pgfplotsset{compat=1.18}
+% One visual system for every plot: no chartjunk, left-hand axes only, the same
+% two greys throughout, and figures that survive being printed in black.
+\pgfplotsset{
+  shiksha/.style={
+    width=\columnwidth, height=4.4cm,
+    axis lines*=left, tick align=outside, tick pos=left,
+    ymajorgrids, grid style={black!10, line width=0.3pt},
+    label style={font=\scriptsize}, tick label style={font=\scriptsize},
+    legend style={font=\scriptsize, draw=none, fill=none},
+    every axis title/.style={font=\scriptsize, above=1mm},
+  },
+  shikshabar/.style={
+    shiksha, ybar, bar width=11pt,
+    every axis plot/.append style={fill=sBlue!75, draw=sBlue!95, line width=0.5pt},
+    nodes near coords, nodes near coords style={font=\tiny, black!65},
+  },
+}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 % Times with real bold and italic. tgtermes/tgcursor are pdfTeX font packages;
@@ -149,16 +174,16 @@ A student's question traverses an eight-stage pipeline from input to response, s
 \begin{tikzpicture}[
   font=\footnotesize,
   stage/.style={draw, minimum height=5.2mm, inner xsep=2pt, align=center, font=\scriptsize},
-  loc/.style  ={stage, fill=black!5,  text width=27mm},
-  net/.style  ={stage, fill=black!14, text width=27mm},
+  loc/.style  ={stage, fill=sBlue!12,  draw=sBlue!70, text width=27mm},
+  net/.style  ={stage, fill=sOrange!16, draw=sOrange!80, text width=27mm},
   t/.style    ={font=\scriptsize, inner sep=1pt},
   fl/.style   ={-{Latex[length=1.3mm]}, thick},
   cross/.style={-{Latex[length=1.3mm]}, thick, densely dashed}]
 
 % the machine boundary, which is what the figure exists to show
-\draw[dashed, black!55] (32mm,4mm) -- (32mm,-46mm);
-\node[t, anchor=south, black!65] at (14mm,4.5mm) {\textsc{this machine}};
-\node[t, anchor=south, black!65] at (52mm,4.5mm) {\textsc{network}};
+\draw[dashed, black!45, line width=0.5pt] (32mm,4mm) -- (32mm,-46mm);
+\node[t, anchor=south, sBlue!85] at (14mm,4.5mm) {\textsc{this machine}};
+\node[t, anchor=south, sOrange!90] at (52mm,4.5mm) {\textsc{network}};
 
 \node[loc] (q)  at (14mm,  0mm)   {student's question};
 \node[net] (rw) at (52mm, -8mm)   {1\, rewrite to English\\[-1pt]$\sim$0.6\,s};
@@ -167,11 +192,11 @@ A student's question traverses an eight-stage pipeline from input to response, s
 \node[net] (gn) at (52mm, -33mm)  {6\, generate answer\\[-1pt]$\sim$2.0\,s};
 \node[loc] (gr) at (14mm, -41mm)  {grounding check\\[-1pt]regenerate if ${<}0.715$};
 
-\draw[cross] (q)  -- (rw);
-\draw[cross] (rw) -- (em);
-\draw[fl]    (em) -- (rt);
-\draw[cross] (rt) -- (gn);
-\draw[cross] (gn) -- (gr);
+\draw[cross, sOrange!85] (q)  -- (rw);
+\draw[cross, sOrange!85] (rw) -- (em);
+\draw[fl, sBlue!85]    (em) -- (rt);
+\draw[cross, sOrange!85] (rt) -- (gn);
+\draw[cross, sOrange!85] (gn) -- (gr);
 
 \node[t, anchor=west, black!65] at (33mm,-20.5mm) {the corpus, its index};
 \node[t, anchor=west, black!65] at (33mm,-23.5mm) {and all retrieval stay};
@@ -425,26 +450,37 @@ Romanized Hindi drifts to class~1 picture books matching on surface-level token 
 \label{sec:crossling}
 Retrieval was evaluated over \textbf{22 queries: two topics in each of the eleven supported Indian languages}, against the English-medium portion of the corpus. Holding the topic constant across languages makes language the only variable that moves. One topic uses ordinary vocabulary (the focusing of the human eye). The other is \emph{photosynthesis}, whose name in most of these languages is a compound of morphemes meaning ``light'' and ``joining''. The queries are committed with the benchmark, not only their results.
 
-Five configurations were measured (Table~\ref{tab:crosslingual}), from a lexical baseline to the deployed system. A query counts as correct only when the \emph{top} passage is on topic.
+Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical baseline to the deployed system. A query counts as correct only when the \emph{top} passage is on topic.
 
-\begin{table}[htbp]
-\caption{Cross-lingual retrieval: 22 queries over 11 languages, against the English-medium corpus. Correct = on-topic passage at rank~1. Intervals are Wilson score intervals at 95\%, appropriate at this $n$ and near the boundaries.}
-\label{tab:crosslingual}
+
+\begin{figure}[t]
 \centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-\textbf{Configuration} & \textbf{Eye} & \textbf{Photo.} & \textbf{Overall} & \textbf{95\% CI} \\
-\midrule
-BM25 (lexical)            & 0/11 & 0/11 & 0/22 \phantom{0}(0\%) & [0.00, 0.15] \\
-BM25 + rewrite            & 6/11 & 4/11 & 10/22 (45\%) & [0.27, 0.65] \\
-Dense (BGE-M3)            & \textbf{9/11} & 2/11 & 11/22 (50\%) & [0.31, 0.69] \\
-Dense + rewrite           & 6/11 & \textbf{8/11} & 14/22 (64\%) & [0.43, 0.80] \\
-\textbf{Pooled} (deployed) & 8/11 & \textbf{8/11} & \textbf{16/22 (73\%)} & [0.52, 0.87] \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{tikzpicture}
+\begin{axis}[shiksha,
+  width=\columnwidth, height=4.3cm,
+  xbar, bar width=7pt, xmin=0, xmax=1.0,
+  enlarge y limits=0.18,
+  xlabel={correct at rank~1},
+  xtick={0,0.25,0.5,0.75,1.0}, xticklabels={0,.25,.50,.75,1},
+  symbolic y coords={BM25,{+rw},dense,{dense+rw},pooled},
+  ytick=data, y dir=reverse,
+  xmajorgrids, ymajorgrids=false,
+]
+\addplot[fill=sBlue!75, draw=sBlue!95, line width=0.5pt,
+  error bars/.cd, x dir=both, x explicit,
+  error bar style={black!60, line width=0.4pt}, error mark options={black!60, mark size=1.1pt}]
+ coordinates {
+  (0.000,BM25)        +- (0.000,0.150)
+  (0.455,{+rw})       +- (0.185,0.195)
+  (0.500,dense)       +- (0.190,0.190)
+  (0.636,{dense+rw})  +- (0.164,0.206)
+  (0.727,pooled)      +- (0.143,0.207)
+ };
+\end{axis}
+\end{tikzpicture}
+\caption{The five retrieval configurations over 22 queries, with 95\% Wilson intervals: BM25 0/22, with rewriting 10/22, dense 11/22, dense with rewriting 14/22, and the deployed pooling of both 16/22. The intervals overlap across the three dense configurations, which is why this paper claims an ordering and not a margin. The lexical baseline's interval excludes all three, and no sample-size argument softens that.}
+\label{fig:ablation}
+\end{figure}
 
 \textbf{The lexical baseline retrieves nothing at all.} BM25 returns zero hits for all 22 queries, not merely poor ones. A Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. Lexical retrieval is not weaker at this task, it is structurally incapable of it, and that is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (45\%), which locates the difficulty precisely. The barrier is the script, not the vocabulary.
 
@@ -452,8 +488,39 @@ The two arms fail on different inputs, and that is the result. Embedding the que
 
 Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses instead of averaging them.
 
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=1.0,font=\scriptsize]
+\def\R{22mm}
+% grid
+\foreach \r in {0.25,0.5,0.75,1.0}{
+  \draw[black!12, line width=0.3pt] (0,0) circle (\r*\R);
+}
+\draw[black!30] (0,0) circle (\R);
+\foreach \i in {0,...,10}{
+  \draw[black!15, line width=0.3pt] (0,0) -- (\i*32.7272+90:\R);
+}
+% axis labels
+\foreach \i/\name in {0/Hindi,1/Urdu,2/Marathi,3/Bengali,4/Tamil,5/Telugu,
+                      6/Gujarati,7/Kannada,8/Malayalam,9/Punjabi,10/Odia}{
+  \node[black!70, font=\tiny] at (\i*32.7272+90:\R+3.6mm) {\name};
+}
+% pooled, mean reciprocal rank over the two topics
+\draw[fill=sBlue!22, draw=sBlue!90, line width=0.7pt]
+  (90:1.000*\R) -- (122.73:0.500*\R) -- (155.45:1.000*\R) -- (188.18:0.667*\R) --
+  (220.91:0.500*\R) -- (253.64:1.000*\R) -- (286.36:0.750*\R) -- (319.09:0.750*\R) --
+  (351.82:1.000*\R) -- (24.55:0.625*\R) -- (57.27:1.000*\R) -- cycle;
+\foreach \a/\v in {90/1.000,122.73/0.500,155.45/1.000,188.18/0.667,220.91/0.500,
+                   253.64/1.000,286.36/0.750,319.09/0.750,351.82/1.000,24.55/0.625,57.27/1.000}{
+  \fill[sBlue!95] (\a:\v*\R) circle (0.7pt);
+}
+\end{tikzpicture}
+\caption{Mean reciprocal rank of the deployed configuration for each language, averaged over the two topics. Rings mark 0.25, 0.5, 0.75 and 1.0; a language reaches the outer ring when both of its queries put an on-topic passage first. The two indentations that reach halfway are Urdu and Tamil, each of which answers one topic at rank~1 and returns nothing on photosynthesis.}
+\label{fig:perlang}
+\end{figure}
+
 \ifconf\else  % journal only -- the per-query detail behind the totals
-The totals conceal which languages fail and how badly. Table~\ref{tab:perlang} gives the deployed configuration per language and topic, with the rank of the first on-topic passage where it is not first. A third run of the benchmark, reported here, reproduced the totals of Table~\ref{tab:crosslingual} exactly.
+The totals conceal which languages fail and how badly. Table~\ref{tab:perlang} gives the deployed configuration per language and topic, with the rank of the first on-topic passage where it is not first. A third run of the benchmark, reported here, reproduced the totals of Fig.~\ref{fig:ablation} exactly.
 
 \begin{table}[htbp]
 \caption{Pooled retrieval per language. \emph{1} means an on-topic passage ranked first; \emph{r$k$} means it ranked $k$th; \emph{---} means none appeared in the top five. BM25 returned no hits for every cell in this table.}
@@ -512,6 +579,24 @@ Cosine fidelity & --- & 0.999999 \\
 \end{table}
 
 Half precision yields 50\% memory reduction and ${\sim}1.88\times$ speedup with no measurable quality degradation. A cosine similarity of 0.999999 cannot reorder any result list.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[shikshabar,
+  width=0.94\columnwidth, height=4.2cm,
+  ymin=0, ymax=2450, ylabel={peak resident set (MB)},
+  symbolic x coords={start,config,loaded,encoded,searched},
+  xtick=data, x tick label style={font=\tiny},
+  enlarge x limits=0.15,
+  extra y ticks={1600}, extra y tick labels={}, extra y tick style={grid=major, grid style={black!45, dashed}},
+]
+\addplot coordinates {(start,14) (config,265) (loaded,534) (encoded,2094) (searched,2094)};
+\end{axis}
+\end{tikzpicture}
+\caption{Peak resident set through the serving pipeline, from interpreter start through configuration import, model load, the first query encoding, and a completed vector search. The dashed line is the 1,600~MB an earlier analysis predicted by summing component sizes. Loading the weights accounts for 534~MB because \texttt{safetensors} memory-maps them; the 1,560~MB that follows arrives on the first forward pass, when those pages become resident and the attention workspaces are allocated.}
+\label{fig:memory}
+\end{figure}
 
 \textbf{Measurement against arithmetic.} An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}, a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model \ifconf\else\ (Table~\ref{tab:footprint})\fi.
 
@@ -625,25 +710,34 @@ The \textbf{grounding score} computes cosine similarity between the generated an
 
 The negatives are therefore constructed, not solicited. Every answer is generated normally from its own retrieved passages, then scored twice: against the passages it was written from (\emph{matched}), and against another question's passages (\emph{mismatched}). A mismatched pair is precisely the failure the metric exists to catch (fluent, well-formed, on a different subject) and it requires no human labelling and no second generation pass. Sixteen questions spanning subjects and classes yield 16 matched and 240 mismatched pairs.
 
-Grounding need not be measured against the concatenation of the retrieved passages, so four estimators were compared over identical generations (Table~\ref{tab:estimators}). The two runs of the experiment, with independently generated answers, agreed to within 0.007 on every entry.
+Grounding need not be measured against the concatenation of the retrieved passages, so four estimators were compared over identical generations (Fig.~\ref{fig:estimators}). The two runs of the experiment, with independently generated answers, agreed to within 0.007 on every entry.
 
-\begin{table}[htbp]
-\caption{Grounding estimators over 16 matched and 240 mismatched pairs. Balanced accuracy is at each estimator's own best threshold; chance is 0.500.}
-\label{tab:estimators}
+
+\begin{figure}[t]
 \centering
-\footnotesize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-\textbf{Estimator} & \textbf{Match} & \textbf{Mismatch} & \textbf{Gap} & \textbf{$t$} & \textbf{Acc.} \\
-\midrule
-\textbf{Concatenated} & 0.830 & 0.470 & \textbf{0.360} & 0.715 & \textbf{1.000} \\
-Best passage & 0.854 & 0.502 & 0.352 & 0.720 & 1.000 \\
-Mean of top 3 & 0.822 & 0.486 & 0.336 & 0.695 & 0.996 \\
-Per sentence & 0.676 & 0.455 & 0.221 & 0.555 & 0.985 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{tikzpicture}
+\begin{axis}[shiksha,
+  width=\columnwidth, height=4.6cm,
+  ybar, bar width=7pt, ymin=0, ymax=1.0,
+  ylabel={cosine similarity},
+  symbolic x coords={concat,{best psg.},{top 3},sentence},
+  xtick=data, enlarge x limits=0.18,
+  legend style={at={(0.5,1.14)}, anchor=north, legend columns=2},
+]
+\addplot[fill=sBlue!80, draw=sBlue!95, line width=0.5pt,
+  error bars/.cd, y dir=both, y explicit]
+ coordinates {(concat,0.830) +- (0,0.044) ({best psg.},0.854) +- (0,0.047)
+              ({top 3},0.822) +- (0,0.053) (sentence,0.676) +- (0,0.047)};
+\addplot[fill=sOrange!75, draw=sOrange!95, line width=0.5pt,
+  error bars/.cd, y dir=both, y explicit]
+ coordinates {(concat,0.470) +- (0,0.069) ({best psg.},0.502) +- (0,0.068)
+              ({top 3},0.486) +- (0,0.067) (sentence,0.455) +- (0,0.049)};
+\legend{matched, mismatched}
+\end{axis}
+\end{tikzpicture}
+\caption{Four grounding estimators over 16 matched and 240 mismatched pairs, with one standard deviation. What separates the populations is the distance between the two bars, not the height of either. Scoring against the single best passage raises both means without widening that distance, and scoring sentence by sentence narrows it.}
+\label{fig:estimators}
+\end{figure}
 
 The simplest estimator is also the best. Scoring the answer against all retrieved passages joined separates the two populations by 0.360, and no refinement improves on it. Scoring against the single best passage raises both means without widening the gap, and scoring sentence by sentence narrows it, because a correct answer contains connective and pedagogical sentences that appear in no passage, and averaging over them dilutes the signal the metric depends on.
 
