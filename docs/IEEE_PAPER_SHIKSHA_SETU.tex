@@ -335,29 +335,33 @@ Romanized Hindi drifts to class~1 picture books matching on surface-level token 
 \label{sec:crossling}
 Retrieval was evaluated over \textbf{22 queries: two topics in each of the eleven supported Indian languages}, against the English-medium portion of the corpus. Holding the topic constant across languages makes language the only variable that moves. One topic uses ordinary vocabulary (the focusing of the human eye); the other is \emph{photosynthesis}, whose name in most of these languages is a compound of morphemes meaning ``light'' and ``joining''. The queries are committed with the benchmark rather than only their results.
 
-Three configurations were measured (Table~\ref{tab:crosslingual}): the question embedded directly; the question rewritten into an English search query by the language model; and both searched and their results pooled, which is what the deployed tutor does. A query counts as correct only when the \emph{top} passage is on topic.
+Five configurations were measured (Table~\ref{tab:crosslingual}), from a lexical baseline to the deployed system. A query counts as correct only when the \emph{top} passage is on topic.
 
 \begin{table}[htbp]
-\caption{Cross-lingual retrieval: 22 queries over 11 languages. ``Both'' is the deployed configuration. Correct = on-topic passage at rank~1.}
+\caption{Cross-lingual retrieval: 22 queries over 11 languages, against the English-medium corpus. Correct = on-topic passage at rank~1.}
 \label{tab:crosslingual}
 \centering
 \small
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Topic} & \textbf{Raw} & \textbf{Rewrite} & \textbf{Both} \\
+\textbf{Configuration} & \textbf{Eye} & \textbf{Photo.} & \textbf{Overall} \\
 \midrule
-Human eye (ordinary) & \textbf{9/11} & 5/11 & 8/11 \\
-Photosynthesis (compound) & 2/11 & \textbf{9/11} & \textbf{9/11} \\
-\midrule
-Overall & 11/22 & 14/22 & \textbf{17/22} \\
- & (50\%) & (64\%) & \textbf{(77\%)} \\
+BM25 (lexical)            & 0/11 & 0/11 & 0/22 \phantom{0}(0\%) \\
+BM25 + rewrite            & 6/11 & 4/11 & 10/22 (45\%) \\
+Dense (BGE-M3)            & \textbf{9/11} & 2/11 & 11/22 (50\%) \\
+Dense + rewrite           & 6/11 & \textbf{8/11} & 14/22 (64\%) \\
+\textbf{Pooled} (deployed) & 8/11 & \textbf{8/11} & \textbf{16/22 (73\%)} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\textbf{The lexical baseline retrieves nothing at all.} BM25 returns zero hits for all 22 queries, not merely poor ones: a Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. Lexical retrieval is not weaker at this task, it is structurally incapable of it, and that is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (45\%), which locates the difficulty precisely: the barrier is the script, not the vocabulary.
+
 The two arms fail on different inputs, and that is the result. Embedding the question directly handles ordinary vocabulary well (9 of 11) and collapses on compound terms (2 of 11), because the embedding attends to the constituent morphemes and retrieves optics for a word that means ``light-joining''. Rewriting inverts both: it normalises the compound to its English canonical form and recovers 9 of 11, while losing three ordinary-vocabulary cases whose original phrasing had been more precise than its English paraphrase.
 
-Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{17 of 22}, above either arm, because the union recovers what each misses rather than averaging them. This is an empirical justification for a design that had been adopted on reasoning alone, and it also explains the earlier failure mode in which a mistranslated rewrite (``Rahim'' rendered as ``Rahman'') silently replaced a question that would have retrieved correctly.
+Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses rather than averaging them.
+
+The rewrite is a language-model call and is not deterministic at temperature zero: repeated runs of this benchmark returned 16 and 17 of 22, so the pooled figure should be read as $16\pm1$. The ordering of the five configurations was stable across runs, which is the claim the table is making. This is an empirical justification for a design that had been adopted on reasoning alone, and it also explains the earlier failure mode in which a mistranslated rewrite (``Rahim'' rendered as ``Rahman'') silently replaced a question that would have retrieved correctly.
 
 The one query that fails in every configuration is Urdu photosynthesis, whose term (\textit{ziyai talif}, Perso-Arabic in origin) shares no morphology with either the English word or the Sanskrit-derived compounds the other ten languages use---so neither arm has a handle on it.
 \subsection{Grade-Level Classification}

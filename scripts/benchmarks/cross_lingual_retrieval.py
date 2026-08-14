@@ -72,6 +72,25 @@ QUERIES = [
 
 TOP_K = 5
 
+# Lexical baseline. Postgres full-text search with ts_rank is not BM25 exactly
+# -- it is a length-normalised tf-idf variant -- but it is the same family, it
+# needs no extra index or dependency, and it answers the question a reviewer
+# asks first: how much of this is the embedding model earning its keep?
+#
+# Its expected behaviour on a Devanagari query against an English corpus is to
+# return nothing at all, which is the point of including it.
+BM25_SQL = text("""
+    SELECT ts_rank(to_tsvector('english', d.chunk_text),
+                   plainto_tsquery('english', :q)) AS sim,
+           d.chunk_text
+    FROM document_chunks d
+    JOIN processed_content p ON p.id = d.content_id
+    WHERE p.metadata->>'medium' = 'English'
+      AND to_tsvector('english', d.chunk_text) @@ plainto_tsquery('english', :q)
+    ORDER BY sim DESC
+    LIMIT :k
+""")
+
 SQL = text("""
     SELECT 1 - (e.embedding <=> CAST(:v AS vector)) AS sim,
            d.chunk_text
@@ -128,6 +147,12 @@ def main() -> int:
         with engine.connect() as connection:
             return connection.execute(SQL, {"v": str(vector), "k": TOP_K}).all()
 
+    def lexical(query_text: str):
+        with engine.connect() as connection:
+            return connection.execute(
+                BM25_SQL, {"q": query_text, "k": TOP_K}
+            ).all()
+
     def rank_in(hits, expect: list[str]) -> tuple[float | None, int | None]:
         """Top similarity, and the rank at which an on-topic passage first appears."""
         if not hits:
@@ -172,10 +197,11 @@ def main() -> int:
     topics = {q["topic"] for q in QUERIES}
     print(f"corpus: {books} books, {chunks} indexed passages")
     print(f"{len(QUERIES)} queries, {len(languages)} languages, {len(topics)} topics\n")
-    print(f"{'Language':<10} {'Topic':<15} {'raw':>15} {'rewrite':>15} {'both (shipped)':>16}")
-    print("-" * 78)
+    print(f"{'Language':<10} {'Topic':<14} {'BM25':>13} {'BM25+rw':>13} "
+          f"{'dense':>13} {'dense+rw':>13} {'pooled':>13}")
+    print("-" * 96)
 
-    totals = {"raw": 0, "rewrite": 0, "both": 0}
+    totals = {"bm25": 0, "bm25_rw": 0, "raw": 0, "rewrite": 0, "both": 0}
     per_topic: dict[str, dict[str, int]] = {}
 
     rewrites = asyncio.run(english_queries([c["query"] for c in QUERIES]))
@@ -184,6 +210,8 @@ def main() -> int:
         print(f"warning: {unchanged} rewrites returned the original text\n")
 
     for case, rewritten in zip(QUERIES, rewrites):
+        bm_sim, bm_rank = rank_in(lexical(case["query"]), case["expect"])
+        bmw_sim, bmw_rank = rank_in(lexical(rewritten), case["expect"])
         raw_hits = retrieve(case["query"])
         new_hits = retrieve(rewritten)
         raw_sim, raw_rank = rank_in(raw_hits, case["expect"])
@@ -191,25 +219,34 @@ def main() -> int:
         both_sim, both_rank = merged(raw_hits, new_hits, case["expect"])
 
         bucket = per_topic.setdefault(
-            case["topic"], {"raw": 0, "rewrite": 0, "both": 0, "n": 0}
+            case["topic"],
+            {"bm25": 0, "bm25_rw": 0, "raw": 0, "rewrite": 0, "both": 0, "n": 0},
         )
         bucket["n"] += 1
-        for name, rank in (("raw", raw_rank), ("rewrite", new_rank), ("both", both_rank)):
+        for name, rank in (
+            ("bm25", bm_rank), ("bm25_rw", bmw_rank),
+            ("raw", raw_rank), ("rewrite", new_rank), ("both", both_rank),
+        ):
             if rank == 1:
                 totals[name] += 1
                 bucket[name] += 1
 
-        print(f"{case['language']:<10} {case['topic']:<15} "
-              f"{cell(raw_sim, raw_rank):>15} {cell(new_sim, new_rank):>15} "
-              f"{cell(both_sim, both_rank):>16}")
+        print(f"{case['language']:<10} {case['topic']:<14} "
+              f"{cell(bm_sim, bm_rank):>13} {cell(bmw_sim, bmw_rank):>13} "
+              f"{cell(raw_sim, raw_rank):>13} {cell(new_sim, new_rank):>13} "
+              f"{cell(both_sim, both_rank):>13}")
 
     n = len(QUERIES)
     print("\n" + "-" * 66)
-    print(f"correct at rank 1:   raw {totals['raw']}/{n}   "
-          f"rewrite {totals['rewrite']}/{n}   both {totals['both']}/{n}")
+    order = [("BM25", "bm25"), ("BM25+rewrite", "bm25_rw"), ("dense", "raw"),
+             ("dense+rewrite", "rewrite"), ("pooled (deployed)", "both")]
+    print("correct at rank 1, out of", n)
+    for label, key in order:
+        print(f"   {label:<20} {totals[key]:>3}/{n}   ({100*totals[key]/n:.0f}%)")
+    print("\n   by topic:")
     for topic, b in sorted(per_topic.items()):
-        print(f"   {topic:<16} raw {b['raw']}/{b['n']}   "
-              f"rewrite {b['rewrite']}/{b['n']}   both {b['both']}/{b['n']}")
+        cells = "  ".join(f"{key}={b[key]}/{b['n']}" for _, key in order)
+        print(f"   {topic:<16} {cells}")
     return 0
 
 
