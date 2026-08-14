@@ -100,7 +100,7 @@ Kincaid et al.~\cite{b18} derived the Flesch-Kincaid grade-level formula defined
 
 \subsection{Comparison with Existing Systems}
 \label{sec:comparison}
-Table~\ref{tab:comparison} compares this work with the systems an Indian student is most likely to encounter: Khanmigo, Khan Academy's GPT-4 tutor; BYJU'S, the largest Indian ed-tech platform; Bhashini, the Government of India's national language-technology mission; and a general-purpose assistant used directly.
+Table~\ref{tab:comparison} compares this work with the systems an Indian student is most likely to encounter: Khanmigo~\cite{b21}, Khan Academy's GPT-4 tutor; BYJU'S, the largest Indian ed-tech platform; and Bhashini~\cite{b22}, the Government of India's national language-technology mission.
 
 The comparison is confined to \emph{architectural properties}, and every cell is either a structural fact, a figure the vendor has published, or \emph{n/d} where they have not. No row compares a measurement of ours against a number we could not obtain. Commercial products publish neither latency distributions nor retrieval quality nor memory footprints, and a table of plausible estimates for them would be a table of invented numbers set in the typography of measurement.
 
@@ -128,7 +128,7 @@ Tutoring function        & yes & yes & no   & yes \\
 \end{tabular}
 \end{table}
 
-Bhashini is dashed rather than marked absent on several rows because it is language infrastructure---translation, speech and transliteration services---and not a tutor, so corpus and retrieval questions do not apply to it. It is included because it is the most capable Indian-language system in public deployment, and because its 22 languages exceed ours: a platform claiming multilingual reach should be compared against the strongest such system rather than only against tutors.
+Bhashini is dashed rather than marked absent on several rows because it is language infrastructure---translation, speech and transliteration services---and not a tutor, so corpus and retrieval questions do not apply to it. It is included because it is the most capable Indian-language system in public deployment, and because its 22 languages~\cite{b22} exceed ours: a platform claiming multilingual reach should be compared against the strongest such system rather than only against tutors.
 
 Three rows are stated against our own interest. Generation does not run locally, the system does not work without a network, and BYJU'S covers a curriculum we cover while operating at a scale we do not approach. What remains is the distinguishing set: the corpus, index and retrieval are local; a grounding score accompanies every answer; and the ingestion pipeline audits its own source material rather than embedding whatever it extracts. We have found no comparable system that reports the last two at all, which is a claim about the published record and not about what those systems do internally.
 
@@ -181,7 +181,7 @@ Vision OCR & Nemotron-Nano-12B$\dagger$ & 12B \\
 Generation (compared) & LLaMA-3.3-70B$\dagger$ & 70B \\
 \midrule
 Translation & IndicTrans2-1B & 1B \\
-Speech-to-Text & Whisper~V3~Turbo~\cite{b21} & 809M \\
+Speech-to-Text & Whisper~V3~Turbo~\cite{b23} & 809M \\
 Text-to-Speech & MMS-TTS (11 ckpts) & ${\sim}100$M \\
 Curriculum Valid. & Gemma-2-2B-IT & 2B \\
 Text Simplification & Qwen2.5-3B & 3B \\
@@ -225,27 +225,17 @@ CREATE INDEX idx_emb_hnsw_cosine
 
 An earlier migration stored embeddings as \texttt{double precision[]} rather than \texttt{vector(1024)}, making index creation impossible and condemning every search to a sequential scan.
 
-\subsection{Hardware Optimization}
-The platform implements five-phase optimization for Apple Silicon (Table~\ref{tab:hw}).
+\subsection{Hardware Portability}
+\label{sec:hardware}
+The 4~GB target is a claim about the machines schools own, and those are predominantly Windows desktops rather than the Apple hardware this work was developed on. Portability is therefore part of the claim rather than an afterthought.
 
-\begin{table}[htbp]
-\caption{Apple Silicon Hardware Optimization Phases}
-\label{tab:hw}
-\centering
-\begin{tabular}{@{}llr@{}}
-\toprule
-\textbf{Phase} & \textbf{Component} & \textbf{Improvement} \\
-\midrule
-1 & Async-first I/O & 19.4$\times$ \\
-2 & Type-opt. serialization & 2.2~ms RT \\
-3 & GPU priority queue & 0.3~$\mu$s sched. \\
-4 & P/E-core affinity routing & 0.1~$\mu$s lookup \\
-5 & Buffer pool allocation & 94.3\% reuse \\
-\bottomrule
-\end{tabular}
-\end{table}
+Device selection is resolved at load time in the order CUDA, Metal (MPS), CPU, and half precision is selected per device (Section~\ref{sec:precision}). Everything the platform needs to know about its host---installed memory, available memory, swap, peak resident set---is read through a single abstraction over \texttt{psutil}, which reports identically on Linux, Windows and macOS.
 
-On Apple M4, measured benchmarks include GPU throughput of 3.72~TFLOPS (FP16), SIMD-accelerated cosine similarity at 54.7 million ops/sec, and full-stack import latency of 1.6~s.
+That abstraction replaced direct system calls that answered only on macOS: \texttt{sysctl hw.memsize} for installed memory, \texttt{memory\_pressure} and \texttt{sysctl vm.swapusage} for the ingestion memory guard, and \texttt{getrusage} for peak footprint. One call site was not inside an exception handler, so on Windows it raised rather than degrading; and the benchmark that substantiates the 4~GB figure imported the POSIX-only \texttt{resource} module at module scope, making it unrunnable on precisely the platform whose claim it exists to support.
+
+Peak resident set is the one quantity with no portable source: \texttt{getrusage} is POSIX-only and Windows exposes a peak through the process handle. The abstraction reads whichever exists and returns a flag when it has had to fall back to current resident set, rather than presenting a smaller number as a high-water mark. A related unit bug is worth recording because it is silent: \texttt{ru\_maxrss} is bytes on macOS and kilobytes on Linux, so the same code reports figures a factor of 1024 apart on two POSIX systems.
+
+All measurements in this paper were taken on an Apple~M1 with 8~GB of unified memory. We report no figures for hardware we did not run on.
 
 %===================================================================
 \section{Corpus Construction}
@@ -254,7 +244,9 @@ On Apple M4, measured benchmarks include GPU throughput of 3.72~TFLOPS (FP16), S
 \subsection{The NCERT Catalog}
 NCERT encodes every textbook with a five-character code---\texttt{jesc1} represents Class~10, English medium, Science, book~1. The subject letters are not algorithmically derivable: science is \texttt{sc} for classes~7--10 but \texttt{cu} (Curiosity) for class~6, and splits into \texttt{ph}, \texttt{ch}, \texttt{bo} at classes~11--12. The catalog is scraped from NCERT's textbook picker and cached locally.
 
-The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hindi, and 159 in Urdu. The platform teaches from a deliberate subset of \textbf{263 books}---every English edition plus 54 subjects that exist only in Devanagari.
+The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hindi, and 159 in Urdu. The platform teaches from a deliberate subset of \textbf{263 books}---every English edition, plus the 54 subjects that exist only in Devanagari.
+
+\textbf{The 159 Urdu editions are excluded from the taught corpus entirely}, and are neither ingested nor retrieved from. They are translations of books already held in English, so including them would triple the storage for that curriculum while adding no content, and cross-lingual retrieval was observed to cite an Urdu chapter as the source of an English answer---a citation the student can neither read nor check. Urdu remains available as an \emph{answer} language, and appears as a query language in the retrieval evaluation of Section~\ref{sec:crossling}: what a student writes in and reads back is independent of which edition the system learned from.
 
 \subsection{Ingestion Pipeline}
 The pipeline processes each book through five stages: ZIP download, per-chapter PDF extraction via PyMuPDF, text cleanup, semantic chunking (1200 characters, 200-character overlap, paragraph-boundary preference), BGE-M3 embedding (fp16), and storage in PostgreSQL. Each book is committed as a single database transaction for resumability. Download and embedding contend for no shared resource: one waits on a remote web server, the other saturates the GPU. Executed sequentially they idle in turn, so the next book's archive is fetched on a prefetch thread while the current book is embedded.
@@ -377,6 +369,7 @@ The platform uses the \textbf{sum of each class's three strongest passage simila
 %===================================================================
 
 \subsection{Half-Precision Embeddings}
+\label{sec:precision}
 BGE-M3's weights were evaluated at both full (float32) and half (float16) precision (Table~\ref{tab:precision}).
 
 \begin{table}[htbp]
@@ -584,7 +577,9 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \bibitem{b18} J. P. Kincaid, R. P. Fishburne, R. L. Rogers, and B. S. Chissom, ``Derivation of new readability formulas for Navy enlisted personnel,'' Naval Tech. Training Command, Rep. 8-75, 1975.
 \bibitem{b19} W. Xu, C. Callison-Burch, and C. Napoles, ``Problems in current text simplification research: New data can help,'' \textit{Trans. Assoc. Comput. Linguist. (TACL)}, vol. 3, pp. 283--297, 2015.
 \bibitem{b20} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. ICLR}, 2018.
-\bibitem{b21} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
+\bibitem{b21} Khan Academy, ``Khanmigo: an AI-powered tutor for learners and assistant for teachers,'' 2023. [Online]. Available: https://www.khanmigo.ai
+\bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: https://bhashini.gov.in
+\bibitem{b23} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
 \end{thebibliography}
 
 \end{document}
