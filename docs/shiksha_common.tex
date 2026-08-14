@@ -497,7 +497,7 @@ Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical base
 
 Multilingual RAG has been studied as a setting in its own right~\cite{b9}, including the tendency of such pipelines to answer in the language of the retrieved context instead of the question~\cite{b10}, which the separation of query language from answer language here is designed to prevent. The two arms fail on different inputs, and that is the result. Embedding the question directly handles ordinary vocabulary well (9 of 11) and collapses on compound terms (2 of 11), because the embedding attends to the constituent morphemes and retrieves optics for a word that means ``light-joining''. Rewriting inverts both. It normalises the compound to its English canonical form and recovers 9 of 11, while losing three ordinary-vocabulary cases whose original phrasing had been more precise than its English paraphrase.
 
-Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses instead of averaging them.
+Neither is therefore the right configuration on its own. Pooling both retrievals scores \textbf{16 of 22}, above either arm, because the union recovers what each misses instead of averaging them. Fig.~\ref{fig:perlang} gives the deployed configuration language by language, as the mean reciprocal rank of its two queries.
 
 \begin{figure}[!tb]
 \centering
@@ -632,7 +632,7 @@ pgvector search complete & 2,094~MB \\
 \end{table}
 \fi
 
-The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them). The first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), not the 2.4~GB arithmetic implied.
+The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted\ifconf\else\ (Fig.~\ref{fig:memory})\fi. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them). The first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), not the 2.4~GB arithmetic implied.
 
 \ifconf\else  % journal only -- Ingestion memory: an operations note
 A single process ingesting 263 books reached book~8 and entered an unrecoverable state: swap at 11.4~GB of 12.2~GB maximum, the process in uninterruptible I/O wait. \texttt{SIGKILL} is not delivered in that state. The solution is batch processing: one process per six books, with ${\sim}20$~seconds of model reloading per batch.
@@ -869,7 +869,7 @@ The application role held privileges on none of the 42 tables. Reads returned em
 \label{sec:repro}
 %===================================================================
 
-Each result in this paper is produced by a committed script run against a recorded corpus state. The corpus is 153 textbooks, 1{,}542 chapters and 42{,}995 passages with an embedding for every passage. The catalog, the ingestion pipeline and the dead-end markers reconstruct it from NCERT's published archives without redistributing them. The cross-lingual queries are committed in their original scripts, not transliterated, so a reader can inspect what was actually asked.
+Each result in this paper is produced by a committed script, named in Table~\ref{tab:repro}, run against a recorded corpus state. The corpus is 153 textbooks, 1{,}542 chapters and 42{,}995 passages with an embedding for every passage. The catalog, the ingestion pipeline and the dead-end markers reconstruct it from NCERT's published archives without redistributing them. The cross-lingual queries are committed in their original scripts, not transliterated, so a reader can inspect what was actually asked.
 
 \begin{table}[htbp]
 \caption{What produces each reported result.}
