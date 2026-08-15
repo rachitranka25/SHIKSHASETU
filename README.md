@@ -1034,6 +1034,11 @@ small machine.
 
 ---
 
+## Setting this up for the first time
+
+If someone sent you this project and you just want it running, read
+**[START-HERE.md](START-HERE.md)** instead of this README. It assumes nothing.
+
 ## Quick Start
 
 **On Windows, see [docs/WINDOWS.md](docs/WINDOWS.md).** The scripts below are bash
