@@ -28,14 +28,16 @@ class TestDeviceRouter:
         router = DeviceRouter()
         caps = router.capabilities
 
-        # Should detect system info
+        # Installed memory is readable on every platform.
         assert caps.memory_gb > 0
-        assert caps.chip_name != "Unknown"
 
-        # On macOS ARM, should detect Apple Silicon
+        # The chip name is not. Only Apple silicon reports one here, and a
+        # Linux CI runner legitimately answers "Unknown"; asserting otherwise
+        # tests the runner rather than the router.
         import platform
 
         if platform.system() == "Darwin" and platform.machine() == "arm64":
+            assert caps.chip_name != "Unknown"
             assert caps.is_apple_silicon is True
             assert caps.has_mps is True  # MPS should be available
 
