@@ -1036,6 +1036,11 @@ small machine.
 
 ## Quick Start
 
+**On Windows, see [docs/WINDOWS.md](docs/WINDOWS.md).** The scripts below are bash
+and the installation notes further down are written for macOS; the Windows guide
+covers the same ground with PowerShell and a container for pgvector.
+
+
 ### Prerequisites
 
 - **Python 3.11** (recommended) — See [Python Version Note](#python-version-note) below

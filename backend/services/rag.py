@@ -15,6 +15,7 @@ Hardware Optimizations:
 
 import logging
 import os
+import platform
 import threading
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -329,8 +330,13 @@ class BGEM3Embedder:
         logger.info(f"Loading BGE-M3 embedding model: {self.model_id}")
 
         # Check if running on Apple Silicon
+        # platform.machine() rather than os.uname().machine: os.uname does not
+        # exist on Windows, and self.device is "cpu" there, so this expression
+        # was evaluated and raised AttributeError before the embedder finished
+        # loading. The check is for Apple silicon; asking the question must not
+        # break the platforms that answer no.
         is_apple_silicon = self.device in ("mps", "cpu") and (
-            hasattr(__builtins__, "__APPLE__") or os.uname().machine == "arm64"
+            platform.system() == "Darwin" and platform.machine() == "arm64"
         )
 
         # On Apple Silicon, prefer sentence-transformers over FlagEmbedding
@@ -769,7 +775,7 @@ class BGEReranker:
 
         # Check if running on Apple Silicon
         is_apple_silicon = self.device in ("mps", "cpu") and (
-            os.uname().machine == "arm64"
+            platform.system() == "Darwin" and platform.machine() == "arm64"
         )
 
         # On Apple Silicon, prefer CrossEncoder from sentence-transformers

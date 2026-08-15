@@ -1,1 +1,59 @@
-infrastructure/docker/docker-compose.dev.yml
+# Development stack, and the supported way to run this project on Windows.
+#
+# This file used to be a symbolic link to infrastructure/docker/docker-compose.dev.yml,
+# which was never committed, so the link dangled: `docker compose up` failed on
+# any clone, and on Windows git would not have reproduced the link at all. It is
+# a plain file now, because a plain file works everywhere.
+#
+#   docker compose up -d postgres      # database only, run the app natively
+#   docker compose up -d               # database and application
+#
+# The database is the part worth containerising: pgvector is the one dependency
+# that is genuinely awkward to install by hand on Windows.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: shiksha_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-shiksha_setu}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # The application cannot start before the extension exists, and an empty
+      # database answers pg_isready long before it is actually usable.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-shiksha_setu} -q"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    container_name: shiksha_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-shiksha_setu}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env before starting}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      HOST: 0.0.0.0
+      PORT: "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Model weights are several GB and are downloaded on first use. Keeping
+      # them in a named volume means rebuilding the image does not refetch them.
+      - models:/app/data/models
+    profiles: ["full"]
+
+volumes:
+  postgres_data:
+  models:
