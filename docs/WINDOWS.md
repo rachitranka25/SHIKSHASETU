@@ -5,9 +5,13 @@ is written for macOS. Neither is a requirement of the system: the Python is
 portable and the one genuinely awkward dependency, pgvector, is easier to run in
 a container than to build. These are the steps that work on Windows.
 
-Tested against Windows 10 and 11 on x86-64. A machine with 8 GB of RAM is
-comfortable; 4 GB is the target the paper measures against and works, with the
-caveat in the last section.
+These steps have **not** been executed on a Windows machine. They were written
+after fixing the two defects in section 7 that made the project fail there, and
+each command is the documented Windows equivalent of one verified on macOS. Read
+them as a starting point rather than a transcript, and expect to adjust.
+
+A machine with 8 GB of RAM is comfortable. 4 GB is the target the paper measures
+against, with the caveat in section 6.
 
 ## 1. Prerequisites
 
