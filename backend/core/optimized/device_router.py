@@ -460,6 +460,19 @@ class DeviceRouter:
             except ImportError:
                 logger.warning("PyTorch not available")
 
+        # Installed memory, on every platform. This used to be read only inside
+        # the Apple Silicon branch, so anywhere else it kept its 0.0 default and
+        # every routing decision that consults it silently saw a machine with no
+        # memory. total_memory_gb() is the portable psutil reading; the call
+        # site was the part that was not portable.
+        if not caps.memory_gb:
+            try:
+                from ..platform_info import total_memory_gb
+
+                caps.memory_gb = total_memory_gb()
+            except Exception as exc:  # noqa: BLE001 - detection must not be fatal
+                logger.warning(f"[DeviceRouter] memory detection failed: {exc}")
+
         return caps
 
     def _validate_capabilities_if_needed(self):
