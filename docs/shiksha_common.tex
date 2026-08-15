@@ -124,7 +124,7 @@ This paper presents Shiksha Setu, a platform that addresses the first and third 
 
 The qualification is deliberate. Retrieval is entirely local. The corpus, its embeddings and the vector index never leave the machine, but generation is served by a hosted endpoint, so a question's text does leave it and does incur a per-query cost. The system therefore removes the dependency for the component that dominates storage and latency without removing it altogether. Local generation is configured and available (Section~\ref{sec:models}), but a language model cannot share a 4~GB machine with the embedder, so the offline configuration and the 4~GB configuration are alternatives, not the same system. We say local-retrieval rather than local-first because the latter is read as ``offline'', and this system answers nothing without a network. The measurements in this paper were taken in the hosted configuration. Every claim is backed by an experiment whose procedure, data, and result are reported, including experiments that produced wrong results before being corrected. The contributions are:
 
-This work contributes an ingestion pipeline covering all 559 NCERT textbooks, which detects and rejects the legacy-font corruption that renders 27 of 41 Hindi books unreadable, a defect found only by measuring for it. It contributes a cross-lingual retrieval system that answers questions in eleven Indian languages from an English corpus, with a controlled ablation over 22 queries establishing that query rewriting and direct embedding fail on disjoint inputs, so that pooling them retrieves correctly for $16\pm1$ of 22 where either alone manages 11 or 14 and a lexical baseline manages none. It contributes a memory strategy verified by kernel-level measurement, which brings the serving pipeline inside a 4~GB budget and corrects an earlier arithmetic estimate that understated consumption by 31\%. And it contributes a grounding metric that detects when fluent, confident answers have drifted from their source material, a failure indistinguishable from a correct answer without quantitative measurement, calibrated here on 256 answer and passage pairs instead of hand-checked examples and compared against three alternative estimators.\ifconf\else\ The journal version additionally reports akshara-level readability measurement for nine Brahmic scripts, which replaces Latin-alphabet syllable counting with script-appropriate segmentation, and a security audit documenting twelve vulnerabilities, all repaired, among them a safety pipeline that failed open because of an import error.\fi
+This work contributes an ingestion pipeline covering all 559 NCERT textbooks, which detects and rejects the legacy-font corruption that renders 27 of 41 Hindi books unreadable, a defect found only by measuring for it. It contributes a cross-lingual retrieval system that answers questions in eleven Indian languages from an English corpus, with a controlled ablation over 77 queries establishing that rewriting the question into English before embedding it retrieves correctly for 66 of them against 47 for embedding it directly, and that a lexical baseline retrieves none at all. It contributes a memory strategy verified by kernel-level measurement, which brings the serving pipeline inside a 4~GB budget and corrects an earlier arithmetic estimate that understated consumption by 31\%. And it contributes a grounding metric that detects when fluent, confident answers have drifted from their source material, a failure indistinguishable from a correct answer without quantitative measurement, calibrated here on 256 answer and passage pairs instead of hand-checked examples and compared against three alternative estimators.\ifconf\else\ The journal version additionally reports akshara-level readability measurement for nine Brahmic scripts, which replaces Latin-alphabet syllable counting with script-appropriate segmentation, and a security audit documenting twelve vulnerabilities, all repaired, among them a safety pipeline that failed open because of an import error.\fi
 
 %===================================================================
 \section{Related Work}
@@ -553,25 +553,25 @@ Pooling the two scores \textbf{67 of 77}, one query above rewriting alone, with 
 \end{figure}
 
 \ifconf\else  % journal only -- the per-query detail behind the totals
-The totals conceal which languages fail and how badly. Table~\ref{tab:perlang} gives the deployed configuration per language and topic, with the rank of the first on-topic passage where it is not first. A third run of the benchmark, reported here, reproduced the totals of Fig.~\ref{fig:ablation} exactly.
+The totals conceal which languages fail and how badly. Table~\ref{tab:perlang} gives the deployed configuration per language. Five of the eleven answer all seven topics at rank~1, and the weakest, Urdu, answers five.
 
 \begin{table}[htbp]
-\caption{Pooled retrieval per language. \emph{1} means an on-topic passage ranked first; \emph{r$k$} means it ranked $k$th; \emph{---} means none appeared in the top five. BM25 returned no hits for every cell in this table.}
+\caption{Pooled retrieval per language over the seven topics: queries whose top passage is on topic, and mean reciprocal rank. The eleven rank-1 counts sum to the 67 of 77 reported in Fig.~\ref{fig:ablation}.}
 \label{tab:perlang}
 \centering
 \footnotesize
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}lcc@{\hskip 10pt}lcc@{}}
 \toprule
-\textbf{Language} & \textbf{Eye} & \textbf{Photo.} & \textbf{Language} & \textbf{Eye} & \textbf{Photo.} \\
+\textbf{Language} & \textbf{Rank-1} & \textbf{MRR} & \textbf{Language} & \textbf{Rank-1} & \textbf{MRR} \\
 \midrule
-Hindi     & 1 & 1     & Kannada   & r2 & 1 \\
-Urdu      & 1 & ---   & Malayalam & 1  & 1 \\
-Marathi   & 1 & 1     & Punjabi   & 1  & r4 \\
-Bengali   & r3 & 1    & Odia      & 1  & 1 \\
-Tamil     & 1 & ---   & \multicolumn{3}{l}{} \\
-Telugu    & 1 & 1     & \multicolumn{3}{l}{} \\
-Gujarati  & r2 & 1    & \multicolumn{3}{l}{} \\
+Hindi     & 7/7 & 1.000 & Kannada   & 5/7 & 0.857 \\
+Urdu      & 5/7 & 0.786 & Malayalam & 7/7 & 1.000 \\
+Marathi   & 7/7 & 1.000 & Punjabi   & 6/7 & 0.905 \\
+Bengali   & 5/7 & 0.833 & Odia      & 7/7 & 1.000 \\
+Tamil     & 7/7 & 1.000 & \multicolumn{3}{l}{} \\
+Telugu    & 5/7 & 0.857 & \multicolumn{3}{l}{} \\
+Gujarati  & 6/7 & 0.929 & \multicolumn{3}{l}{} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -833,7 +833,7 @@ Automated tests & 457 pass, 33 skip, 0 fail \\
 
 The query rewrite is the one component that improves retrieval and degrades it in the same breath, and the ablation of Section~\ref{sec:crossling} exists because reasoning alone could not say which effect dominated.
 
-Rewriting normalises a compound term to its English canonical form, which is why it lifts photosynthesis retrieval from 2 of 11 to 8 of 11. It also paraphrases, and a paraphrase can be less precise than the original. Three ordinary-vocabulary queries that direct embedding answers correctly are lost when rewritten. The two arms fail on disjoint inputs, so neither dominates and the union outperforms both. This is a property of these failure modes, not a general claim about rewriting.
+Rewriting normalises a compound term to its English canonical form, which is why it lifts photosynthesis retrieval from 2 of 11 to 10 of 11. It also paraphrases, and a paraphrase can be less precise than the original. Three ordinary-vocabulary queries that direct embedding answers correctly are lost when rewritten. The two arms fail on disjoint inputs, so neither dominates and the union outperforms both. This is a property of these failure modes, not a general claim about rewriting.
 
 Three consequences follow from the rewrite being a generation and not a transformation, and all three are visible in the measurements.
 
@@ -930,7 +930,7 @@ The measurement-driven methodology reveals a recurring pattern. Intuitive engine
 The legacy font detection illustrates this most starkly. A quality metric searching for damaged Devanagari ranked the most corrupted books as the best, because corruption manifested as the \textit{absence} of Devanagari, which the metric interpreted as perfection. The memory estimation follows the same pattern. Summing static sizes to 1.6~GB misses the 2.1~GB transient peak. The grounding score addresses a fundamental RAG limitation. A system can retrieve correctly, generate fluently, pass every surface check, and still fabricate content.
 \fi
 
-\textbf{Availability.} The platform, the ingestion pipeline and every benchmark reported here, including the 22 cross-lingual queries in their original scripts and the grounding calibration, are available at \url{https://github.com/rachitranka25/SHIKSHASETU}. The corpus itself is not redistributed. The pipeline reconstructs it from NCERT's own published archives.
+\textbf{Availability.} The platform, the ingestion pipeline and every benchmark reported here, including the 77 cross-lingual queries in their original scripts and the grounding calibration, are available at \url{https://github.com/rachitranka25/SHIKSHASETU}. The corpus itself is not redistributed. The pipeline reconstructs it from NCERT's own published archives.
 
 \textbf{Rights and ethics.} NCERT publishes these textbooks for free public download. The system stores only locally derived text and vectors, redistributed with neither the code nor this paper, and a deployment beyond research use should confirm the applicable terms instead of inferring them from availability. No human subjects took part and no student data was collected. Every measurement here is taken from the system itself.
 
