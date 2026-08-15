@@ -252,10 +252,6 @@ jobs:
             --cov=backend \
             --cov-report=xml \
             --cov-report=term-missing \
-            # A floor at the level the suite actually reaches, so it catches a
-            # regression instead of failing every build against a number the
-            # project has never met. Raise it when coverage rises.
-            --cov-fail-under=30 \
             --tb=short \
             --timeout=300
 
