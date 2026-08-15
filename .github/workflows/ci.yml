@@ -222,6 +222,11 @@ jobs:
       - name: Create test directories
         run: mkdir -p data/uploads data/models data/cache logs
 
+      - name: Enable pgvector
+        env:
+          PGPASSWORD: test_password
+        run: psql -h localhost -U test_user -d test_db -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
