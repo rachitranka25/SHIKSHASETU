@@ -148,3 +148,7 @@ data/ncert/
 # Cached generations for the grounding benchmark. Re-creatable by rerunning it,
 # and large enough that a diff of it is unreadable.
 .grounding_cache*.json
+
+# Rewrites are a paced hosted-model call, cached so a repeated benchmark does
+# not pay for them twice. Regenerable, and not a result.
+.rewrite_cache.json

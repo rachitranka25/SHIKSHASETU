@@ -92,10 +92,24 @@ def main() -> int:
         ordered = sorted(best, key=lambda t: best[t], reverse=True)[:CANDIDATES]
         pooled_lists.append((case, ordered))
 
+    # Release the embedder before loading the reranker. Holding both at once
+    # asked for 8.6 GB on an 8 GB machine: the first attempt at this benchmark
+    # drove swap to 12.5 GB and 435,654 page-ins, and after fifty-one minutes
+    # had not finished, because it was faulting pages rather than computing.
+    # That is the paper's memory argument reproducing itself, and it is
+    # reported in Section VI rather than worked around silently -- a
+    # deployment cannot free the embedder, because it needs it to search.
+    import gc
+
+    del embedder
+    gc.collect()
+
     before_load = rss_mb()
     from sentence_transformers import CrossEncoder
 
-    reranker = CrossEncoder("BAAI/bge-reranker-v2-m3", max_length=1024)
+    # 512 rather than 1024: the passages retrieved here are shorter than that,
+    # so the longer window cost memory without seeing more text.
+    reranker = CrossEncoder("BAAI/bge-reranker-v2-m3", max_length=512)
 
     base_hits = rr_hits = 0
     improved = worsened = 0

@@ -25,6 +25,7 @@ ranks optics above biology has failed the student whatever sits below it.
 """
 
 import asyncio
+import json
 import logging
 import math
 import os
@@ -271,12 +272,27 @@ async def english_queries(questions: list[str]) -> list[str]:
         get_inference_engine,
     )
 
+    # Rewrites are paced to stay under the hosted rate limit, which makes them
+    # the slow part of every run that needs them. They are cached by question
+    # text so a second benchmark over the same queries does not pay for them
+    # again, and so a run that has to be repeated is not repeating the part
+    # that was already correct. Delete the file to force fresh rewrites.
+    cache_path = Path(__file__).resolve().parents[2] / ".rewrite_cache.json"
+    cache: dict[str, str] = {}
+    if cache_path.exists():
+        cache = json.loads(cache_path.read_text())
+        have = sum(1 for q in questions if q in cache)
+        print(f"  rewrite cache: {have}/{len(questions)} already present", flush=True)
+
     engine = get_inference_engine()
     watch = _FallbackWatch()
     logging.getLogger("backend.services.inference.unified_engine").addHandler(watch)
 
     out: list[str] = []
     for i, question in enumerate(questions, 1):
+        if question in cache:
+            out.append(cache[question])
+            continue
         for attempt in range(MAX_ATTEMPTS):
             watch.fell_back = False
             rewritten = await rewrite_for_search(question, engine, GenerationConfig)
@@ -295,6 +311,8 @@ async def english_queries(questions: list[str]) -> list[str]:
                 f"run is abandoned rather than completed."
             )
         out.append(rewritten)
+        cache[question] = rewritten
+        cache_path.write_text(json.dumps(cache, ensure_ascii=False, indent=1))
         if i % 10 == 0:
             print(f"  rewritten {i}/{len(questions)}", flush=True)
         await asyncio.sleep(PACE_SECONDS)
