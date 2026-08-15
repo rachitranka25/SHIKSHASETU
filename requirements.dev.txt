@@ -12,3 +12,7 @@ pytest>=8.0,<10.0
 pytest-asyncio>=1.0,<2.0
 pytest-cov>=6.0,<8.0
 coverage>=7.0,<8.0
+
+# The CI test command passes --timeout. This was missing locally too: an
+# earlier run of the suite here failed on that flag.
+pytest-timeout>=2.0,<3.0

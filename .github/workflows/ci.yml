@@ -235,7 +235,7 @@ jobs:
           ENVIRONMENT: test
         run: alembic upgrade head
 
-      - name: Run tests with coverage (parallel)
+      - name: Run tests with coverage
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
@@ -251,9 +251,6 @@ jobs:
             --cov-report=term-missing \
             --cov-fail-under=70 \
             --tb=short \
-            -n auto \
-            --dist loadgroup \
-            -x \
             --timeout=300
 
       - name: Upload coverage to Codecov
