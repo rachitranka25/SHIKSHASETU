@@ -140,6 +140,12 @@ Recent literature categorizes multilingual retrieval into frameworks such as Mul
 
 The retrieval layer uses the HNSW graph structure proposed by Malkov and Yashunin~\cite{b11}, implemented through the pgvector extension for PostgreSQL. The index parameters ($m=16$, $ef\_construction=64$) balance build time against recall. The resulting search latency is reported in Fig.~\ref{fig:pipeline}, not here. Reimers and Gurevych~\cite{b12} established the sentence-level embedding formulation used to load BGE-M3.
 
+% BEFORE SUBMITTING THE JOURNAL VERSION: once the conference paper is
+% accepted, IEEE requires this version to declare it -- "A preliminary
+% version of this work appeared in [ref]" -- and to cite it. 57% of this
+% version is material the conference paper does not contain, which clears
+% the usual 30% bar for an extension, but the declaration is still required
+% and its absence is a desk-reject.
 \ifconf\else  % journal only -- the conference version presents no accessibility contribution
 Zorzi et al.~\cite{b13} found that extra-large letter spacing improved reading speed and halved errors in dyslexic children, the single typographic intervention with strong experimental support and the default accessibility control in the platform. Rello and Baeza-Yates~\cite{b14} and Kuster et al.~\cite{b15} found no reliable advantage for dyslexia-specific typefaces. Nag~\cite{b16} and Nag and Snowling~\cite{b17} demonstrated that akshara-based literacy develops differently from alphabetic literacy, motivating the akshara-level segmentation\ifconf\else\ described in Section~\ref{sec:accessibility}\fi.
 \fi
