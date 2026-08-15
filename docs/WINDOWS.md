@@ -103,16 +103,35 @@ an M1 with prefetching; expect the same order on a comparable Windows machine,
 longer without a GPU. It is resumable, and a book that fails leaves a marker
 naming the reason rather than being retried forever.
 
-If you have access to a machine that has already ingested, a database dump is
-far quicker than re-ingesting:
+If you have access to a machine that has already ingested, a dump is far
+quicker: 659 MB of database compresses to about 213 MB and restores in minutes.
+
+On the machine that has the data:
+
+```bash
+pg_dump -Fc -Z6 -d shiksha_setu -f shiksha_setu.dump
+```
+
+Copy the file across by whatever means you like, then on Windows:
 
 ```powershell
-# on the machine that has the data
-docker compose exec postgres pg_dump -U postgres -Fc shiksha_setu > shiksha.dump
-
-# on the new machine
-docker compose exec -T postgres pg_restore -U postgres -d shiksha_setu < shiksha.dump
+docker compose up -d postgres
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE shiksha_setu;"
+docker compose exec postgres psql -U postgres -d shiksha_setu -c "CREATE EXTENSION IF NOT EXISTS vector;"
+docker compose exec -T postgres pg_restore -U postgres -d shiksha_setu < shiksha_setu.dump
 ```
+
+Create the extension *before* restoring. The dump contains `vector` columns and
+`pg_restore` cannot create them if the type does not exist yet.
+
+Do not put this dump in the repository or a public release. `document_chunks`
+holds the textbook text itself, and NCERT owns it. That is also why `data/ncert`
+is in `.gitignore`: the catalog is committed, the books are not, and
+`scripts/ingest_ncert.py` fetches them from NCERT directly.
+
+Model weights are not in the dump either, and should not be. They are about
+2.3 GB for BGE-M3, download from HuggingFace on first use, and cache in
+`data/models`.
 
 ## 6. What 4 GB actually means
 
