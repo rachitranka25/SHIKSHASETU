@@ -25,6 +25,8 @@ ranks optics above biology has failed the student whatever sits below it.
 """
 
 import asyncio
+import logging
+import math
 import os
 import sys
 from pathlib import Path
@@ -33,44 +35,149 @@ from sqlalchemy import create_engine, text
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-# Two topics across every supported Indian language, so language is the only
-# variable that moves. The first is ordinary vocabulary; the second is a
-# compound term built from morphemes meaning "light" and "joining" in most of
-# these languages, which is the case Section V-C is about.
-EYE = ["eye", "lens", "retina", "ciliary", "cornea"]
-PHOTO = ["photosynthesis", "chlorophyll", "chloroplast"]
+# Seven topics across every supported Indian language, so language remains the
+# only variable that moves within a topic. Two of them were the original pair:
+# the eye is ordinary vocabulary, and photosynthesis is a compound built from
+# morphemes meaning "light" and "joining" in most of these languages, which is
+# the case Section V-C is about. The other five were added to widen the base
+# the retrieval numbers rest on, and were chosen to span subjects rather than
+# to be easy: a mathematical result named after a person, a chemistry
+# contrast, a geography process, a physics quantity, and a biology process.
+#
+# Every topic was checked against the English corpus before being included,
+# and one candidate was dropped for having four matching passages, which would
+# have measured the corpus rather than the retriever.
+LANGUAGES = ["Hindi", "Urdu", "Marathi", "Bengali", "Tamil", "Telugu",
+             "Gujarati", "Kannada", "Malayalam", "Punjabi", "Odia"]
 
-_CASES = [
-    ("Hindi", "eye", "मानव नेत्र किसी वस्तु पर फोकस कैसे करता है?", EYE),
-    ("Urdu", "eye", "انسانی آنکھ کسی چیز پر فوکس کیسے کرتی ہے؟", EYE),
-    ("Marathi", "eye", "मानवी डोळा वस्तूवर फोकस कसा करतो?", EYE),
-    ("Bengali", "eye", "মানুষের চোখ কীভাবে ফোকাস করে?", EYE),
-    ("Tamil", "eye", "மனித கண் எவ்வாறு குவியப்படுத்துகிறது?", EYE),
-    ("Telugu", "eye", "మానవ కన్ను ఎలా దృష్టి కేంద్రీకరిస్తుంది?", EYE),
-    ("Gujarati", "eye", "માનવ આંખ કેવી રીતે ફોકસ કરે છે?", EYE),
-    ("Kannada", "eye", "ಮಾನವ ಕಣ್ಣು ಹೇಗೆ ಕೇಂದ್ರೀಕರಿಸುತ್ತದೆ?", EYE),
-    ("Malayalam", "eye", "മനുഷ്യന്റെ കണ്ണ് എങ്ങനെ ഫോക്കസ് ചെയ്യുന്നു?", EYE),
-    ("Punjabi", "eye", "ਮਨੁੱਖੀ ਅੱਖ ਕਿਵੇਂ ਫੋਕਸ ਕਰਦੀ ਹੈ?", EYE),
-    ("Odia", "eye", "ମାନବ ଆଖି କିପରି ଫୋକସ୍ କରେ?", EYE),
-    ("Hindi", "photosynthesis", "प्रकाश संश्लेषण क्या है?", PHOTO),
-    ("Urdu", "photosynthesis", "ضیائی تالیف کیا ہے؟", PHOTO),
-    ("Marathi", "photosynthesis", "प्रकाशसंश्लेषण म्हणजे काय?", PHOTO),
-    ("Bengali", "photosynthesis", "সালোকসংশ্লেষণ কী?", PHOTO),
-    ("Tamil", "photosynthesis", "ஒளிச்சேர்க்கை என்றால் என்ன?", PHOTO),
-    ("Telugu", "photosynthesis", "కిరణజన్య సంయోగక్రియ అంటే ఏమిటి?", PHOTO),
-    ("Gujarati", "photosynthesis", "પ્રકાશસંશ્લેષણ શું છે?", PHOTO),
-    ("Kannada", "photosynthesis", "ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಎಂದರೇನು?", PHOTO),
-    ("Malayalam", "photosynthesis", "പ്രകാശസംശ്ലേഷണം എന്താണ്?", PHOTO),
-    ("Punjabi", "photosynthesis", "ਪ੍ਰਕਾਸ਼ ਸੰਸ਼ਲੇਸ਼ਣ ਕੀ ਹੈ?", PHOTO),
-    ("Odia", "photosynthesis", "ଆଲୋକ ସଂଶ୍ଳେଷଣ କ'ଣ?", PHOTO),
-]
+TOPICS: dict[str, dict] = {
+    "eye": {
+        "expect": ["eye", "lens", "retina", "ciliary", "cornea"],
+        "q": {
+            "Hindi": "मानव नेत्र किसी वस्तु पर फोकस कैसे करता है?",
+            "Urdu": "انسانی آنکھ کسی چیز پر فوکس کیسے کرتی ہے؟",
+            "Marathi": "मानवी डोळा वस्तूवर फोकस कसा करतो?",
+            "Bengali": "মানুষের চোখ কীভাবে ফোকাস করে?",
+            "Tamil": "மனித கண் எவ்வாறு குவியப்படுத்துகிறது?",
+            "Telugu": "మానవ కన్ను ఎలా దృష్టి కేంద్రీకరిస్తుంది?",
+            "Gujarati": "માનવ આંખ કેવી રીતે ફોકસ કરે છે?",
+            "Kannada": "ಮಾನವ ಕಣ್ಣು ಹೇಗೆ ಕೇಂದ್ರೀಕರಿಸುತ್ತದೆ?",
+            "Malayalam": "മനുഷ്യന്റെ കണ്ണ് എങ്ങനെ ഫോക്കസ് ചെയ്യുന്നു?",
+            "Punjabi": "ਮਨੁੱਖੀ ਅੱਖ ਕਿਵੇਂ ਫੋਕਸ ਕਰਦੀ ਹੈ?",
+            "Odia": "ମାନବ ଆଖି କିପରି ଫୋକସ୍ କରେ?",
+        },
+    },
+    "photosynthesis": {
+        "expect": ["photosynthesis", "chlorophyll", "chloroplast"],
+        "q": {
+            "Hindi": "प्रकाश संश्लेषण क्या है?",
+            "Urdu": "ضیائی تالیف کیا ہے؟",
+            "Marathi": "प्रकाशसंश्लेषण म्हणजे काय?",
+            "Bengali": "সালোকসংশ্লেষণ কী?",
+            "Tamil": "ஒளிச்சேர்க்கை என்றால் என்ன?",
+            "Telugu": "కిరణజన్య సంయోగక్రియ అంటే ఏమిటి?",
+            "Gujarati": "પ્રકાશસંશ્લેષણ શું છે?",
+            "Kannada": "ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಎಂದರೇನು?",
+            "Malayalam": "പ്രകാശസംശ്ലേഷണം എന്താണ്?",
+            "Punjabi": "ਪ੍ਰਕਾਸ਼ ਸੰਸ਼ਲੇਸ਼ਣ ਕੀ ਹੈ?",
+            "Odia": "ଆଲୋକ ସଂଶ୍ଳେଷଣ କ'ଣ?",
+        },
+    },
+    "pythagoras": {
+        "expect": ["pythagoras", "hypotenuse"],
+        "q": {
+            "Hindi": "पाइथागोरस प्रमेय क्या है?",
+            "Urdu": "فیثاغورث کا نظریہ کیا ہے؟",
+            "Marathi": "पायथागोरसचे प्रमेय काय आहे?",
+            "Bengali": "পিথাগোরাসের উপপাদ্য কী?",
+            "Tamil": "பைதாகரஸ் தேற்றம் என்றால் என்ன?",
+            "Telugu": "పైథాగరస్ సిద్ధాంతం అంటే ఏమిటి?",
+            "Gujarati": "પાયથાગોરસનું પ્રમેય શું છે?",
+            "Kannada": "ಪೈಥಾಗೋರಸ್ ಪ್ರಮೇಯ ಎಂದರೇನು?",
+            "Malayalam": "പൈതഗോറസ് സിദ്ധാന്തം എന്താണ്?",
+            "Punjabi": "ਪਾਇਥਾਗੋਰਸ ਦਾ ਪ੍ਰਮੇਯ ਕੀ ਹੈ?",
+            "Odia": "ପାଇଥାଗୋରସ୍ ଉପପାଦ୍ୟ କ'ଣ?",
+        },
+    },
+    "acids_bases": {
+        "expect": ["litmus", "acidic", "alkali", "acid"],
+        "q": {
+            "Hindi": "अम्ल और क्षार में क्या अंतर है?",
+            "Urdu": "تیزاب اور الکلی میں کیا فرق ہے؟",
+            "Marathi": "आम्ल आणि आम्लारी यांच्यात काय फरक आहे?",
+            "Bengali": "অ্যাসিড ও ক্ষারের মধ্যে পার্থক্য কী?",
+            "Tamil": "அமிலத்திற்கும் காரத்திற்கும் என்ன வேறுபாடு?",
+            "Telugu": "ఆమ్లం మరియు క్షారానికి మధ్య తేడా ఏమిటి?",
+            "Gujarati": "એસિડ અને બેઝ વચ્ચે શું તફાવત છે?",
+            "Kannada": "ಆಮ್ಲ ಮತ್ತು ಪ್ರತ್ಯಾಮ್ಲದ ನಡುವಿನ ವ್ಯತ್ಯಾಸವೇನು?",
+            "Malayalam": "ആസിഡും ബേസും തമ്മിലുള്ള വ്യത്യാസം എന്താണ്?",
+            "Punjabi": "ਤੇਜ਼ਾਬ ਅਤੇ ਖਾਰ ਵਿੱਚ ਕੀ ਫਰਕ ਹੈ?",
+            "Odia": "ଅମ୍ଳ ଏବଂ କ୍ଷାର ମଧ୍ୟରେ ପାର୍ଥକ୍ୟ କ'ଣ?",
+        },
+    },
+    "water_cycle": {
+        "expect": ["evaporation", "condensation", "precipitation", "water cycle"],
+        "q": {
+            "Hindi": "जल चक्र क्या है?",
+            "Urdu": "پانی کا چکر کیا ہے؟",
+            "Marathi": "जलचक्र म्हणजे काय?",
+            "Bengali": "জলচক্র কী?",
+            "Tamil": "நீர்ச்சுழற்சி என்றால் என்ன?",
+            "Telugu": "జలచక్రం అంటే ఏమిటి?",
+            "Gujarati": "જળચક્ર શું છે?",
+            "Kannada": "ಜಲಚಕ್ರ ಎಂದರೇನು?",
+            "Malayalam": "ജലചക്രം എന്താണ്?",
+            "Punjabi": "ਪਾਣੀ ਦਾ ਚੱਕਰ ਕੀ ਹੈ?",
+            "Odia": "ଜଳଚକ୍ର କ'ଣ?",
+        },
+    },
+    "electric_current": {
+        "expect": ["electric current", "ammeter", "ampere", "resistor"],
+        "q": {
+            "Hindi": "विद्युत धारा क्या है और इसे कैसे मापा जाता है?",
+            "Urdu": "برقی رو کیا ہے اور اسے کیسے ناپا جاتا ہے؟",
+            "Marathi": "विद्युत प्रवाह म्हणजे काय आणि तो कसा मोजतात?",
+            "Bengali": "তড়িৎ প্রবাহ কী এবং এটি কীভাবে মাপা হয়?",
+            "Tamil": "மின்னோட்டம் என்றால் என்ன, அது எப்படி அளக்கப்படுகிறது?",
+            "Telugu": "విద్యుత్ ప్రవాహం అంటే ఏమిటి, దానిని ఎలా కొలుస్తారు?",
+            "Gujarati": "વિદ્યુત પ્રવાહ શું છે અને તે કેવી રીતે માપવામાં આવે છે?",
+            "Kannada": "ವಿದ್ಯುತ್ ಪ್ರವಾಹ ಎಂದರೇನು ಮತ್ತು ಅದನ್ನು ಹೇಗೆ ಅಳೆಯುತ್ತಾರೆ?",
+            "Malayalam": "വൈദ്യുത പ്രവാഹം എന്താണ്, അത് എങ്ങനെ അളക്കുന്നു?",
+            "Punjabi": "ਬਿਜਲਈ ਕਰੰਟ ਕੀ ਹੈ ਅਤੇ ਇਸਨੂੰ ਕਿਵੇਂ ਮਾਪਿਆ ਜਾਂਦਾ ਹੈ?",
+            "Odia": "ବିଦ୍ୟୁତ୍ ପ୍ରବାହ କ'ଣ ଏବଂ ଏହା କିପରି ମପାଯାଏ?",
+        },
+    },
+    "digestion": {
+        "expect": ["digestion", "digestive", "oesophagus", "villi"],
+        "q": {
+            "Hindi": "मानव शरीर में भोजन का पाचन कैसे होता है?",
+            "Urdu": "انسانی جسم میں کھانا کیسے ہضم ہوتا ہے؟",
+            "Marathi": "मानवी शरीरात अन्नाचे पचन कसे होते?",
+            "Bengali": "মানবদেহে খাদ্য কীভাবে হজম হয়?",
+            "Tamil": "மனித உடலில் உணவு எவ்வாறு செரிக்கப்படுகிறது?",
+            "Telugu": "మానవ శరీరంలో ఆహారం ఎలా జీర్ణమవుతుంది?",
+            "Gujarati": "માનવ શરીરમાં ખોરાકનું પાચન કેવી રીતે થાય છે?",
+            "Kannada": "ಮಾನವ ದೇಹದಲ್ಲಿ ಆಹಾರ ಹೇಗೆ ಜೀರ್ಣವಾಗುತ್ತದೆ?",
+            "Malayalam": "മനുഷ്യ ശരീരത്തിൽ ഭക്ഷണം എങ്ങനെ ദഹിക്കുന്നു?",
+            "Punjabi": "ਮਨੁੱਖੀ ਸਰੀਰ ਵਿੱਚ ਭੋਜਨ ਕਿਵੇਂ ਪਚਦਾ ਹੈ?",
+            "Odia": "ମାନବ ଶରୀରରେ ଖାଦ୍ୟ କିପରି ହଜମ ହୁଏ?",
+        },
+    },
+}
 
 QUERIES = [
-    {"language": lang, "topic": topic, "query": query, "expect": expect}
-    for lang, topic, query, expect in _CASES
+    {"language": lang, "topic": topic, "query": spec["q"][lang], "expect": spec["expect"]}
+    for topic, spec in TOPICS.items()
+    for lang in LANGUAGES
 ]
 
 TOP_K = 5
+
+# Spacing between hosted rewrite calls, and how many times a rate-limited
+# question is retried before the run is abandoned. Eight of the first
+# queries issued back to back came back HTTP 429.
+PACE_SECONDS = 4.0
+MAX_ATTEMPTS = 4
 
 # Lexical baseline. Postgres full-text search with ts_rank is not BM25 exactly
 # -- it is a length-normalised tf-idf variant -- but it is the same family, it
@@ -103,6 +210,43 @@ SQL = text("""
 """)
 
 
+class _FallbackWatch(logging.Handler):
+    """
+    Notice when the engine quietly stopped using the hosted model.
+
+    Falling back to the on-device model is correct in production: a student
+    should get a degraded answer rather than an error. In a benchmark it is
+    the opposite of what is wanted, because the rewrite arm would then be
+    measuring two different models depending on how fast the queries were
+    issued, and nothing in the output would say which.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.fell_back = False
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if "using local model" in record.getMessage():
+            self.fell_back = True
+
+
+def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float, float]:
+    """
+    Point estimate and 95% Wilson score interval for k successes in n trials.
+
+    Wilson rather than the normal approximation because the lexical arm scores
+    zero, where the normal approximation collapses to a zero-width interval and
+    would assert certainty from the one result that most needs an interval.
+    """
+    if n == 0:
+        return 0.0, 0.0, 0.0
+    p = k / n
+    d = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / d
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return p, max(0.0, centre - half), min(1.0, centre + half)
+
+
 async def english_queries(questions: list[str]) -> list[str]:
     """
     The English search queries the tutor would actually embed.
@@ -112,6 +256,14 @@ async def english_queries(questions: list[str]) -> list[str]:
     "Event loop is closed" and fell back to the original text -- silently,
     because the fallback is deliberate and only logs a warning. Half the
     rewrite arm was therefore measuring the raw arm.
+
+    Paced, for a second reason with the same shape. Issued back to back, this
+    many rewrites trip the hosted endpoint's rate limit; it answers HTTP 429,
+    the engine degrades to the local model exactly as designed, and the arm
+    silently becomes a mixture of two models. So the calls are spaced, a 429
+    backs off and retries rather than being accepted, and a question that
+    still cannot be served by the hosted model stops the run instead of
+    entering the results.
     """
     from backend.api.routes.tutor import rewrite_for_search
     from backend.services.inference.unified_engine import (
@@ -120,10 +272,33 @@ async def english_queries(questions: list[str]) -> list[str]:
     )
 
     engine = get_inference_engine()
-    return [
-        await rewrite_for_search(question, engine, GenerationConfig)
-        for question in questions
-    ]
+    watch = _FallbackWatch()
+    logging.getLogger("backend.services.inference.unified_engine").addHandler(watch)
+
+    out: list[str] = []
+    for i, question in enumerate(questions, 1):
+        for attempt in range(MAX_ATTEMPTS):
+            watch.fell_back = False
+            rewritten = await rewrite_for_search(question, engine, GenerationConfig)
+            if not watch.fell_back:
+                break
+            wait = PACE_SECONDS * (2 ** (attempt + 1))
+            print(f"  [{i}/{len(questions)}] hosted model unavailable, "
+                  f"waiting {wait:.0f}s (attempt {attempt + 1}/{MAX_ATTEMPTS})",
+                  flush=True)
+            await asyncio.sleep(wait)
+        else:
+            raise SystemExit(
+                f"query {i} could not be rewritten by the hosted model after "
+                f"{MAX_ATTEMPTS} attempts. Reporting a rewrite arm that is part "
+                f"hosted and part on-device would not measure anything, so this "
+                f"run is abandoned rather than completed."
+            )
+        out.append(rewritten)
+        if i % 10 == 0:
+            print(f"  rewritten {i}/{len(questions)}", flush=True)
+        await asyncio.sleep(PACE_SECONDS)
+    return out
 
 
 def main() -> int:
@@ -203,6 +378,7 @@ def main() -> int:
 
     totals = {"bm25": 0, "bm25_rw": 0, "raw": 0, "rewrite": 0, "both": 0}
     per_topic: dict[str, dict[str, int]] = {}
+    per_language: dict[str, list[int | None]] = {}
 
     rewrites = asyncio.run(english_queries([c["query"] for c in QUERIES]))
     unchanged = sum(1 for c, r in zip(QUERIES, rewrites) if r == c["query"])
@@ -217,6 +393,8 @@ def main() -> int:
         raw_sim, raw_rank = rank_in(raw_hits, case["expect"])
         new_sim, new_rank = rank_in(new_hits, case["expect"])
         both_sim, both_rank = merged(raw_hits, new_hits, case["expect"])
+
+        per_language.setdefault(case["language"], []).append(both_rank)
 
         bucket = per_topic.setdefault(
             case["topic"],
@@ -243,10 +421,32 @@ def main() -> int:
     print("correct at rank 1, out of", n)
     for label, key in order:
         print(f"   {label:<20} {totals[key]:>3}/{n}   ({100*totals[key]/n:.0f}%)")
+
+    # The figure plots a proportion with a 95% Wilson score interval, which is
+    # the right interval at this sample size and for proportions at 0 -- the
+    # normal approximation gives a zero-width interval for the lexical arm,
+    # which is exactly the arm the paper draws a conclusion about. Emitted in
+    # the coordinate form the figure consumes, so the numbers reach the paper
+    # without being retyped.
+    print("\n   95% Wilson score intervals, as figure coordinates:")
+    for label, key in order:
+        point, lo, hi = wilson(totals[key], n)
+        print(f"   ({point:.3f},{label:<18}) +- ({point - lo:.3f},{hi - point:.3f})")
     print("\n   by topic:")
     for topic, b in sorted(per_topic.items()):
         cells = "  ".join(f"{key}={b[key]}/{b['n']}" for _, key in order)
         print(f"   {topic:<16} {cells}")
+
+    # Per-language mean reciprocal rank for the deployed configuration, which
+    # is what the per-language figure plots. Previously it had to be read back
+    # out of the printed table by hand, which is fine for two topics per
+    # language and not fine for seven.
+    print("\n   deployed configuration, mean reciprocal rank by language:")
+    for lang in LANGUAGES:
+        ranks = per_language.get(lang, [])
+        mrr = sum(1 / r for r in ranks if r) / len(ranks) if ranks else 0.0
+        firsts = sum(1 for r in ranks if r == 1)
+        print(f"   {lang:<12} MRR {mrr:.3f}   rank-1 {firsts}/{len(ranks)}")
     return 0
 
 
