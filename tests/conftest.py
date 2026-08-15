@@ -76,6 +76,26 @@ def pytest_configure(config):
 # =============================================================================
 
 
+def _drop_all(engine) -> None:
+    """
+    Drop every table, cascading.
+
+    Base.metadata.drop_all() only knows the tables SQLAlchemy declares, and
+    drops them in dependency order. Migrations create objects it does not know
+    about, so a foreign key from one of those to processed_content leaves the
+    drop with "cannot drop table processed_content because other objects depend
+    on it" and the teardown fails after the test has already passed.
+    """
+    from sqlalchemy import text as _sql_text
+
+    with engine.begin() as conn:
+        rows = conn.execute(_sql_text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = current_schema()"
+        )).fetchall()
+        for (name,) in rows:
+            conn.execute(_sql_text(f'DROP TABLE IF EXISTS "{name}" CASCADE'))
+
+
 def _ensure_pgvector(engine) -> None:
     """
     Enable pgvector on the test database before creating tables.
@@ -106,7 +126,7 @@ def test_engine():
     _ensure_pgvector(engine)
     Base.metadata.create_all(bind=engine)
     yield engine
-    Base.metadata.drop_all(bind=engine)
+    _drop_all(engine)
     engine.dispose()
 
 
@@ -247,7 +267,7 @@ def clean_database():
     from backend.database import Base, engine
 
     # Drop all tables
-    Base.metadata.drop_all(bind=engine)
+    _drop_all(engine)
 
     # Recreate all tables. The vector column needs the extension present.
     _ensure_pgvector(engine)
@@ -256,7 +276,7 @@ def clean_database():
     yield
 
     # Cleanup after test
-    Base.metadata.drop_all(bind=engine)
+    _drop_all(engine)
 
 
 @pytest.fixture
