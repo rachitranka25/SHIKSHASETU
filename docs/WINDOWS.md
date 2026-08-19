@@ -77,7 +77,7 @@ Then apply migrations and start the API:
 
 ```powershell
 alembic upgrade head
-uvicorn backend.main:app --host 127.0.0.1 --port 8000
+uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
 ```
 
 The first request downloads BGE-M3, roughly 2.3 GB, into `data/models`. It is

@@ -123,7 +123,7 @@ cat <<'EOF'
 
   To start it, open two terminal windows in this folder:
 
-    1)  ./venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+    1)  ./venv/bin/python -m uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
     2)  cd frontend && npm run dev
 
   Then open  http://localhost:3000  in your browser.
