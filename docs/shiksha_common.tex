@@ -11,7 +11,11 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{booktabs}
-\usepackage{hyperref}
+% hidelinks: without it hyperref draws a coloured rectangle around every
+% citation and cross-reference. It is invisible on screen in some viewers
+% and prints as a green box, which is not what a submitted paper should
+% look like.
+\usepackage[hidelinks]{hyperref}
 \usepackage{url}
 \usepackage{multirow}
 \usepackage{tikz}
