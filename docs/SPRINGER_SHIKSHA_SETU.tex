@@ -1,7 +1,14 @@
 % Springer LNCS build, for venues that require the Springer conference template
 % and 10 to 12 pages. Same source as the IEEE builds: no number in this paper
 % is written twice, so the two cannot disagree.
-\documentclass[runningheads,a4paper]{llncs}
+\documentclass[runningheads]{llncs}
+% The published LNCS trim is 152x235mm. geometry sets the paper and centres
+% the class's own 122x193mm block on it; the block's dimensions are taken
+% from llncs and not changed, which is what Springer asks.
+\usepackage[papersize={152mm,235mm},textwidth=122mm,textheight=193mm,
+            centering,headsep=14pt]{geometry}
+\AtBeginDocument{\special{papersize=152mm,235mm}}
+
 \newif\ifconf
 \conftrue
 \newif\ifshort

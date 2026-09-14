@@ -30,6 +30,13 @@
 % runs -- that cannot be hyphenated. Without a little stretch the engine
 % overshoots the margin rather than loosening the line.
 \ifspringer\emergencystretch=2em\fi
+\makeatletter
+\ifspringer
+  \renewcommand{\fps@figure}{tbp}\renewcommand{\fps@table}{tbp}
+\else
+  \renewcommand{\fps@figure}{H}\renewcommand{\fps@table}{htbp}
+\fi
+\makeatother
 \ifspringer
   \pgfkeys{/tikz/.cd, every picture/.append style={scale=0.88, every node/.append style={scale=0.88}}}
 \fi
@@ -37,7 +44,11 @@
 % figure drifted into Related Work in one build and sat with System
 % Architecture in another, so the same figure introduced itself a section
 % early depending on which version you read.
-\usepackage[section]{placeins}
+% [section] puts a float barrier before every section. In the two-column IEEE
+% layout that stops a figure drifting into the wrong section. In the Springer
+% build it ends a page early whenever a float cannot fit before the barrier,
+% which is a visible hole, so the barrier is IEEE-only.
+\ifspringer\usepackage{placeins}\else\usepackage[section]{placeins}\fi
 % Discourage a paragraph's first line from being stranded at the foot of a
 % column, or its last line at the head of the next. LaTeX's defaults (150)
 % treat these as mild; in a two-column layout they are what makes a page
@@ -116,12 +127,13 @@
 % page unless a short form is supplied, and truncates the author list on
 % the verso unless \authorrunning is given.
 \titlerunning{Shiksha Setu: Local-Retrieval AI Tutoring for Indian Education}
-\authorrunning{R. Ranka et al.}
+\authorrunning{R. Ranka, A. Saini, P. Devi, Y. Kohli, R. Mehta}
 \author{Rachit Ranka \and Aaditya Saini \and Priyanka Devi \and Yogesh Kohli \and Ruhani Mehta}
 \institute{Department of Computer Science Engineering, Chandigarh University,\\
 Mohali 140413, Punjab, India\\
-\email{\{rankarachit5, aadityasaini899, pjangra9105,\\
-ykohli2005, ruhanimehta019\}@gmail.com}}
+\email{rankarachit5@gmail.com, aadityasaini899@gmail.com,}\\
+\email{pjangra9105@gmail.com, ykohli2005@gmail.com,}\\
+\email{ruhanimehta019@gmail.com}}
 \else
 \author{\IEEEauthorblockN{Rachit Ranka, Aaditya Saini, Priyanka Devi, Yogesh Kohli, Ruhani}
 \IEEEauthorblockA{\textit{Department of Computer Science Engineering} \\
@@ -201,7 +213,7 @@ Table~\ref{tab:comparison} compares this work with the systems an Indian student
 
 The comparison is confined to \emph{architectural properties}. Every cell is a structural fact, a published vendor figure, or \emph{n/d} where none exists, and no row sets a measurement of ours against a number we could not obtain. Commercial products do not publish latency distributions, retrieval quality, or memory footprints. Estimating them would produce invented numbers dressed as measurements.
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Comparison with deployed systems. \emph{n/d}: not disclosed by the operator. Rows are architectural properties, not performance claims.}
 \label{tab:comparison}
 \centering
@@ -238,7 +250,7 @@ Three rows are stated against our own interest: generation is not local, the sys
 
 A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. The latencies below were taken on the development machine; what the platform requires is the 2{,}094~MB of Section~\ref{sec:memory}, not this hardware. Retrieval is local and its cost is a property of the index; generation is a hosted call and its cost is a property of the network.
 
-\begin{figure}[H]
+\begin{figure}
 \centering
 \footnotesize
 \begin{tikzpicture}[
@@ -284,7 +296,7 @@ The design separates the question's language from the answer's language. A stude
 The platform integrates twenty-eight model identifiers, of which \textbf{five} are exercised on the critical path and measured in this work. The remainder are configured alternatives that this evaluation does not characterize.\ifshort\ The five are BGE-M3 (568~M parameters, embeddings and grounding, the only one resident locally), and four hosted models: LLaMA-3.1-8B for generation and query rewriting, FLUX.1-dev for illustration, Nemotron-Nano-12B for vision OCR, and LLaMA-3.3-70B, compared and not adopted.\else\ Table~\ref{tab:models} separates the two, because a model stack presented as a single list would imply an empirical basis that only the first group has.\fi
 
 \ifshort\else  % six-page build: replaced by the sentence below
-\begin{table}[htbp]
+\begin{table}
 \caption{Model Stack. Upper block: measured on the critical path. Lower block: integrated but not on it. $\dagger$~denotes a hosted model; all others are resident locally. Reranking is the exception: it was evaluated and excluded on the result.}
 \label{tab:models}
 \centering
@@ -323,7 +335,7 @@ Two integrated models are named but unusable in this deployment and are reported
 The choice of the 8B model over the 70B variant was driven by measurement\ifconf: on one fixed prompt at approximately 70 completion tokens against the same endpoint, LLaMA-3.1-8B returned in 0.9~s where LLaMA-3.3-70B took 17--125~s, highly variable\else\ (Table~\ref{tab:latency})\fi.
 
 \ifconf\else  % journal only -- the figures that matter are in the sentence above
-\begin{table}[htbp]
+\begin{table}
 \caption{Text generation model latency: one fixed prompt at approximately 70 completion tokens, against the same hosted endpoint. These are model-selection figures and are shorter than the end-to-end generation stage of Fig.~\ref{fig:pipeline}, which produces a full answer.}
 \label{tab:latency}
 \centering
@@ -392,7 +404,7 @@ We note that a naive comparison of figures taken under different conditions woul
 \label{sec:legacy}
 Two-thirds of the Hindi curriculum is rendered unreadable by every PDF text extractor tested. NCERT's older Hindi textbooks are typeset in \textbf{Walkman-Chanakya 905}, a legacy font mapping Devanagari glyphs onto ASCII codepoints with no \texttt{ToUnicode} table. Text extraction returns raw byte values. The analysis covers 41 of the 54 Devanagari-only books in the taught curriculum. The method samples a single chapter PDF per book, and for the remaining 13 books NCERT publishes no individual chapter files, returning HTTP~404 for chapters~1 through~3 at the documented URL scheme. Those 13 are absent because no sample could be retrieved for them, and nothing here depends on their contents (Table~\ref{tab:legacy}):
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Hindi Corpus Corruption Analysis}
 \label{tab:legacy}
 \centering
@@ -413,7 +425,7 @@ Unicode font (Kokila, Arya) & 14 & 97.9--100\% \\
 \ifconf\else  % journal only -- OCR fidelity in mathematics: corpus detail
 PyMuPDF's text layer is lossy on mathematical content. Class~10 Mathematics chapter~4 defines a quadratic as $ax^2 + bx + c,\ a \neq 0$. The text layer yields ``$ax2 + bx + c,\ a\text{~~}0$'': the superscript flattened and the inequality deleted. Pages requiring OCR are identified by image density (Table~\ref{tab:ocr}).
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Image Density as OCR Predictor}
 \label{tab:ocr}
 \centering
@@ -436,7 +448,7 @@ Cloud OCR (Nemotron VL) correctly recovers symbols but introduces substitution e
 \label{sec:deadends}
 A book that cannot be ingested leaves a marker naming the reason, so the shortfall can be checked instead of assumed. There are 118 such markers, of which 110 fall inside the taught curriculum and account exactly for the gap between the 263 books taught and the 153 ingested, and the remaining 8 are Urdu or dual-medium editions outside it. Table~\ref{tab:deadends} groups them.
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Every book the pipeline could not ingest, by recorded reason. \emph{Origin} distinguishes a property of the published material from a property of the machine we ran on.}
 \label{tab:deadends}
 \centering
@@ -501,7 +513,7 @@ Absolute cosine similarities should be read as characteristic of this corpus and
 \label{sec:romanized}
 BGE-M3's cross-lingual capability does not extend to romanized Hindi, the predominant input mode for Indian students using standard keyboards. The same chemistry question was embedded in three scripts (Table~\ref{tab:scripts}).
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Script Impact on Retrieval Quality}
 \label{tab:scripts}
 \centering
@@ -527,7 +539,7 @@ How the term is built matters more than what subject it belongs to. \emph{Digest
 Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical baseline to the deployed system. A query counts as correct only when the \emph{top} passage is on topic.
 
 
-\begin{figure}[H]
+\begin{figure}
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
@@ -557,13 +569,13 @@ Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical base
 \label{fig:ablation}
 \end{figure}
 
-\textbf{The lexical baseline retrieves nothing at all.} BM25~\cite{b25} returns zero hits for all 77 queries, not merely poor ones: a Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. It is not weaker at this task but structurally incapable of it, which is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (55\%). The barrier is the script.
+\ifspringer\subsection{The lexical baseline retrieves nothing at all}\else\textbf{The lexical baseline retrieves nothing at all.}\fi BM25~\cite{b25} returns zero hits for all 77 queries, not merely poor ones: a Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. It is not weaker at this task but structurally incapable of it, which is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (55\%). The barrier is the script.
 
-Multilingual RAG has been studied as a setting in its own right~\cite{b9}, including the tendency of such pipelines to answer in the language of the retrieved context rather than the question~\cite{b10}, which separating query language from answer language is designed to prevent. \textbf{The rewrite is where the gain is.} Direct embedding retrieves correctly for 47 of 77 and rewriting first for 66, a gain of nineteen queries and the largest effect measured here. It comes from normalising a term the embedding cannot decompose: on \emph{photosynthesis} direct embedding attends to the constituent morphemes, retrieves optics, and scores 2 of 11, where the rewrite recovers 10.
+Multilingual RAG has been studied as a setting in its own right~\cite{b9}, including the tendency of such pipelines to answer in the language of the retrieved context rather than the question~\cite{b10}, which separating query language from answer language is designed to prevent. \ifspringer\subsection{The rewrite is where the gain is}\else\textbf{The rewrite is where the gain is.}\fi Direct embedding retrieves correctly for 47 of 77 and rewriting first for 66, a gain of nineteen queries and the largest effect measured here. It comes from normalising a term the embedding cannot decompose: on \emph{photosynthesis} direct embedding attends to the constituent morphemes, retrieves optics, and scores 2 of 11, where the rewrite recovers 10.
 
 Pooling the two scores \textbf{67 of 77}, one query above rewriting alone, with intervals that almost coincide. The per-topic figures show where it loses: on the eye it scores 7 of 11 where direct embedding scores 9, and on the water cycle 7 against 8. Pooling merges by best score, so a confident wrong passage from one arm displaces a correct one from the other. It is deployed because it was never the worst arm on any topic. Of the ten queries it misses, nine place an on-topic passage at rank~2 or~3; one, Urdu \emph{photosynthesis}, finds nothing at all. Fig.~\ref{fig:perlang} gives it per language, as the mean reciprocal rank of that language's seven queries.
 
-\begin{figure}[H]
+\begin{figure}
 \centering
 \begin{tikzpicture}[scale=1.0,font=\scriptsize]
 \def\R{17.5mm}
@@ -597,7 +609,7 @@ Pooling the two scores \textbf{67 of 77}, one query above rewriting alone, with 
 \ifconf\else  % journal only -- the per-query detail behind the totals
 The totals conceal which languages fail and how badly. Table~\ref{tab:perlang} gives the deployed configuration per language. Five of the eleven answer all seven topics at rank~1, and the weakest, Urdu, answers five.
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Pooled retrieval per language over the seven topics: queries whose top passage is on topic, and mean reciprocal rank. The eleven rank-1 counts sum to the 67 of 77 reported in Fig.~\ref{fig:ablation}.}
 \label{tab:perlang}
 \centering
@@ -624,7 +636,7 @@ Gujarati  & 6/7 & 0.929 & \multicolumn{3}{l}{} \\
 \fi
 
 
-\textbf{What 77 queries can and cannot establish.} Two conclusions are secure: the lexical baseline's interval reaches only 0.048 and excludes every other configuration, so its failure is structural; and rewriting gains nineteen queries over direct embedding, which no reading of the sample size removes. One is not. Pooling scores a single query above rewriting, its interval sits inside rewriting's, and on two topics it is worse than the better arm; it is reported as what the system deploys.
+\ifspringer\subsection{What 77 queries can and cannot establish}\else\textbf{What 77 queries can and cannot establish.}\fi Two conclusions are secure: the lexical baseline's interval reaches only 0.048 and excludes every other configuration, so its failure is structural; and rewriting gains nineteen queries over direct embedding, which no reading of the sample size removes. One is not. Pooling scores a single query above rewriting, its interval sits inside rewriting's, and on two topics it is worse than the better arm; it is reported as what the system deploys.
 
 \ifspringer\else
 The rewrite is a language-model call and is not deterministic at temperature zero. Repeated runs at 22 queries returned 16 and 17 with the ordering stable; the 77-query figures come from a single run and carry the same instability, so none is read more tightly than its interval allows. The same non-determinism produced the earlier failure in which a mistranslated rewrite (``Rahim'' as ``Rahman'') silently replaced a question that would have retrieved correctly.
@@ -640,7 +652,7 @@ The rewrite is a language-model call and is not deterministic at temperature zer
 \label{sec:precision}
 BGE-M3's weights were evaluated at both full (float32) and half (float16) precision (Table~\ref{tab:precision}).
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Precision Comparison for BGE-M3}
 \label{tab:precision}
 \centering
@@ -665,7 +677,7 @@ Half precision halves the weights and encodes ${\sim}1.88\times$ faster. Fidelit
 \fi
 
 \ifconf\else  % journal only -- every figure in it is stated in the prose below
-\begin{table}[htbp]
+\begin{table}
 \caption{Serving Pipeline Memory Footprint (Measured)}
 \label{tab:footprint}
 \centering
@@ -686,7 +698,7 @@ pgvector search complete & 2,094~MB \\
 The actual peak is \textbf{2,094~MB}. The prediction was 1,600~MB\ifconf\else\ (Fig.~\ref{fig:memory})\fi. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them). The first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), where the arithmetic had implied 2.4~GB.
 
 \ifconf\else  % journal only: every number in it is in the prose alongside
-\begin{figure}[H]
+\begin{figure}
 \centering
 \begin{tikzpicture}
 \begin{axis}[shikshabar,
@@ -723,7 +735,7 @@ Two details: (1)~sentence counting must honor the danda, not only the Latin peri
 
 The first simplification attempt produced text \textit{harder} than the original (Table~\ref{tab:readability}).
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Readability Measurement: Flesch-Kincaid Grade Level}
 \label{tab:readability}
 \centering
@@ -750,7 +762,7 @@ Letter and word spacing (on by default) is the only intervention with strong evi
 
 A comprehensive audit identified twelve vulnerabilities, all repaired (Table~\ref{tab:security}).
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Security Audit Findings (Selected)}
 \label{tab:security}
 \centering
@@ -792,14 +804,14 @@ A retrieval-augmented system can retrieve the correct chapter and still generate
 
 The \textbf{grounding score} is the cosine similarity of the answer to its source passages. Reference-free RAG evaluation frameworks score a comparable property, faithfulness, with a language model as judge~\cite{b27}; the metric used here is a single cosine similarity, which costs one encoder pass and no second model. Lexical overlap cannot serve the purpose because the platform produces answers in a different language from the source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case.
 
-\textbf{Calibrating on a distribution.} The threshold was originally set at 0.55 from four hand-verified answers, three correct at 0.583--0.701 and one fabricated at 0.489. Four points that happen to separate are not a calibration, and the difficulty is obtaining ungrounded answers in quantity. A model instructed to hallucinate does not fail the way a grounded pipeline fails.
+\ifspringer\subsection{Calibrating on a distribution}\else\textbf{Calibrating on a distribution.}\fi The threshold was originally set at 0.55 from four hand-verified answers, three correct at 0.583--0.701 and one fabricated at 0.489. Four points that happen to separate are not a calibration, and the difficulty is obtaining ungrounded answers in quantity. A model instructed to hallucinate does not fail the way a grounded pipeline fails.
 
 We therefore construct the negatives. Every answer is generated normally from its own retrieved passages, then scored twice: against the passages it was written from (\emph{matched}), and against another question's passages (\emph{mismatched}). A mismatched pair is precisely the failure the metric exists to catch (fluent, well-formed, on a different subject) and it requires no human labelling and no second generation pass. Sixteen questions spanning subjects and classes yield 16 matched and 240 mismatched pairs.
 
 Grounding need not be measured against the concatenation of the retrieved passages, so four estimators were compared over identical generations (Fig.~\ref{fig:estimators}). The two runs of the experiment, with independently generated answers, agreed to within 0.007 on every entry.
 
 
-\begin{figure}[H]
+\begin{figure}
 \centering
 \begin{tikzpicture}
 \begin{axis}[shiksha,
@@ -827,7 +839,7 @@ Grounding need not be measured against the concatenation of the retrieved passag
 
 The simplest estimator is also the best. Scoring the answer against all retrieved passages joined separates the two populations by 0.360, and no refinement improves on it. Scoring against the single best passage raises both means without widening the gap, and scoring sentence by sentence narrows it, because a correct answer contains connective and pedagogical sentences that appear in no passage, and averaging over them dilutes the signal the metric depends on.
 
-\textbf{The boundary was in the wrong place.} The distribution shows that 0.55 separates the populations but sits too low. Thirty-five of the 240 mismatched pairs, one drifted answer in seven, score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it. Balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were correct. There were simply too few of them to locate the boundary.
+\ifspringer\subsection{The boundary was in the wrong place}\else\textbf{The boundary was in the wrong place.}\fi The distribution shows that 0.55 separates the populations but sits too low. Thirty-five of the 240 mismatched pairs, one drifted answer in seven, score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it. Balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were correct. There were simply too few of them to locate the boundary.
 
 That 1.000 should be read for what it measures. The negatives are answers written from \emph{another question's} passages, so the task the score is perfect at is separating an answer from a different subject: topical drift, which is the failure we observed in deployment. It is not a measurement of hallucination detection in general, and an answer that stays on its retrieved topic while inventing a detail inside it would score as grounded here. The threshold is calibrated for the failure it was built to catch, and we claim no more than that.
 
@@ -843,7 +855,7 @@ The platform is validated by \textbf{490 automated tests}, of which \textbf{457 
 
 Table~\ref{tab:results} summarizes key metrics.
 
-\begin{table}[htbp]
+\begin{table}
 \caption{Consolidated System Metrics}
 \label{tab:results}
 \centering
@@ -944,7 +956,7 @@ The application role held privileges on none of the 42 tables. Reads returned em
 
 Each result in this paper is produced by a committed script, named in Table~\ref{tab:repro}, run against a recorded corpus state. The corpus is 153 textbooks, 1{,}542 chapters and 42{,}995 passages with an embedding for every passage. The catalog, the ingestion pipeline and the dead-end markers reconstruct it from NCERT's published archives without redistributing them. The cross-lingual queries are committed in their original scripts, not transliterated, so a reader can inspect what was actually asked.
 
-\begin{table}[htbp]
+\begin{table}
 \caption{What produces each reported result.}
 \label{tab:repro}
 \centering
