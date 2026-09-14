@@ -31,11 +31,7 @@
 % overshoots the margin rather than loosening the line.
 \ifspringer\emergencystretch=2em\fi
 \makeatletter
-\ifspringer
-  \renewcommand{\fps@figure}{tbp}\renewcommand{\fps@table}{tbp}
-\else
-  \renewcommand{\fps@figure}{H}\renewcommand{\fps@table}{htbp}
-\fi
+\renewcommand{\fps@figure}{H}\renewcommand{\fps@table}{htbp}
 \makeatother
 \ifspringer
   \pgfkeys{/tikz/.cd, every picture/.append style={scale=0.88, every node/.append style={scale=0.88}}}
@@ -48,7 +44,7 @@
 % layout that stops a figure drifting into the wrong section. In the Springer
 % build it ends a page early whenever a float cannot fit before the barrier,
 % which is a visible hole, so the barrier is IEEE-only.
-\ifspringer\usepackage{placeins}\else\usepackage[section]{placeins}\fi
+\usepackage[section]{placeins}
 % Discourage a paragraph's first line from being stranded at the foot of a
 % column, or its last line at the head of the next. LaTeX's defaults (150)
 % treat these as mild; in a two-column layout they are what makes a page
