@@ -1,4 +1,10 @@
-\IEEEoverridecommandlockouts
+% Springer LNCS builds set \springertrue before including this file. The
+% IEEE builds do not define the flag at all, so it defaults to false here
+% and nothing about them changes.
+\makeatletter
+\@ifundefined{ifspringer}{\newif\ifspringer\springerfalse}{}
+\makeatother
+\ifspringer\else\IEEEoverridecommandlockouts\fi
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
@@ -15,6 +21,14 @@
 % a page across a paper this dense and reads marginally better while doing
 % it. Under XeTeX protrusion is the part that works, so expansion is off.
 \usepackage[protrusion=true,expansion=false,final]{microtype}
+% LNCS sets a wider measure than an IEEE column, and several paragraphs here
+% contain long unbreakable tokens -- \texttt{vector(1024)}, URLs, citation
+% runs -- that cannot be hyphenated. Without a little stretch the engine
+% overshoots the margin rather than loosening the line.
+\ifspringer\emergencystretch=2em\fi
+\ifspringer
+  \pgfkeys{/tikz/.cd, every picture/.append style={scale=0.88, every node/.append style={scale=0.88}}}
+\fi
 % A float may not cross a section boundary. Without this the request-path
 % figure drifted into Related Work in one build and sat with System
 % Architecture in another, so the same figure introduced itself a section
@@ -29,15 +43,19 @@
 \displaywidowpenalty=10000
 \usepackage{float}
 % Floats sat further from the text than IEEE needs.
+\ifspringer\else
 \setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
 \setlength{\abovecaptionskip}{4pt}
+\fi
 % Room for more than the default two floats per page, and permission to
 % give most of a page to them, so none is deferred until it is lost.
+\ifspringer\else
 \setcounter{topnumber}{2}\setcounter{bottomnumber}{1}\setcounter{totalnumber}{3}
 \renewcommand{\topfraction}{0.92}\renewcommand{\bottomfraction}{0.55}
 \renewcommand{\textfraction}{0.07}\renewcommand{\floatpagefraction}{0.75}
 \setlength{\floatsep}{7pt plus 2pt minus 2pt}
 \setlength{\intextsep}{7pt plus 2pt minus 2pt}
+\fi
 \usepackage{pgfplots}
 % Two hues, checked with a colour-vision validator before use, not by eye:
 % worst-pair CVD dE 24.7 and normal-vision dE 33.6, both clear of the floors,
@@ -89,32 +107,50 @@
 % All five authors share one department, so IEEEtran's shared-affiliation form
 % is both the correct one and the compact one -- five separate blocks would
 % wrap to a third row and cost most of a column on page one.
-\author{\IEEEauthorblockN{Rachit Ranka, Aaditya Saini, Priyanka Devi, Yogesh Kohli, Ruhani Mehta}
+\ifspringer
+% llncs prints "Title Suppressed Due to Excessive Length" on every recto
+% page unless a short form is supplied, and truncates the author list on
+% the verso unless \authorrunning is given.
+\titlerunning{Shiksha Setu: Local-Retrieval AI Tutoring for Indian Education}
+\authorrunning{R. Ranka et al.}
+\author{Rachit Ranka \and Aaditya Saini \and Priyanka Devi \and Yogesh Kohli \and Ruhani Mehta}
+\institute{Department of Computer Science Engineering, Chandigarh University,\\
+Mohali 140413, Punjab, India\\
+\email{\{rankarachit5, aadityasaini899, pjangra9105,\\
+ykohli2005, ruhanimehta019\}@gmail.com}}
+\else
+\author{\IEEEauthorblockN{Rachit Ranka, Aaditya Saini, Priyanka Devi, Yogesh Kohli, Ruhani}
 \IEEEauthorblockA{\textit{Department of Computer Science Engineering} \\
 \textit{Chandigarh University}, Mohali 140413, Punjab, India \\
 rankarachit5@gmail.com, aadityasaini899@gmail.com, pjangra9105@gmail.com, \\
 ykohli2005@gmail.com, ruhanimehta019@gmail.com}
 }
+\fi
 
 \maketitle
 
 \begin{abstract}
 \ifconf
-Existing AI tutoring systems depend on cloud infrastructure, operate primarily in English, and are not aligned to a national curriculum. Shiksha Setu answers all three. Its corpus, the embeddings over it, and the whole of retrieval sit on the user's own machine; generation stays a hosted call, and the paper does not claim to be offline. Every number here comes from 153 ingested textbooks spanning classes~1--12, or 42{,}995 indexed passages. A five-configuration ablation over 77 queries in eleven Indian languages, run against an English-medium corpus, is where the cross-lingual gap shows most plainly: a lexical baseline retrieves \emph{nothing at all} for every one of them, since a Devanagari or Perso-Arabic query shares no tokens with an English index. Embedding the question directly recovers 47 of 77; rewriting it into English first recovers 66, and that nineteen-query gain, not the pooling the system deploys, is where the improvement lies. A grounding score separates answers written from their retrieved passages from answers that drifted, by 0.360 in cosine similarity over 256 pairs. The threshold shipped before this work admitted 35 of 240 negatives. Half precision halves the embedding footprint to 1{,}083~MB, which is what puts it on a 4~GB machine. Ingestion catches something subtler: legacy Devanagari fonts that render 66\% of Hindi textbooks as Latin gibberish.
+Existing AI tutoring systems depend on cloud infrastructure, operate primarily in English, and are not aligned to a national curriculum. Shiksha Setu answers all three. Its corpus, the embeddings over it, and the whole of retrieval sit on the user's own machine; generation stays a hosted call, and the paper does not claim to be offline. Every number here comes from 153 ingested textbooks spanning classes~1--12, or 42{,}995 indexed passages. A five-configuration ablation over 77 queries in eleven Indian languages, run against an English-medium corpus, is where the cross-lingual gap shows most plainly: a lexical baseline retrieves \emph{nothing at all} for every one of them, since a Devanagari or Perso-Arabic query shares no tokens with an English index. Embedding the question directly recovers 47 of 77. Rewriting it into English first recovers 66. Those nineteen queries are where the improvement comes from; the pooling the system deploys adds one more. A grounding score separates answers written from their retrieved passages from answers that drifted, by 0.360 in cosine similarity over 256 pairs. The threshold shipped before this work admitted 35 of 240 negatives. Half precision halves the embedding footprint to 1{,}083~MB, which is what puts it on a 4~GB machine. Ingestion catches something subtler: legacy Devanagari fonts that render 66\% of Hindi textbooks as Latin gibberish.
 \else
 Existing AI tutoring systems depend on cloud infrastructure, operate primarily in English, and are not aligned to a national curriculum. This paper presents Shiksha Setu, a local-retrieval tutoring platform for the Indian NCERT curriculum in which the corpus, its embeddings and the whole of retrieval are local. Generation is a hosted call, and the paper is explicit about which half is which, and does not claim to be offline. All results are measured against 153 ingested textbooks spanning classes~1--12 (1{,}542 chapters, 42{,}995 indexed passages), a corpus state recorded so the numbers are interpretable. Retrieval is evaluated by a five-configuration ablation over 22 queries in eleven Indian languages: a lexical baseline retrieves \emph{nothing at all}, because a Devanagari or Perso-Arabic query shares no tokens with an English index. Dense retrieval alone reaches 11 of 22, query rewriting alone 14, and pooling both, the deployed configuration, at $16\pm1$. A grounding score separating answers written from their retrieved passages from answers that drifted is calibrated on 256 pairs, not four examples, moving the shipped threshold from 0.55, which admitted 35 of 240 negatives, to 0.715, which admits none. The 0.360 separation reproduces under character $n$-gram TF-IDF and a second encoder family, so it is a property of the answers and not of one embedding space. Half-precision inference halves the embedding footprint to 1{,}083~MB at a mean cosine fidelity of 0.999998, verified by kernel-level peak resident set, enabling deployment on 4~GB machines. The pipeline audits its own sources, detecting legacy Devanagari fonts that render 66\% of Hindi textbooks as Latin gibberish, and a security audit repairs twelve vulnerabilities including a safety pipeline that failed open.
 \fi
+\ifspringer
+\keywords{Retrieval-Augmented Generation \and Multilingual Education \and Local-Retrieval AI \and Indian Languages \and Curriculum-Aligned Tutoring \and Accessibility \and NCERT}
+\fi
 \end{abstract}
 
+\ifspringer\else
 \begin{IEEEkeywords}
 Retrieval-Augmented Generation, Multilingual Education, Local-Retrieval AI, Indian Languages, Curriculum-Aligned Tutoring, Accessibility, NCERT
 \end{IEEEkeywords}
+\fi
 
 %===================================================================
 \section{Introduction}
 %===================================================================
 
-India is home to 1.4 billion people speaking 22 constitutionally recognized languages~\cite{b24}, written in more than a dozen scripts. The National Council of Educational Research and Training (NCERT) publishes the curriculum that governs instruction for the 24.7 crore children enrolled in school~\cite{b30}, yet its textbooks exist only in English, Hindi, and Urdu. A Tamil-speaking student in rural Tamil Nadu, a Marathi-speaking student in Maharashtra, and a Bengali-speaking student in West Bengal all study the same curriculum, but none of them can read it in their mother tongue unless a human teacher translates it in real time.
+India has 1.4 billion people and 22 scheduled languages~\cite{b24}, written in more than a dozen scripts. The National Council of Educational Research and Training (NCERT) publishes the curriculum that governs instruction for the 24.7 crore children enrolled in school~\cite{b30}, yet its textbooks exist only in English, Hindi, and Urdu. A Tamil-speaking student in rural Tamil Nadu, a Marathi-speaking student in Maharashtra, and a Bengali-speaking student in West Bengal all study the same curriculum, but none of them can read it in their mother tongue unless a human teacher translates it in real time.
 
 Artificial intelligence can bridge this gap, but the dominant paradigm of cloud-hosted large language models introduces three structural failures for Indian education:
 
@@ -122,17 +158,17 @@ Artificial intelligence can bridge this gap, but the dominant paradigm of cloud-
 
 This paper presents Shiksha Setu, a platform that addresses the first and third failures and \emph{partially} the second, through a measurement-driven engineering approach.
 
-The qualification is deliberate. Retrieval is entirely local. The corpus, its embeddings and the vector index never leave the machine, but generation is served by a hosted endpoint, so a question's text does leave it and does incur a per-query cost. The system therefore removes the dependency for the component that dominates storage and latency without removing it altogether. Local generation is configured and available (Section~\ref{sec:models}), but a language model cannot share a 4~GB machine with the embedder, so the offline configuration and the 4~GB configuration are alternatives, not the same system. We say local-retrieval rather than local-first because the latter is read as ``offline'', and this system answers nothing without a network. The measurements in this paper were taken in the hosted configuration. Every claim is backed by an experiment whose procedure, data, and result are reported, including experiments that produced wrong results before being corrected. The contributions are:
+The qualification is deliberate. Retrieval is entirely local. The corpus, its embeddings and the vector index never leave the machine, but generation is served by a hosted endpoint, so a question's text does leave it and does incur a per-query cost. The system therefore removes the dependency for the component that dominates storage and latency without removing it altogether. Local generation is configured and available (Section~\ref{sec:models}), but a language model cannot share a 4~GB machine with the embedder. The offline configuration and the 4~GB configuration are therefore two different systems. We use the term local-retrieval because local-first gets read as ``offline'', and this system answers nothing without a network. The measurements in this paper were taken in the hosted configuration. Every claim is backed by an experiment whose procedure, data, and result are reported, including experiments that produced wrong results before being corrected. The contributions are:
 
-This work contributes an ingestion pipeline covering all 559 NCERT textbooks, which detects and rejects the legacy-font corruption that renders 27 of 41 Hindi books unreadable, a defect found only by measuring for it. It contributes a cross-lingual retrieval system that answers questions in eleven Indian languages from an English corpus, with a controlled ablation over 77 queries establishing that rewriting the question into English before embedding it retrieves correctly for 66 of them against 47 for embedding it directly, and that a lexical baseline retrieves none at all. It contributes a memory strategy verified by kernel-level measurement, which brings the serving pipeline inside a 4~GB budget and corrects an earlier arithmetic estimate that understated consumption by 31\%. And it contributes a grounding metric that detects when fluent, confident answers have drifted from their source material, a failure indistinguishable from a correct answer without quantitative measurement, calibrated here on 256 answer and passage pairs instead of hand-checked examples and compared against three alternative estimators.\ifconf\else\ The journal version additionally reports akshara-level readability measurement for nine Brahmic scripts, which replaces Latin-alphabet syllable counting with script-appropriate segmentation, and a security audit documenting twelve vulnerabilities, all repaired, among them a safety pipeline that failed open because of an import error.\fi
+The first contribution is an ingestion pipeline covering all 559 NCERT textbooks. It detects the legacy-font corruption that renders 27 of 41 Hindi books unreadable, a defect we found only by measuring for it. The second is a cross-lingual retrieval system answering questions in eleven Indian languages from an English corpus; a controlled ablation over 77 queries shows that rewriting the question into English before embedding it retrieves correctly for 66 of them, against 47 for embedding it directly, while a lexical baseline retrieves none. Third, a memory strategy verified by kernel-level measurement brings the serving pipeline inside a 4~GB budget and corrects an earlier arithmetic estimate that understated consumption by 31\%. Last, a grounding metric detects when fluent, confident answers have drifted from their source material. Without measurement that failure is invisible. We calibrate the metric on 256 answer and passage pairs and compare it against three alternative estimators.\ifconf\else\ The journal version additionally reports akshara-level readability measurement for nine Brahmic scripts, which replaces Latin-alphabet syllable counting with script-appropriate segmentation, and a security audit documenting twelve vulnerabilities, all repaired, among them a safety pipeline that failed open because of an import error.\fi
 
 %===================================================================
 \section{Related Work}
 %===================================================================
 
-Lewis et al.~\cite{b2} introduced retrieval-augmented generation (RAG) for knowledge-intensive NLP tasks, since surveyed at length~\cite{b28}, establishing the paradigm of conditioning language model output on retrieved passages. Shiksha Setu adopts this architecture with a critical modification: a grade-level filter inserted between retrieval and generation, because the same topic at class~6 and class~12 requires different explanations. Karpukhin et al.~\cite{b3} demonstrated the superiority of dense passage retrieval over BM25. Ma et al.~\cite{b4} showed that query rewriting before embedding improves retrieval quality. The technique that resolves the romanized Hindi failure\ifconf\else\ of Section~\ref{sec:romanized}\fi. Nogueira and Cho~\cite{b5} established passage re-ranking with cross-encoder models. The BGE-Reranker component exists in the codebase but is not yet wired into the retrieval path.
+Lewis et al.~\cite{b2} introduced retrieval-augmented generation (RAG), since surveyed at length~\cite{b28}, establishing the paradigm of conditioning language model output on retrieved passages. Shiksha Setu adopts this architecture with a critical modification: a grade-level filter inserted between retrieval and generation, because the same topic at class~6 and class~12 requires different explanations. Karpukhin et al.~\cite{b3} found dense passage retrieval stronger than BM25. Ma et al.~\cite{b4} showed that query rewriting before embedding improves retrieval quality. The technique that resolves the romanized Hindi failure\ifconf\else\ of Section~\ref{sec:romanized}\fi. Nogueira and Cho~\cite{b5} established passage re-ranking with cross-encoder models. The BGE-Reranker component exists in the codebase but is not yet wired into the retrieval path.
 
-Chen et al.~\cite{b6} presented BGE-M3, a multilingual embedding model supporting over 100 languages in a unified 1024-dimensional vector space. Its cross-lingual property, that semantically equivalent passages in different languages map to nearby vectors, allows a Hindi question to retrieve an English passage without explicit translation. Gala et al.~\cite{b7} developed IndicTrans2 covering all 22 scheduled Indian languages, serving as the translation backbone. Kakwani et al.~\cite{b1} provided monolingual corpora and evaluation benchmarks for Indian languages. Khanuja et al.~\cite{b8} trained MuRIL on transliterated text, directly relevant to the romanized Hindi failure\ifconf\else\ documented in Section~\ref{sec:romanized}\fi.
+Chen et al.~\cite{b6} presented BGE-M3, a multilingual embedding model supporting over 100 languages in a unified 1024-dimensional vector space. Its cross-lingual property, that semantically equivalent passages in different languages map to nearby vectors, allows a Hindi question to retrieve an English passage without explicit translation. Gala et al.~\cite{b7} developed IndicTrans2, which covers every scheduled language and serves as the translation backbone. Kakwani et al.~\cite{b1} released Indic corpora and the benchmarks for evaluating on them. Khanuja et al.~\cite{b8} trained MuRIL on transliterated text, directly relevant to the romanized Hindi failure\ifconf\else\ documented in Section~\ref{sec:romanized}\fi.
 
 \ifshort\else  % six-page build: related work, not load-bearing
 Recent literature categorizes multilingual retrieval into frameworks such as MultiRAG (direct retrieval) and tRAG (translation-RAG). The platform described in this work formally implements a tRAG architecture~\cite{b9}, rewriting queries to a high-resource language (English) before retrieval. This architectural choice unknowingly resolves a newly documented vulnerability in large language models: Output Language Drift~\cite{b10}. Studies show that when a multilingual RAG system processes a query in a target language but retrieves context in a dominant high-resource language, the model mixes languages and outputs the final answer in the high-resource language. The strict separation of the generation language from the delivery language via the translation layer elegantly neutralizes this cognitive drift.
@@ -159,7 +195,7 @@ Kincaid et al.~\cite{b18} derived the Flesch-Kincaid grade-level formula defined
 \label{sec:comparison}
 Table~\ref{tab:comparison} compares this work with the systems an Indian student is most likely to encounter: Khanmigo~\cite{b21}, Khan Academy's GPT-4 tutor; BYJU'S, the largest Indian ed-tech platform; and Bhashini~\cite{b22}, the Government of India's national language-technology mission.
 
-The comparison is confined to \emph{architectural properties}. Every cell is a structural fact, a published vendor figure, or \emph{n/d} where none exists, and no row sets a measurement of ours against a number we could not obtain. Commercial products publish neither latency distributions nor retrieval quality nor memory footprints, and estimating them would produce invented numbers set in the typography of measurement.
+The comparison is confined to \emph{architectural properties}. Every cell is a structural fact, a published vendor figure, or \emph{n/d} where none exists, and no row sets a measurement of ours against a number we could not obtain. Commercial products do not publish latency distributions, retrieval quality, or memory footprints. Estimating them would produce invented numbers dressed as measurements.
 
 \begin{table}[htbp]
 \caption{Comparison with deployed systems. \emph{n/d}: not disclosed by the operator. Rows are architectural properties, not performance claims.}
@@ -196,7 +232,7 @@ Three rows are stated against our own interest: generation is not local, the sys
 \section{System Architecture}
 %===================================================================
 
-A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. The latencies below were taken on the development machine; what the platform \emph{requires} is the 2{,}094~MB of Section~VI, which is what puts it inside 4~GB. Fig.~\ref{fig:pipeline} shows those six with their measured latencies on an 8~GB Apple~M1, arranged by the property this paper is about, which is which side of the machine boundary each one runs on.
+A student's question traverses an eight-stage pipeline from input to response, six of them mandatory. The latencies below were taken on the development machine; what the platform requires is the 2{,}094~MB of Section~\ref{sec:memory}, not this hardware. Retrieval is local and its cost is a property of the index; generation is a hosted call and its cost is a property of the network.
 
 \begin{figure}[H]
 \centering
@@ -310,11 +346,11 @@ CREATE INDEX idx_emb_hnsw_cosine
 \end{verbatim}
 \fi
 
-An earlier migration stored embeddings as \texttt{double precision[]} instead of \texttt{vector(1024)}, making index creation impossible and condemning every search to a sequential scan.
+An earlier migration stored embeddings as \texttt{double precision[]} where \texttt{vector(1024)} was required. Index creation became impossible and every search fell back to a sequential scan.
 
 \ifconf  % the journal carries this at length in the Deployment section
 \label{sec:hardware}
-The 4~GB target is a claim about the machines schools own, and those are predominantly Windows desktops, not the Apple hardware this work was developed on. Portability is therefore part of the claim, not an afterthought.
+The 4~GB target is a claim about the machines schools own. Those are predominantly Windows desktops, while this work was developed on Apple hardware, so portability belongs inside the claim itself.
 
 Device selection is resolved at load time in the order CUDA, Metal (MPS), CPU, and half precision is selected per device (Section~\ref{sec:precision}). Everything the platform needs to know about its host (installed memory, available memory, swap, peak resident set) is read through a single abstraction over \texttt{psutil}, which reports identically on Linux, Windows and macOS.
 
@@ -341,14 +377,16 @@ The complete catalog contains \textbf{559 textbooks}: 209 in English, 191 in Hin
 
 The pipeline processes each book through five stages: ZIP download, per-chapter PDF extraction via PyMuPDF, text cleanup, semantic chunking (1200 characters, 200-character overlap, paragraph-boundary preference), BGE-M3 embedding (fp16), and storage in PostgreSQL. Each book is committed as a single database transaction for resumability. Download and embedding contend for no shared resource. One waits on a remote web server, the other saturates the GPU. Executed sequentially they idle in turn, so the next book's archive is fetched on a prefetch thread while the current book is embedded.
 
-The speedup was established by a controlled comparison, not inferred. The same three books (classes 6--8 \textit{Curiosity}) were ingested twice, once with prefetching disabled through \texttt{INGEST\_PREFETCH=0}, producing byte-identical output in both runs (37 chapters, 1{,}130 chunks): \textbf{193~s per book sequentially against 140~s per book with prefetching, a 1.38$\times$ speedup}. Extrapolated, the 153 obtainable books require approximately 6.0 hours on a single Apple~M1. The figure is quoted over the obtainable books instead of the full 263-book curriculum, because the remainder cannot be ingested at any rate.
+\ifspringer\else
+We established the speedup by controlled comparison. The same three books (classes 6--8 \textit{Curiosity}) were ingested twice, once with prefetching disabled through \texttt{INGEST\_PREFETCH=0}, producing identical output: 193~s per book sequentially against 140~s with prefetching, a 1.38$\times$ speedup on the same hardware and corpus.
+\fi
 
 \ifshort\else  % six-page build: a methodological aside, not a result
 We note that a naive comparison of figures taken under different conditions would have reported this backwards. An earlier sequential measurement of 97~s per book was recorded on a different, smaller book set. Read against the 140~s figure it appears to show prefetching making ingestion \textit{slower}. Only the paired measurement on identical inputs is informative, and unpaired throughput figures are excluded here for that reason.
 \fi
 
 \label{sec:legacy}
-Two-thirds of the Hindi curriculum is rendered unreadable by every PDF text extractor tested. NCERT's older Hindi textbooks are typeset in \textbf{Walkman-Chanakya 905}, a legacy font mapping Devanagari glyphs onto ASCII codepoints with no \texttt{ToUnicode} table. Text extraction returns raw byte values. The analysis covers 41 of the 54 Devanagari-only books in the taught curriculum. The method samples a single chapter PDF per book, and for the remaining 13 books NCERT publishes no individual chapter files, returning HTTP~404 for chapters~1 through~3 at the documented URL scheme. Those 13 are absent for lack of a retrievable sample, not by selection, and no result here is conditioned on their contents (Table~\ref{tab:legacy}):
+Two-thirds of the Hindi curriculum is rendered unreadable by every PDF text extractor tested. NCERT's older Hindi textbooks are typeset in \textbf{Walkman-Chanakya 905}, a legacy font mapping Devanagari glyphs onto ASCII codepoints with no \texttt{ToUnicode} table. Text extraction returns raw byte values. The analysis covers 41 of the 54 Devanagari-only books in the taught curriculum. The method samples a single chapter PDF per book, and for the remaining 13 books NCERT publishes no individual chapter files, returning HTTP~404 for chapters~1 through~3 at the documented URL scheme. Those 13 are absent because no sample could be retrieved for them, and nothing here depends on their contents (Table~\ref{tab:legacy}):
 
 \begin{table}[htbp]
 \caption{Hindi Corpus Corruption Analysis}
@@ -449,9 +487,9 @@ Capping the sum at three passages bounds what volume can contribute while still 
 \label{sec:evalcorpus}
 Each result is reported with the corpus state it was measured against. Grounding used \textbf{153 textbooks}, 138 English and 15 Hindi, 1{,}542 chapters and \textbf{42{,}995 passages}; two more were recovered before the retrieval ablation, which used \textbf{155 textbooks}, 1{,}557 chapters and \textbf{43{,}621 passages}. Every passage in both has an embedding, one lacking it being invisible to retrieval and not otherwise detectable. All twelve classes appear, from 3 books at class~1 to 34 at class~12.
 
-This is 155 of the 263-book taught curriculum. The remaining 108 are not pending but unobtainable. NCERT publishes no archive for most of them, one class~5 archive is corrupt, and the rest are the legacy-font Hindi readers of Section~\ref{sec:legacy}, which the pipeline rejects instead of storing as gibberish. \ifconf Each is recorded with its reason, so the shortfall can be audited rather than asserted. An audit found two whose loss was this machine's doing, not their source's. Both have since been recovered, taking the corpus to 155 books. Every result here is measured against the 153-book state recorded above. \else Each is recorded with its reason, so the shortfall can be audited rather than asserted. Auditing it found two books whose loss was not the source material's. One run exhausted the disk, and one chunk embedded to a non-finite vector, which a single-transaction commit turned into a whole rolled-back book. Both have since been recovered and the corpus now holds 155 books and 43{,}621 passages. Every result in this paper is measured against the 153-book state recorded here and has not been re-measured against the larger one. \fi
+This is 155 of the 263-book taught curriculum. The remaining 108 cannot be obtained at all. NCERT publishes no archive for most of them, one class~5 archive is corrupt, and the rest are the legacy-font Hindi readers of Section~\ref{sec:legacy}, which the pipeline rejects instead of storing as gibberish. \ifconf Each carries a recorded reason, so the shortfall can be audited. An audit traced two of the losses to this machine itself. Both have since been recovered, taking the corpus to 155 books. Every result here is measured against the 153-book state recorded above. \else Each is recorded with its reason, so the shortfall can be audited rather than asserted. Auditing it found two books whose loss was not the source material's. One run exhausted the disk, and one chunk embedded to a non-finite vector, which a single-transaction commit turned into a whole rolled-back book. Both have since been recovered and the corpus now holds 155 books and 43{,}621 passages. Every result in this paper is measured against the 153-book state recorded here and has not been re-measured against the larger one. \fi
 
-Composition is load-bearing for one result, not incidental to it. English science and mathematics books outnumber the Hindi readers roughly nine to one, which is what makes the grade-attribution result\ifconf\else\ of Section~\ref{sec:grade}\fi{} a test and not a formality. A retriever that defaults to the majority of its corpus would answer every Hindi-literature question from a science chapter.
+Composition matters for one of the results here. English science and mathematics books outnumber the Hindi readers roughly nine to one, which is what makes the grade-attribution result\ifconf\else\ of Section~\ref{sec:grade}\fi{} a test and not a formality. A retriever that defaults to the majority of its corpus would answer every Hindi-literature question from a science chapter.
 
 Absolute cosine similarities should be read as characteristic of this corpus and not as a property of the method. Recall in particular is not estimated. There is no ground-truth relevant set for these books, and no such claim is made.
 
@@ -478,7 +516,7 @@ Romanized Hindi drifts to class~1 picture books matching on surface-level token 
 \fi
 
 \label{sec:crossling}
-Retrieval was evaluated over \textbf{77 queries: seven topics in each of the eleven supported Indian languages}, against the English-medium portion of the corpus, so that language is the only variable moving within a topic. The topics span mathematics, physics, chemistry, biology and geography, were fixed before any was run, and each had to have enough English material to answer it. The queries are committed with the benchmark, not only their results.
+Retrieval was evaluated over \textbf{77 queries: seven topics in each of the eleven supported Indian languages}, against the English-medium portion of the corpus, so that language is the only variable moving within a topic. The topics span mathematics, physics, chemistry, biology and geography, were fixed before any was run, and each had to have enough English material to answer it. We commit the queries themselves alongside the benchmark, and not only their results.
 
 How the term is built matters more than what subject it belongs to. \emph{Digestion} is ordinary vocabulary, \emph{photosynthesis} a compound of morphemes meaning ``light'' and ``joining'', \emph{Pythagoras} a transliterated proper noun; direct embedding scores 11, 2 and 5 of 11 on them, a wider spread than any difference between languages here.
 
@@ -515,7 +553,7 @@ Five configurations were measured (Fig.~\ref{fig:ablation}), from a lexical base
 \label{fig:ablation}
 \end{figure}
 
-\textbf{The lexical baseline retrieves nothing at all.} BM25~\cite{b25} returns zero hits for all 77 queries, not merely poor ones: a Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. It is not weaker at this task but structurally incapable of it, which is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (55\%). The barrier is the script, not the vocabulary.
+\textbf{The lexical baseline retrieves nothing at all.} BM25~\cite{b25} returns zero hits for all 77 queries, not merely poor ones: a Devanagari, Tamil or Perso-Arabic query shares no tokens with an English corpus, so the inverted index has nothing to match. It is not weaker at this task but structurally incapable of it, which is the argument for carrying a 568~M-parameter embedding model on a 4~GB machine. Given an English query from the rewrite it becomes viable at once (55\%). The barrier is the script.
 
 Multilingual RAG has been studied as a setting in its own right~\cite{b9}, including the tendency of such pipelines to answer in the language of the retrieved context rather than the question~\cite{b10}, which separating query language from answer language is designed to prevent. \textbf{The rewrite is where the gain is.} Direct embedding retrieves correctly for 47 of 77 and rewriting first for 66, a gain of nineteen queries and the largest effect measured here. It comes from normalising a term the embedding cannot decompose: on \emph{photosynthesis} direct embedding attends to the constituent morphemes, retrieves optics, and scores 2 of 11, where the rewrite recovers 10.
 
@@ -584,13 +622,16 @@ Gujarati  & 6/7 & 0.929 & \multicolumn{3}{l}{} \\
 
 \textbf{What 77 queries can and cannot establish.} Two conclusions are secure: the lexical baseline's interval reaches only 0.048 and excludes every other configuration, so its failure is structural; and rewriting gains nineteen queries over direct embedding, which no reading of the sample size removes. One is not. Pooling scores a single query above rewriting, its interval sits inside rewriting's, and on two topics it is worse than the better arm; it is reported as what the system deploys.
 
+\ifspringer\else
 The rewrite is a language-model call and is not deterministic at temperature zero. Repeated runs at 22 queries returned 16 and 17 with the ordering stable; the 77-query figures come from a single run and carry the same instability, so none is read more tightly than its interval allows. The same non-determinism produced the earlier failure in which a mistranslated rewrite (``Rahim'' as ``Rahman'') silently replaced a question that would have retrieved correctly.
+\fi
 
 \ifshort\else One query fails in every configuration: Urdu \emph{photosynthesis}. The term (\textit{ziyai talif}, Perso-Arabic in origin) shares no morphology with the English word or with the Sanskrit-derived compounds the other ten languages use, so neither arm has anything to match.\fi
 
 %===================================================================
 \section{Memory Optimization}
 %===================================================================
+\label{sec:memory}
 
 \label{sec:precision}
 BGE-M3's weights were evaluated at both full (float32) and half (float16) precision (Table~\ref{tab:precision}).
@@ -612,10 +653,12 @@ Cosine fidelity (min) & --- & 0.999964 \\
 \end{tabular}
 \end{table}
 
-Half precision halves the weights and encodes ${\sim}1.88\times$ faster. Fidelity, measured over 400 corpus passages rather than a handful of queries, is 0.999998 on average and 0.999964 at worst. Whether that matters is a question about rankings, so it was tested as one: over eight queries the top twelve passages are the same twelve under both precisions, in the same order for six of the eight, with the first difference at rank nine. Context is assembled from six passages, so nothing reported here is affected, but half precision can reorder a list rather than cannot.
+Half precision halves the weights and encodes ${\sim}1.88\times$ faster. Fidelity, measured over 400 corpus passages, is 0.999998 on average and 0.999964 at worst. Whether that matters is a question about rankings, so it was tested as one: over eight queries the top twelve passages are the same twelve under both precisions, in the same order for six of the eight, with the first difference at rank nine. Context is assembled from six passages, so nothing reported here is affected. Half precision can still reorder a list, and we report that it does.
 
 
+\ifspringer\else
 \textbf{Measurement against arithmetic.} An earlier analysis summed component sizes to ${\sim}1.6$~GB and concluded comfortable fit within 4~GB. A dedicated benchmarking script measures actual peak RSS through \texttt{getrusage(RUSAGE\_SELF)}, a high-water mark surviving page eviction, unlike \texttt{ps} which reported 46~MB for a process holding a 1~GB model \ifconf\else\ (Table~\ref{tab:footprint})\fi.
+\fi
 
 \ifconf\else  % journal only -- every figure in it is stated in the prose below
 \begin{table}[htbp]
@@ -636,7 +679,7 @@ pgvector search complete & 2,094~MB \\
 \end{table}
 \fi
 
-The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted\ifconf\else\ (Fig.~\ref{fig:memory})\fi. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them). The first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), not the 2.4~GB arithmetic implied.
+The actual peak is \textbf{2,094~MB}. The prediction was 1,600~MB\ifconf\else\ (Fig.~\ref{fig:memory})\fi. Loading model weights accounts for only 534~MB (\texttt{safetensors} memory-maps them). The first forward pass adds 1,560~MB as weight pages become resident and attention workspaces are allocated. The system fits within 4~GB with ${\sim}1.4$~GB usable headroom (accounting for ${\sim}500$~MB of operating system overhead), where the arithmetic had implied 2.4~GB.
 
 \ifconf\else  % journal only: every number in it is in the prose alongside
 \begin{figure}[H]
@@ -658,7 +701,7 @@ The actual peak is \textbf{2,094~MB}, not the 1,600~MB predicted\ifconf\else\ (F
 \end{figure}
 \fi
 
-\textbf{The reranker was measured rather than assumed.} \ifshort A cross-encoder is the usual answer to imperfect ranking, so its absence needs more than a footprint estimate. Over the same 77 queries and pooled candidates, BGE-Reranker-v2-M3 scores \textbf{65 of 77} against 67 without it, promoting seven and demoting nine; resident beside the embedder it drove an 8~GB machine to 12.5~GB of swap without finishing. It is excluded on that evidence.\else A cross-encoder scores question and passage jointly and is the usual answer to imperfect ranking, so its absence from the retrieval path needs more than a footprint estimate. Over the same 77 queries and the same pooled candidates, BGE-Reranker-v2-M3 scores \textbf{65 of 77} against 67 without it, promoting seven queries to rank~1 and demoting nine, with intervals that overlap almost entirely. It also does not fit: held resident beside the embedder the pair requested 8.6~GB on an 8~GB machine, drove swap to 12.5~GB and 435{,}654 page-ins, and had not finished after fifty-one minutes.\ifconf\else\ Releasing the embedder first, which a deployment cannot do because it needs it to search, the run still spent thirty-two minutes of wall time to accumulate four minutes of CPU. The figures quoted are paging counters rather than resident set, which stops being meaningful once pages are being evicted.\fi{} It is excluded on measurement, not assumption.\fi
+\textbf{Why the reranker is absent.} \ifshort A cross-encoder is the usual answer to imperfect ranking, so its absence needs more than a footprint estimate. Over the same 77 queries and pooled candidates, BGE-Reranker-v2-M3 scores \textbf{65 of 77} against 67 without it, promoting seven and demoting nine; resident beside the embedder it drove an 8~GB machine to 12.5~GB of swap without finishing. It is excluded on that evidence.\else A cross-encoder scores question and passage jointly and is the usual answer to imperfect ranking, so its absence from the retrieval path needs more than a footprint estimate. Over the same 77 queries and the same pooled candidates, BGE-Reranker-v2-M3 scores \textbf{65 of 77} against 67 without it, promoting seven queries to rank~1 and demoting nine, with intervals that overlap almost entirely. It also does not fit: held resident beside the embedder the pair requested 8.6~GB on an 8~GB machine, drove swap to 12.5~GB and 435{,}654 page-ins, and had not finished after fifty-one minutes.\ifconf\else\ Releasing the embedder first, which a deployment cannot do because it needs it to search, the run still spent thirty-two minutes of wall time to accumulate four minutes of CPU. The figures quoted are paging counters rather than resident set, which stops being meaningful once pages are being evicted.\fi{} It is excluded on measurement, not assumption.\fi
 
 \ifconf\else  % journal only -- Ingestion memory: an operations note
 A single process ingesting 263 books reached book~8 and entered an unrecoverable state: swap at 11.4~GB of 12.2~GB maximum, the process in uninterruptible I/O wait. \texttt{SIGKILL} is not delivered in that state. The solution is batch processing: one process per six books, with ${\sim}20$~seconds of model reloading per batch.
@@ -743,11 +786,11 @@ This defect is characteristic of the class the audit kept finding. It is not a m
 
 A retrieval-augmented system can retrieve the correct chapter and still generate a fabricated answer, which is the failure mode surveyed across generation tasks by Ji et al.~\cite{b29} and the one retrieval is supposed to remove. When asked about a specific story from the Hindi curriculum, the system retrieved the correct chapter, then described events that never occurred. The class was correct, the chapter was correct, the language was correct, and every detail was invented.
 
-The \textbf{grounding score} computes cosine similarity between the generated answer and the source passages. Reference-free RAG evaluation frameworks score a comparable property, faithfulness, with a language model as judge~\cite{b27}; the metric used here is a single cosine similarity, which costs one encoder pass and no second model. Lexical overlap cannot serve the purpose because the platform produces answers in a different language from the source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case.
+The \textbf{grounding score} is the cosine similarity of the answer to its source passages. Reference-free RAG evaluation frameworks score a comparable property, faithfulness, with a language model as judge~\cite{b27}; the metric used here is a single cosine similarity, which costs one encoder pass and no second model. Lexical overlap cannot serve the purpose because the platform produces answers in a different language from the source passages. BGE-M3's cross-lingual embedding property makes the metric functional in exactly this case.
 
 \textbf{Calibrating on a distribution.} The threshold was originally set at 0.55 from four hand-verified answers, three correct at 0.583--0.701 and one fabricated at 0.489. Four points that happen to separate are not a calibration, and the difficulty is obtaining ungrounded answers in quantity. A model instructed to hallucinate does not fail the way a grounded pipeline fails.
 
-The negatives are therefore constructed, not solicited. Every answer is generated normally from its own retrieved passages, then scored twice: against the passages it was written from (\emph{matched}), and against another question's passages (\emph{mismatched}). A mismatched pair is precisely the failure the metric exists to catch (fluent, well-formed, on a different subject) and it requires no human labelling and no second generation pass. Sixteen questions spanning subjects and classes yield 16 matched and 240 mismatched pairs.
+We therefore construct the negatives. Every answer is generated normally from its own retrieved passages, then scored twice: against the passages it was written from (\emph{matched}), and against another question's passages (\emph{mismatched}). A mismatched pair is precisely the failure the metric exists to catch (fluent, well-formed, on a different subject) and it requires no human labelling and no second generation pass. Sixteen questions spanning subjects and classes yield 16 matched and 240 mismatched pairs.
 
 Grounding need not be measured against the concatenation of the retrieved passages, so four estimators were compared over identical generations (Fig.~\ref{fig:estimators}). The two runs of the experiment, with independently generated answers, agreed to within 0.007 on every entry.
 
@@ -774,18 +817,18 @@ Grounding need not be measured against the concatenation of the retrieved passag
 \legend{matched, mismatched}
 \end{axis}
 \end{tikzpicture}
-\caption{Four grounding estimators over 16 matched and 240 mismatched pairs, with one standard deviation. What separates the populations is the distance between the two bars, not the height of either.}
+\caption{Four grounding estimators over 16 matched and 240 mismatched pairs, with one standard deviation. What separates the populations is the distance between the two bars. Their heights do not matter.}
 \label{fig:estimators}
 \end{figure}
 
 The simplest estimator is also the best. Scoring the answer against all retrieved passages joined separates the two populations by 0.360, and no refinement improves on it. Scoring against the single best passage raises both means without widening the gap, and scoring sentence by sentence narrows it, because a correct answer contains connective and pedagogical sentences that appear in no passage, and averaging over them dilutes the signal the metric depends on.
 
-\textbf{The boundary was in the wrong place.} The distribution shows that 0.55 separates the populations but sits too low. Thirty-five of the 240 mismatched pairs, one drifted answer in seven, score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it. Balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were not wrong, merely too few to locate the boundary.
+\textbf{The boundary was in the wrong place.} The distribution shows that 0.55 separates the populations but sits too low. Thirty-five of the 240 mismatched pairs, one drifted answer in seven, score above it and pass as grounded. At 0.715 none do, while no matched answer falls below it. Balanced accuracy rises from 0.927 to 1.000, and the number of correct answers needlessly regenerated stays at zero. The deployed threshold was raised accordingly. The original four points were correct. There were simply too few of them to locate the boundary.
 
 That 1.000 should be read for what it measures. The negatives are answers written from \emph{another question's} passages, so the task the score is perfect at is separating an answer from a different subject: topical drift, which is the failure we observed in deployment. It is not a measurement of hallucination detection in general, and an answer that stays on its retrieved topic while inventing a detail inside it would score as grounded here. The threshold is calibrated for the failure it was built to catch, and we claim no more than that.
 
 \label{sec:grounding-indep}
-\textbf{The embedder is not judging its own geometry.} BGE-M3 retrieved these passages and then scored the answers against them, so the separation could be a property of one embedding space and not of the text. Re-scoring the same generations settles it. Character 3--5 gram TF-IDF, not neural at all, separates the populations by 0.359, and a distilled multilingual MiniLM by 0.471, against BGE-M3's 0.360 (balanced accuracy 1.000, 0.996, 1.000). The gap is a property of the answers. Only the threshold is particular to the embedder deployed.
+\textbf{The embedder is not judging its own geometry.} BGE-M3 retrieved these passages and then scored the answers against them, so the separation could be a property of one embedding space and not of the text. Re-scoring the same generations settles it. Character 3--5 gram TF-IDF, which uses no neural model at all, separates the populations by 0.359, and a distilled multilingual MiniLM by 0.471, against BGE-M3's 0.360 (balanced accuracy 1.000, 0.996, 1.000). The gap is a property of the answers. Only the threshold is particular to the embedder deployed.
 
 \ifconf\else  % journal only -- Consolidated Results: every figure in it is stated where it was measured
 %===================================================================
@@ -923,7 +966,7 @@ The grounding scripts cache their generations, so a re-run re-scores identical a
 %===================================================================
 
 \ifconf
-The measurement-driven methodology reveals a recurring pattern. Intuitive engineering assumptions are frequently contradicted by measurement, and the contradictions are more informative than the assumptions.
+One pattern recurs throughout this work. Measurement kept contradicting what we had assumed, and we learned more from the contradictions than from the assumptions.
 \else
 The measurement-driven methodology reveals a recurring pattern. Intuitive engineering assumptions are frequently contradicted by empirical measurement, and the contradictions are more informative than the assumptions.
 \fi
@@ -934,15 +977,15 @@ The legacy font detection illustrates this most starkly. A quality metric search
 
 \textbf{Availability.} The platform, the ingestion pipeline and every benchmark reported here, including the 77 cross-lingual queries in their original scripts and the grounding calibration, are available at \url{https://github.com/rachitranka25/SHIKSHASETU}. The corpus itself is not redistributed. The pipeline reconstructs it from NCERT's own published archives.
 
-\textbf{Rights and ethics.} NCERT publishes these textbooks for free public download. The system stores only locally derived text and vectors, redistributed with neither the code nor this paper, and a deployment beyond research use should confirm the applicable terms instead of inferring them from availability. No human subjects took part and no student data was collected. Every measurement here is taken from the system itself.
+\textbf{Rights and ethics.} NCERT publishes these textbooks for free public download. The system stores only locally derived text and vectors, redistributed with neither the code nor this paper, and a deployment beyond research use should confirm the applicable terms; availability alone does not settle them. No human subjects took part and no student data was collected. Every measurement here is taken from the system itself.
 
-\textbf{Limitations.} (1)~The grounding negatives are constructed by mismatching answers to other questions' passages, not collected from observed hallucinations. This captures topical drift, which is the failure we have seen, but not an answer that stays on topic and invents a detail within it. (2)~Cross-lingual retrieval is evaluated on two topics per language. Broader topic coverage would tighten the estimate. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
+\textbf{Limitations.} (1)~We construct the grounding negatives by mismatching answers to other questions' passages, so they are not drawn from observed hallucinations. This captures topical drift, which is the failure we have seen, but not an answer that stays on topic and invents a detail within it. (2)~Cross-lingual retrieval is evaluated on two topics per language. Broader topic coverage would tighten the estimate. (3)~27 legacy-font Hindi books remain unprocessable. (4)~Memory measurements have run-to-run variance of up to 414~MB.
 
 %===================================================================
 \section{Conclusion and Future Work}
 %===================================================================
 
-This paper presented Shiksha Setu, a local-retrieval AI tutoring platform whose pipeline addresses the complete NCERT catalog of 559 textbooks and which delivers instruction in eleven Indian languages on consumer hardware with as little as 4~GB of RAM. The reported evaluation rests on 153 ingested textbooks and 42{,}995 indexed passages spanning all twelve classes. Every performance claim has been substantiated through kernel-level measurement, and engineering failures have been documented alongside their corrections.
+Shiksha Setu is a local-retrieval AI tutoring platform whose pipeline addresses the complete NCERT catalog of 559 textbooks and which delivers instruction in eleven Indian languages on consumer hardware with as little as 4~GB of RAM. The reported evaluation rests on 153 ingested textbooks and 42{,}995 indexed passages spanning all twelve classes. Every performance claim has been substantiated through kernel-level measurement, and engineering failures have been documented alongside their corrections.
 
 \ifconf
 The principal contributions are: (1)~corpus construction with legacy-font corruption detection affecting 66\% of Hindi textbooks, (2)~cross-lingual retrieval measured over 77 queries in eleven languages, with an ablation showing that rewriting the query before embedding it gains nineteen queries over embedding it directly, 66 of 77 against 47, and that a lexical baseline retrieves none of the 77, (3)~a grounding metric separating grounded from drifted answers by 0.360 in cosine similarity over 256 pairs, at a calibrated threshold that admits none of the 240 negatives where the previously shipped value admitted 35, and (4)~half-precision inference halving memory at a mean cosine fidelity of 0.999998. Reading support for Brahmic scripts and a security audit of the deployment are reported in the extended version.
@@ -951,7 +994,7 @@ The principal contributions are: (1)~corpus construction with legacy-font corrup
 \fi
 
 \ifconf
-Future work targets a human-in-the-loop pilot with practising teachers, negatives drawn from observed hallucinations instead of constructions, a cross-encoder reranker for the compound-term failures, and a Walkman-Chanakya to Unicode transliterator to recover the legacy-font books.
+Future work targets a human-in-the-loop pilot with practising teachers, negatives drawn from observed hallucinations, a cross-encoder reranker for the compound-term failures, and a Walkman-Chanakya to Unicode transliterator to recover the legacy-font books.
 \else
 Future work targets: conducting a human-in-the-loop pilot study with actual educators to evaluate pedagogical utility, expanding the hallucination annotation dataset (100+ response pairs) for robust grounding calibration, integrating a cross-encoder reranker to resolve compound-term failures (e.g., photosynthesis), implementing Entity Linking for polysemous term disambiguation, and developing a Walkman-Chanakya-to-Unicode transliterator.
 \fi
@@ -967,7 +1010,7 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
 \setlength{\itemsep}{0pt plus 0.2pt}\setlength{\parskip}{0pt}
 % Conference page limit: the reference list is the last thing that should be cut to
 % meet it, so it is set smaller and tighter instead of shorter.
-\ifshort\scriptsize\else\ifconf\footnotesize\fi\fi
+\ifspringer\else\ifshort\scriptsize\else\ifconf\footnotesize\fi\fi\fi
 \ifconf
   \setlength{\itemsep}{0pt}%
   \setlength{\parskip}{0pt}%
@@ -978,40 +1021,70 @@ Future work targets: conducting a human-in-the-loop pilot study with actual educ
   \setlength{\labelsep}{2pt}%
   \setlength{\itemindent}{0pt}%
 \fi
-\bibitem{b1} D. Kakwani \textit{et al.}, ``IndicNLPSuite: corpora, benchmarks and pre-trained models for Indian languages,'' in \textit{Findings of EMNLP}, 2020.
-\bibitem{b2} P. Lewis \textit{et al.}, ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' in \textit{Proc. NeurIPS}, 2020.
-\bibitem{b3} V. Karpukhin \textit{et al.}, ``Dense passage retrieval for open-domain question answering,'' in \textit{Proc. EMNLP}, 2020, pp. 6769--6781.
-\bibitem{b4} X. Ma, Y. Gong, P. He, H. Zhao, and N. Duan, ``Query rewriting for retrieval-augmented large language models,'' in \textit{Proc. EMNLP}, 2023.
-\bibitem{b5} R. Nogueira and K. Cho, ``Passage re-ranking with BERT,'' \textit{arXiv preprint arXiv:1901.04085}, 2019.
-\bibitem{b6} J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, ``BGE M3-Embedding: multi-lingual, multi-granularity text embeddings via self-knowledge distillation,'' \textit{arXiv preprint arXiv:2402.03216}, 2024.
-\bibitem{b7} A. Gala \textit{et al.}, ``IndicTrans2: accessible machine translation for all 22 scheduled Indian languages,'' \textit{Trans. Mach. Learn. Res. (TMLR)}, 2023.
-\bibitem{b8} S. Khanuja \textit{et al.}, ``MuRIL: Multilingual representations for Indian languages,'' 2021.
-\bibitem{b9} Z. Xu \textit{et al.}, ``Multilingual retrieval-augmented generation for knowledge-intensive task,'' \textit{arXiv preprint arXiv:2504.03616}, 2025.
-\bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual RAG: characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.
-\bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using HNSW graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.
-\bibitem{b12} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP}, 2019, pp. 3982--3992.
+\ifspringer\bibitem{b1} Kakwani, D., et al.: IndicNLPSuite: corpora, benchmarks and pre-trained models for Indian languages. In: Findings of EMNLP (2020)
+\else\bibitem{b1} D. Kakwani \textit{et al.}, ``IndicNLPSuite: corpora, benchmarks and pre-trained models for Indian languages,'' in \textit{Findings of EMNLP}, 2020.\fi
+\ifspringer\bibitem{b2} Lewis, P., et al.: Retrieval-augmented generation for knowledge-intensive NLP tasks. In: Proc. NeurIPS (2020)
+\else\bibitem{b2} P. Lewis \textit{et al.}, ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' in \textit{Proc. NeurIPS}, 2020.\fi
+\ifspringer\bibitem{b3} Karpukhin, V., et al.: Dense passage retrieval for open-domain question answering. In: Proc. EMNLP, pp. 6769--6781 (2020)
+\else\bibitem{b3} V. Karpukhin \textit{et al.}, ``Dense passage retrieval for open-domain question answering,'' in \textit{Proc. EMNLP}, 2020, pp. 6769--6781.\fi
+\ifspringer\bibitem{b4} Ma, X., Gong, Y., He, P., Zhao, H., Duan, N.: Query rewriting for retrieval-augmented large language models. In: Proc. EMNLP (2023)
+\else\bibitem{b4} X. Ma, Y. Gong, P. He, H. Zhao, and N. Duan, ``Query rewriting for retrieval-augmented large language models,'' in \textit{Proc. EMNLP}, 2023.\fi
+\ifspringer\bibitem{b5} Nogueira, R., Cho, K.: Passage re-ranking with BERT. arXiv:1901.04085 (2019)
+\else\bibitem{b5} R. Nogueira and K. Cho, ``Passage re-ranking with BERT,'' \textit{arXiv preprint arXiv:1901.04085}, 2019.\fi
+\ifspringer\bibitem{b6} Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., Liu, Z.: BGE M3-Embedding: multi-lingual, multi-granularity text embeddings via self-knowledge distillation. arXiv:2402.03216 (2024)
+\else\bibitem{b6} J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, ``BGE M3-Embedding: multi-lingual, multi-granularity text embeddings via self-knowledge distillation,'' \textit{arXiv preprint arXiv:2402.03216}, 2024.\fi
+\ifspringer\bibitem{b7} Gala, A., et al.: IndicTrans2: accessible machine translation for all 22 scheduled Indian languages. Trans. Mach. Learn. Res. (TMLR) (2023)
+\else\bibitem{b7} A. Gala \textit{et al.}, ``IndicTrans2: accessible machine translation for all 22 scheduled Indian languages,'' \textit{Trans. Mach. Learn. Res. (TMLR)}, 2023.\fi
+\ifspringer\bibitem{b8} Khanuja, S., et al.: MuRIL: multilingual representations for Indian languages (2021)
+\else\bibitem{b8} S. Khanuja \textit{et al.}, ``MuRIL: Multilingual representations for Indian languages,'' 2021.\fi
+\ifspringer\bibitem{b9} Xu, Z., et al.: Multilingual retrieval-augmented generation for knowledge-intensive task. arXiv:2504.03616 (2025)
+\else\bibitem{b9} Z. Xu \textit{et al.}, ``Multilingual retrieval-augmented generation for knowledge-intensive task,'' \textit{arXiv preprint arXiv:2504.03616}, 2025.\fi
+\ifspringer\bibitem{b10} Chen, Y., et al.: Language drift in multilingual RAG: characterization and decoding-time mitigation. arXiv:2511.09984 (2025)
+\else\bibitem{b10} Y. Chen \textit{et al.}, ``Language drift in multilingual RAG: characterization and decoding-time mitigation,'' \textit{arXiv preprint arXiv:2511.09984}, 2025.\fi
+\ifspringer\bibitem{b11} Malkov, Y.A., Yashunin, D.A.: Efficient and robust approximate nearest neighbor search using HNSW graphs. IEEE Trans. Pattern Anal. Mach. Intell. \textbf{42}(4), 824--836 (2020)
+\else\bibitem{b11} Y. A. Malkov and D. A. Yashunin, ``Efficient and robust approximate nearest neighbor search using HNSW graphs,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 42, no. 4, pp. 824--836, Apr. 2020.\fi
+\ifspringer\bibitem{b12} Reimers, N., Gurevych, I.: Sentence-BERT: sentence embeddings using Siamese BERT-Networks. In: Proc. EMNLP, pp. 3982--3992 (2019)
+\else\bibitem{b12} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP}, 2019, pp. 3982--3992.\fi
 \ifconf\else  % journal only -- cited only by the accessibility and readability sections
-\bibitem{b13} M. Zorzi \textit{et al.}, ``Extra-large letter spacing improves reading in dyslexia,'' \textit{Proc. Nat. Acad. Sci. (PNAS)}, vol. 109, no. 28, pp. 11455--11459, 2012.
-\bibitem{b14} L. Rello and R. Baeza-Yates, ``Good fonts for dyslexia,'' in \textit{Proc. ACM SIGACCESS Conf. Comput. Accessibility (ASSETS)}, 2013.
-\bibitem{b15} S. M. Kuster, M. van Weerdenburg, M. Gompel, and A. Bosman, ``Dyslexie font does not benefit reading in children with or without dyslexia,'' \textit{Annals of Dyslexia}, vol. 68, pp. 25--42, 2018.
-\bibitem{b16} S. Nag, ``Early reading in Kannada: The pace of acquisition of orthographic knowledge and phonemic awareness,'' \textit{J. Res. Reading}, vol. 30, no. 1, pp. 7--22, 2007.
-\bibitem{b17} S. Nag and M. J. Snowling, ``Reading in an alphasyllabary: Implications for a language-universal theory of learning to read,'' \textit{Sci. Stud. Reading}, vol. 16, no. 5, pp. 404--423, 2012.
-\bibitem{b18} J. P. Kincaid, R. P. Fishburne, R. L. Rogers, and B. S. Chissom, ``Derivation of new readability formulas for Navy enlisted personnel,'' Naval Tech. Training Command, Rep. 8-75, 1975.
-\bibitem{b19} W. Xu, C. Callison-Burch, and C. Napoles, ``Problems in current text simplification research: New data can help,'' \textit{Trans. Assoc. Comput. Linguist. (TACL)}, vol. 3, pp. 283--297, 2015.
+\ifspringer\bibitem{b13} Zorzi, M., et al.: Extra-large letter spacing improves reading in dyslexia. Proc. Nat. Acad. Sci. \textbf{109}(28), 11455--11459 (2012)
+\else\bibitem{b13} M. Zorzi \textit{et al.}, ``Extra-large letter spacing improves reading in dyslexia,'' \textit{Proc. Nat. Acad. Sci. (PNAS)}, vol. 109, no. 28, pp. 11455--11459, 2012.\fi
+\ifspringer\bibitem{b14} Rello, L., Baeza-Yates, R.: Good fonts for dyslexia. In: Proc. ACM SIGACCESS Conf. Comput. Accessibility (ASSETS) (2013)
+\else\bibitem{b14} L. Rello and R. Baeza-Yates, ``Good fonts for dyslexia,'' in \textit{Proc. ACM SIGACCESS Conf. Comput. Accessibility (ASSETS)}, 2013.\fi
+\ifspringer\bibitem{b15} Kuster, S.M., van Weerdenburg, M., Gompel, M., Bosman, A.: Dyslexie font does not benefit reading in children with or without dyslexia. Ann. Dyslexia \textbf{68}, 25--42 (2018)
+\else\bibitem{b15} S. M. Kuster, M. van Weerdenburg, M. Gompel, and A. Bosman, ``Dyslexie font does not benefit reading in children with or without dyslexia,'' \textit{Annals of Dyslexia}, vol. 68, pp. 25--42, 2018.\fi
+\ifspringer\bibitem{b16} Nag, S.: Early reading in Kannada: the pace of acquisition of orthographic knowledge and phonemic awareness. J. Res. Reading \textbf{30}(1), 7--22 (2007)
+\else\bibitem{b16} S. Nag, ``Early reading in Kannada: The pace of acquisition of orthographic knowledge and phonemic awareness,'' \textit{J. Res. Reading}, vol. 30, no. 1, pp. 7--22, 2007.\fi
+\ifspringer\bibitem{b17} Nag, S., Snowling, M.J.: Reading in an alphasyllabary: implications for a language-universal theory of learning to read. Sci. Stud. Reading \textbf{16}(5), 404--423 (2012)
+\else\bibitem{b17} S. Nag and M. J. Snowling, ``Reading in an alphasyllabary: Implications for a language-universal theory of learning to read,'' \textit{Sci. Stud. Reading}, vol. 16, no. 5, pp. 404--423, 2012.\fi
+\ifspringer\bibitem{b18} Kincaid, J.P., Fishburne, R.P., Rogers, R.L., Chissom, B.S.: Derivation of new readability formulas for Navy enlisted personnel. Naval Tech. Training Command, Rep. 8-75 (1975)
+\else\bibitem{b18} J. P. Kincaid, R. P. Fishburne, R. L. Rogers, and B. S. Chissom, ``Derivation of new readability formulas for Navy enlisted personnel,'' Naval Tech. Training Command, Rep. 8-75, 1975.\fi
+\ifspringer\bibitem{b19} Xu, W., Callison-Burch, C., Napoles, C.: Problems in current text simplification research: new data can help. Trans. Assoc. Comput. Linguist. \textbf{3}, 283--297 (2015)
+\else\bibitem{b19} W. Xu, C. Callison-Burch, and C. Napoles, ``Problems in current text simplification research: New data can help,'' \textit{Trans. Assoc. Comput. Linguist. (TACL)}, vol. 3, pp. 283--297, 2015.\fi
 \fi
-\bibitem{b20} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. ICLR}, 2018.
-\bibitem{b21} Khan Academy, ``Khanmigo: an AI tutor for learners and assistant for teachers,'' 2023. [Online]. Available: khanmigo.ai
-\bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: bhashini.gov.in
+\ifspringer\bibitem{b20} Micikevicius, P., et al.: Mixed precision training. In: Proc. ICLR (2018)
+\else\bibitem{b20} P. Micikevicius \textit{et al.}, ``Mixed precision training,'' in \textit{Proc. ICLR}, 2018.\fi
+\ifspringer\bibitem{b21} Khan Academy: Khanmigo: an AI tutor for learners and assistant for teachers (2023), \url{https://khanmigo.ai}
+\else\bibitem{b21} Khan Academy, ``Khanmigo: an AI tutor for learners and assistant for teachers,'' 2023. [Online]. Available: khanmigo.ai\fi
+\ifspringer\bibitem{b22} Ministry of Electronics and Information Technology, Government of India: BHASHINI: National Language Translation Mission (2022), \url{https://bhashini.gov.in}
+\else\bibitem{b22} Ministry of Electronics and Information Technology, Government of India, ``BHASHINI: National Language Translation Mission,'' 2022. [Online]. Available: bhashini.gov.in\fi
 \ifshort\else  % cited only by material the six-page build drops
-\bibitem{b23} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.
+\ifspringer\bibitem{b23} Radford, A., Kim, J.W., Xu, T., Brockman, G., McLeavey, C., Sutskever, I.: Robust speech recognition via large-scale weak supervision. In: Proc. ICML (2023)
+\else\bibitem{b23} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. ICML}, 2023.\fi
 \fi
-\bibitem{b25} S. Robertson and H. Zaragoza, ``The probabilistic relevance framework: BM25 and beyond,'' \textit{Foundations and Trends in Information Retrieval}, vol.~3, no.~4, pp.~333--389, 2009.
-\bibitem{b26} E. B. Wilson, ``Probable inference, the law of succession, and statistical inference,'' \textit{J.~Amer. Statist. Assoc.}, vol.~22, no.~158, pp.~209--212, 1927.
-\bibitem{b27} S. Es, J. James, L. Espinosa-Anke, and S. Schockaert, ``RAGAs: Automated evaluation of retrieval augmented generation,'' in \textit{Proc. EACL: System Demonstrations}, 2024, pp.~150--158.
-\bibitem{b28} Y. Gao \textit{et al.}, ``Retrieval-augmented generation for large language models: A survey,'' \textit{arXiv preprint arXiv:2312.10997}, 2023.
-\bibitem{b29} Z. Ji \textit{et al.}, ``Survey of hallucination in natural language generation,'' \textit{ACM Comput. Surv.}, vol.~55, no.~12, art.~248, 2023.
-\bibitem{b30} Dept. of School Education and Literacy, ``UDISE+ 2024--25 report,'' Ministry of Education, India, 2025.
-\bibitem{b24} Registrar General of India, ``Census of India 2011, Table C-17: bilingualism and trilingualism,'' 2011.
+\ifspringer\bibitem{b25} Robertson, S., Zaragoza, H.: The probabilistic relevance framework: BM25 and beyond. Found. Trends Inf. Retr. \textbf{3}(4), 333--389 (2009)
+\else\bibitem{b25} S. Robertson and H. Zaragoza, ``The probabilistic relevance framework: BM25 and beyond,'' \textit{Foundations and Trends in Information Retrieval}, vol.~3, no.~4, pp.~333--389, 2009.\fi
+\ifspringer\bibitem{b26} Wilson, E.B.: Probable inference, the law of succession, and statistical inference. J. Amer. Statist. Assoc. \textbf{22}(158), 209--212 (1927)
+\else\bibitem{b26} E. B. Wilson, ``Probable inference, the law of succession, and statistical inference,'' \textit{J.~Amer. Statist. Assoc.}, vol.~22, no.~158, pp.~209--212, 1927.\fi
+\ifspringer\bibitem{b27} Es, S., James, J., Espinosa-Anke, L., Schockaert, S.: RAGAs: automated evaluation of retrieval augmented generation. In: Proc. EACL: System Demonstrations, pp. 150--158 (2024)
+\else\bibitem{b27} S. Es, J. James, L. Espinosa-Anke, and S. Schockaert, ``RAGAs: Automated evaluation of retrieval augmented generation,'' in \textit{Proc. EACL: System Demonstrations}, 2024, pp.~150--158.\fi
+\ifspringer\bibitem{b28} Gao, Y., et al.: Retrieval-augmented generation for large language models: a survey. arXiv:2312.10997 (2023)
+\else\bibitem{b28} Y. Gao \textit{et al.}, ``Retrieval-augmented generation for large language models: A survey,'' \textit{arXiv preprint arXiv:2312.10997}, 2023.\fi
+\ifspringer\bibitem{b29} Ji, Z., et al.: Survey of hallucination in natural language generation. ACM Comput. Surv. \textbf{55}(12), art. 248 (2023)
+\else\bibitem{b29} Z. Ji \textit{et al.}, ``Survey of hallucination in natural language generation,'' \textit{ACM Comput. Surv.}, vol.~55, no.~12, art.~248, 2023.\fi
+\ifspringer\bibitem{b30} Dept. of School Education and Literacy: UDISE+ 2024--25 report. Ministry of Education, India (2025)
+\else\bibitem{b30} Dept. of School Education and Literacy, ``UDISE+ 2024--25 report,'' Ministry of Education, India, 2025.\fi
+\ifspringer\bibitem{b24} Registrar General of India: Census of India 2011, Table C-17: bilingualism and trilingualism (2011)
+\else\bibitem{b24} Registrar General of India, ``Census of India 2011, Table C-17: bilingualism and trilingualism,'' 2011.\fi
 \end{thebibliography}
 \endgroup
 

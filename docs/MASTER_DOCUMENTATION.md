@@ -137,7 +137,7 @@ chmod +x setup.sh
 ## API Reference
 
 ### Authentication
-
+c
 ```bash
 # Login
 POST /api/v2/auth/login
