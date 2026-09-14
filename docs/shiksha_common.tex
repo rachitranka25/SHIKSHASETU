@@ -30,6 +30,12 @@
 % runs -- that cannot be hyphenated. Without a little stretch the engine
 % overshoots the margin rather than loosening the line.
 \ifspringer\emergencystretch=2em\fi
+% llncs inherits \flushbottom, which stretches the space between items to make
+% every page end at the same depth. On a page carrying two floats and little
+% text that stretch lands between the floats and reads as a hole. \raggedbottom
+% keeps the float separation at its natural size and leaves the slack at the
+% foot, where it is ordinary.
+\ifspringer\raggedbottom\fi
 \makeatletter
 \renewcommand{\fps@figure}{H}\renewcommand{\fps@table}{htbp}
 \makeatother
@@ -44,7 +50,7 @@
 % layout that stops a figure drifting into the wrong section. In the Springer
 % build it ends a page early whenever a float cannot fit before the barrier,
 % which is a visible hole, so the barrier is IEEE-only.
-\usepackage[section]{placeins}
+\ifspringer\usepackage{placeins}\else\usepackage[section]{placeins}\fi
 % Discourage a paragraph's first line from being stranded at the foot of a
 % column, or its last line at the head of the next. LaTeX's defaults (150)
 % treat these as mild; in a two-column layout they are what makes a page
@@ -319,13 +325,13 @@ Reranking & BGE-Reranker-v2-M3 & 568M \\
 \fi
 
 \ifshort\else  % six-page build: the point is made with numbers elsewhere
-Exactly one model is resident locally on the critical path. This is not an accident of packaging but the property that makes the memory budget of Section~VI achievable. Embedding must be local because every chunk in the corpus passes through it during ingestion, whereas generation, illustration and OCR are per-request and therefore hosted, leaving no language-model weights resident during serving.
+Exactly one model is resident locally on the critical path. This is not an accident of packaging but the property that makes the memory budget of Section~\ref{sec:memory} achievable. Embedding must be local because every chunk in the corpus passes through it during ingestion, whereas generation, illustration and OCR are per-request and therefore hosted, leaving no language-model weights resident during serving.
 \fi
 
-BGE-M3 is used twice for distinct purposes: retrieving passages, and later scoring how far an answer strayed from them (Section~V-D). Both uses depend on the same property, cross-lingual embedding in a shared space, which is what permits a Devanagari passage and an English answer to be compared numerically at all.
+BGE-M3 is used twice for distinct purposes: retrieving passages, and later scoring how far an answer strayed from them (Section~\ref{sec:grounding}). Both uses depend on the same property, cross-lingual embedding in a shared space, which is what permits a Devanagari passage and an English answer to be compared numerically at all.
 
 \ifshort\else  % six-page build
-Two integrated models are named but unusable in this deployment and are reported as such, not omitted. The local OCR path (GOT-OCR2) requires CUDA and cannot execute on Apple silicon. Its Python module additionally failed to import because \texttt{torchvision} was an undeclared dependency, which presented as a hardware limitation for some time before being diagnosed as a packaging one. The Tesseract fallback is installed without Devanagari training data, leaving it unable to read the script that most needs recovery (Section~IV-C).
+Two integrated models are named but unusable in this deployment and are reported as such, not omitted. The local OCR path (GOT-OCR2) requires CUDA and cannot execute on Apple silicon. Its Python module additionally failed to import because \texttt{torchvision} was an undeclared dependency, which presented as a hardware limitation for some time before being diagnosed as a packaging one. The Tesseract fallback is installed without Devanagari training data, leaving it unable to read the script that most needs recovery (Section~\ref{sec:legacy}).
 \fi
 
 The choice of the 8B model over the 70B variant was driven by measurement\ifconf: on one fixed prompt at approximately 70 completion tokens against the same endpoint, LLaMA-3.1-8B returned in 0.9~s where LLaMA-3.3-70B took 17--125~s, highly variable\else\ (Table~\ref{tab:latency})\fi.
@@ -795,6 +801,7 @@ This defect is characteristic of the class the audit kept finding. It is not a m
 %===================================================================
 \section{Grounding and Drift Detection}
 %===================================================================
+\label{sec:grounding}
 
 A retrieval-augmented system can retrieve the correct chapter and still generate a fabricated answer, which is the failure mode surveyed across generation tasks by Ji et al.~\cite{b29} and the one retrieval is supposed to remove. When asked about a specific story from the Hindi curriculum, the system retrieved the correct chapter, then described events that never occurred. The class was correct, the chapter was correct, the language was correct, and every detail was invented.
 
