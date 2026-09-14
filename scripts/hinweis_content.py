@@ -97,13 +97,15 @@ SECTIONS = [
          "in West Bengal all study the same curriculum, but none of them can read "
          "it in their mother tongue unless a human teacher translates it in real "
          "time."),
-   ("p", "Artificial intelligence can bridge that gap, and the dominant approach "
-         "is a cloud-hosted large language model answering from its own training. "
-         "That approach introduces three structural failures for Indian education. "
-         "It requires continuous connectivity, which rural schools do not have. It "
-         "operates primarily in English, which most of its users do not read. And "
-         "it answers from whatever the model absorbed during training rather than "
-         "from the curriculum the student is examined on."),
+   ("p", "Artificial intelligence can bridge that gap. The dominant approach, a "
+         "cloud-hosted large language model answering from its own training, "
+         "introduces three structural failures for Indian education at once: it "
+         "requires continuous connectivity, which rural schools do not have; it "
+         "operates primarily in English, which most of its users cannot read; and "
+         "it answers from whatever the model happened to absorb during training "
+         "rather than from the curriculum the student is actually examined on, "
+         "which is the failure that matters most because it is invisible. The "
+         "answer looks right."),
    ("p", "This paper presents Shiksha Setu, a tutoring platform in which the "
          "corpus, the embeddings over it and the whole of retrieval run on the "
          "user's own machine, and only generation is a hosted call. The paper is "
@@ -114,11 +116,10 @@ SECTIONS = [
  ]),
  ("Related Work or Literature Studies", [
    ("p", "Lewis et al. introduced retrieval-augmented generation for "
-         "knowledge-intensive tasks, establishing that grounding a generator in "
-         "retrieved documents reduces fabrication. Their evaluation is in English "
-         "over Wikipedia; the question this work asks is what happens when the "
-         "query and the corpus are in different scripts, which their setting never "
-         "raises."),
+         "knowledge-intensive tasks and established that grounding a generator in "
+         "retrieved documents reduces fabrication. Their evaluation is English over "
+         "Wikipedia. The question this work asks never arises there: what happens "
+         "when the query and the corpus are written in different scripts."),
    ("p", "Karpukhin et al. demonstrated dense passage retrieval outperforming "
          "BM25 for open-domain question answering. Their comparison is within one "
          "language. This work finds the gap is not a matter of degree across "
@@ -148,34 +149,37 @@ SECTIONS = [
          "for the memory result in Section XI."),
  ]),
  ("Motivation", [
-   ("p", "The motivation is a gap that is visible in any Indian classroom outside "
-         "the English-medium stream. The curriculum is national and uniform; the "
-         "language of its textbooks is not. A student who cannot read the textbook "
-         "is dependent on a teacher's translation for every question asked outside "
-         "class hours, and there is no such teacher at nine at night."),
-   ("p", "The technical motivation came from the related work. Cross-lingual "
-         "embeddings were reported to place semantically equivalent text from "
-         "different languages near each other, and retrieval-augmented generation "
-         "was reported to reduce fabrication. Both were established in settings "
-         "where the query and the corpus share a language. Whether they hold when "
-         "a Tamil question must reach an English passage was not something the "
-         "literature answered, and it is the difference between a system that "
-         "works for Indian students and one that does not."),
+   ("p", "The gap is visible in any Indian classroom outside the English-medium "
+         "stream. The curriculum is national and uniform; the language of its "
+         "textbooks is not. A student who cannot read the textbook depends on a "
+         "teacher's translation for every question asked after the bell, and at "
+         "nine at night there is no teacher."),
+   ("p", "The technical motivation came from the related work, where two results "
+         "sit next to each other without ever being combined: cross-lingual "
+         "embeddings are reported to place semantically equivalent text from "
+         "different languages near each other in one space, and "
+         "retrieval-augmented generation is reported to reduce fabrication by "
+         "grounding a generator in retrieved documents, but both were established "
+         "in settings where the query and the corpus share a language and neither "
+         "paper had reason to ask what happens when they do not. For an Indian "
+         "student they never do. That gap is the difference between a system that "
+         "works here and one that does not."),
  ]),
  ("Problem Domain", [
    ("p", "The domain is cross-lingual information retrieval applied to a fixed, "
          "curriculum-aligned corpus, under a device memory constraint."),
-   ("p", "Three bodies of technique meet here. Dense retrieval represents text as "
-         "vectors and searches by geometric proximity rather than word overlap. "
-         "Cross-lingual representation learning places different languages in one "
-         "vector space so that proximity survives a change of script. Approximate "
-         "nearest-neighbour search, here the HNSW graph, makes that search "
-         "tractable over tens of thousands of passages on ordinary hardware."),
-   ("p", "The constraint that shapes the domain is the device. Indian schools run "
-         "predominantly Windows desktops, and the memory budget this work targets "
-         "is 4 GB. That budget decides which models can be resident, which is why "
-         "precision and component choice are treated as measurements in this paper "
-         "rather than as configuration."),
+   ("p", "Three bodies of technique meet here. Dense retrieval drops word overlap "
+         "and searches by geometric proximity instead, representing a passage as a "
+         "vector. Cross-lingual representation learning then places every language "
+         "in one such space, so that proximity survives a change of script and a "
+         "Tamil question can land beside an English paragraph. Approximate "
+         "nearest-neighbour search makes the result tractable; here that is the "
+         "HNSW graph, over tens of thousands of passages, on a laptop."),
+   ("p", "The device is what shapes all of it. Indian schools run Windows "
+         "desktops, and the budget this work targets is 4 GB. That number decides "
+         "which models can stay resident at once, and it is the reason precision "
+         "and component choice appear in this paper as measurements rather than as "
+         "configuration a reader is asked to trust."),
  ]),
  ("Problem Definition", [
    ("p", "Given a question asked in any of eleven Indian languages, and a corpus "
@@ -196,14 +200,14 @@ SECTIONS = [
          "are responsible for the accuracy obtained."),
  ]),
  ("Innovative Content", [
-   ("p", "Against Karpukhin et al., who report dense retrieval outperforming BM25 "
-         "within a language, this work reports a stronger and different result "
-         "across scripts. The lexical baseline retrieves correctly for 0 of 77 "
-         "queries, with a 95% Wilson upper bound of 0.048. It is not weaker at the "
-         "task; it is structurally incapable of it, because the inverted index has "
-         "no token in common with the query. That is the argument for carrying a "
-         "568 M-parameter embedding model on a small machine, and it is an "
-         "argument from measurement rather than from preference."),
+   ("p", "Karpukhin et al. report dense retrieval outperforming BM25 within a "
+         "language. Across scripts the result is not stronger but different in "
+         "kind: the lexical baseline retrieves correctly for 0 of 77 queries, with "
+         "a 95% Wilson upper bound of 0.048. Zero, not a low score. It is not "
+         "weaker at the task, it is structurally incapable of it, because the "
+         "inverted index holds no token the query contains. That is the argument "
+         "for carrying a 568 M-parameter embedding model on a small machine, and "
+         "it is an argument from measurement rather than from preference."),
    ("p", "Against Ma et al., who report query rewriting as an improvement, this "
          "work locates where the improvement comes from. Direct embedding "
          "retrieves correctly for 47 of 77 and rewriting into English first for "
@@ -228,9 +232,9 @@ SECTIONS = [
          "detects and rejects it rather than indexing it."),
  ]),
  ("Problem Formulation or Representation or Design", [
-   ("p", "The system is formulated as an eight-stage pipeline, six stages of "
-         "which are mandatory for every question. Figure 1 gives the path with "
-         "measured medians and marks the machine boundary."),
+   ("p", "The system is an eight-stage pipeline. Six of those stages run for "
+         "every question. Figure 1 gives the path with measured medians and marks "
+         "the boundary between what runs on the machine and what does not."),
    ("fig", "img1.png"),
    ("p", "Formally, a question q in language L is first mapped by a rewriting "
          "function r to an English search string r(q). Both q and r(q) are "
@@ -242,12 +246,13 @@ SECTIONS = [
          "function g(a, P), also a cosine similarity, decides whether the answer "
          "was written from those passages or drifted away from them."),
    ("sub", "Why the pipeline has this shape", "A"),
-   ("p", "Each stage exists because a measurement required it. Rewriting exists "
-         "because romanised Hindi retrieves class 1 picture books for a class 10 "
-         "chemistry question: the embedding attends to surface form. Pooling "
-         "exists because the two arms fail on different inputs. The grounding "
-         "check exists because a fluent answer that has drifted from its source is "
-         "indistinguishable from a correct one without a numerical test."),
+   ("p", "Every stage is there because a measurement put it there. Rewriting "
+         "exists because romanised Hindi retrieves class 1 picture books for a "
+         "class 10 chemistry question, the embedding having attended to surface "
+         "form rather than meaning. Pooling exists because the two arms fail on "
+         "disjoint inputs. And the grounding check exists for the simplest reason "
+         "of all: a fluent answer that has drifted from its source reads exactly "
+         "like a correct one, and nothing short of a number tells them apart."),
    ("sub", "The persistence layer", "B"),
    ("p", "Passages and their embeddings are stored in PostgreSQL 17 with the "
          "pgvector extension, indexed with HNSW using cosine distance, m = 16 and "
@@ -264,38 +269,40 @@ SECTIONS = [
          "scraped from the publisher's textbook picker and cached. The complete "
          "catalog contains 559 textbooks: 209 in English, 191 in Hindi and 159 in "
          "Urdu. The platform teaches from a deliberate subset of 263 books."),
-   ("p", "Each book passes through five stages: archive download, per-chapter PDF "
-         "extraction, text cleanup, semantic chunking at 1,200 characters with "
-         "200 characters of overlap and a preference for paragraph boundaries, "
-         "embedding at half precision, and storage. Each book commits as one "
-         "database transaction so that a failure leaves no partial book behind."),
+   ("p", "Five stages take a book from the publisher's archive into the index: "
+         "download, per-chapter PDF extraction, text cleanup, semantic chunking at "
+         "1,200 characters with 200 of overlap and a preference for paragraph "
+         "boundaries, and embedding at half precision. One book is one database "
+         "transaction. A failure therefore leaves nothing behind."),
    ("p", "A book that cannot be ingested writes a marker naming the reason, so "
          "the shortfall can be audited rather than assumed. That mechanism found "
          "two books whose loss was not the source material's: one run exhausted "
          "the disk, and one chunk embedded to a non-finite vector, which the "
          "single-transaction commit turned into a whole rolled-back book."),
    ("sub", "Detecting a corpus defect that reports success", "B"),
-   ("p", "Two-thirds of the Hindi curriculum is unreadable by every PDF text "
+   ("p", "Two-thirds of the Hindi curriculum cannot be read by any PDF text "
          "extractor tested. The older Hindi textbooks are typeset in "
-         "Walkman-Chanakya 905, a legacy font mapping Devanagari glyphs onto ASCII "
-         "codepoints with no ToUnicode table, so extraction returns raw byte "
-         "values rather than failing. Of 41 Devanagari-only books analysed, 27 are "
-         "affected and yield 0.0% Devanagari characters, while the 14 typeset in "
-         "Unicode fonts yield 97.9 to 100%. The detector measures the proportion "
-         "of Devanagari codepoints and rejects a book that reports text but no "
-         "script."),
+         "Walkman-Chanakya 905, a legacy font that maps Devanagari glyphs onto "
+         "ASCII codepoints and carries no ToUnicode table, with the consequence "
+         "that extraction does not fail but succeeds into nonsense, returning raw "
+         "byte values that look to every downstream stage like ordinary Latin "
+         "text. Of 41 Devanagari-only books analysed, 27 yield 0.0% Devanagari "
+         "characters. The 14 typeset in Unicode fonts yield 97.9 to 100%. The "
+         "detector measures that proportion and rejects any book reporting text "
+         "but no script."),
    ("sub", "Cross-lingual retrieval", "C"),
-   ("p", "A question is rewritten into an English search query by the language "
-         "model before embedding, and both the original and the rewritten form are "
-         "embedded and searched. The two result sets are pooled by best score. "
-         "Rewriting runs for every question rather than only ones that look "
-         "non-English, because deciding what looks romanised is guesswork and the "
-         "call is under a second."),
+   ("p", "Before anything is embedded, the language model rewrites the question "
+         "into an English search query; both forms are then embedded and searched, "
+         "and the two result sets are pooled by taking the better score for any "
+         "passage that appears in both. Rewriting runs on every question. Deciding "
+         "which ones look romanised is guesswork, and the call costs under a "
+         "second."),
    ("sub", "Grounding", "D"),
-   ("p", "After generation, the answer and the concatenated retrieved passages "
-         "are embedded and compared by cosine similarity. The threshold was "
-         "originally set at 0.55 from four hand-verified examples. Calibrating it "
-         "on 256 constructed pairs moved it to 0.715."),
+   ("p", "After generation, the answer and the concatenated passages are embedded "
+         "and compared by cosine similarity. The threshold began at 0.55, set from "
+         "four hand-verified examples. Four. Calibrating it on 256 constructed "
+         "pairs moved it to 0.715, and the old value turned out to admit 35 of the "
+         "240 negatives it was supposed to reject."),
  ]),
  ("Results and Sensitivity Analysis", [
    ("p", "Retrieval was evaluated over 77 queries: seven topics in each of the "
@@ -307,14 +314,14 @@ SECTIONS = [
          "counts as correct only when the top passage is on topic."),
    ("tab", "ablation"),
    ("fig", "img2.png"),
-   ("p", "The lexical baseline retrieves nothing at all for any of the 77 "
-         "queries. Given an English query from the rewrite it becomes viable at "
-         "once, at 55%, which locates the difficulty precisely: the barrier is the "
-         "script, not the vocabulary. Rewriting before embedding gains nineteen "
-         "queries over embedding directly, which is the largest effect measured in "
-         "this work. Pooling the two scores one query above rewriting alone, with "
-         "intervals that almost coincide, and is reported as what the system "
-         "deploys rather than as a configuration shown to be better."),
+   ("p", "The lexical baseline retrieves nothing at all. Not for one of the 77. "
+         "Hand it an English query from the rewrite and the same method becomes "
+         "viable immediately, at 55%, which locates the difficulty precisely: the "
+         "barrier is the script and not the vocabulary. Rewriting before embedding "
+         "gains nineteen queries over embedding directly, and that is the largest "
+         "effect measured anywhere in this work. Pooling the two adds one more. "
+         "Its interval sits inside rewriting's, so it is reported as what the "
+         "system deploys rather than as a configuration shown to be better."),
    ("fig", "img3.png"),
    ("sub", "What was varied, and what the results are sensitive to", "A"),
    ("p", "Three variables were moved deliberately. Language was varied across "
@@ -355,14 +362,15 @@ SECTIONS = [
          "reported against the 153-textbook state that preceded this one, with "
          "1,542 chapters and 42,995 passages. Reporting a single state for both "
          "would have been tidier and false."),
-   ("p", "The evaluation data model has three inputs and one output per trial. "
-         "The inputs are the language, the topic and the pipeline configuration; "
-         "the output is the rank of the first on-topic passage, from which both "
-         "the rank-1 verdict and the reciprocal rank are derived. Seventy-seven "
-         "queries across five configurations give 385 trials. The grounding "
-         "evaluation uses a different model: 16 questions produce 16 matched "
-         "answer-passage pairs and 240 mismatched ones, by pairing each answer "
-         "with the passages retrieved for a different question."),
+   ("p", "Each trial has three inputs and one output. The inputs are language, "
+         "topic and pipeline configuration. The output is the rank at which the "
+         "first on-topic passage appears, and both the rank-1 verdict and the "
+         "reciprocal rank are derived from it, which is why a query that places a "
+         "passage second is recorded as a near miss rather than collapsed into a "
+         "failure. Seventy-seven queries across five configurations give 385 "
+         "trials. Grounding uses a different shape: 16 questions produce 16 "
+         "matched answer-passage pairs, and pairing each answer with another "
+         "question's passages produces 240 mismatched ones."),
    ("p", "The corpus itself is not distributed with the system. NCERT publishes "
          "these textbooks for free public download; the pipeline fetches them "
          "directly and stores extracted text for retrieval, and the catalog rather "
@@ -380,34 +388,34 @@ SECTIONS = [
    ("p", "Three rows are stated against our own interest: generation is not "
          "local, the system needs a network, and BYJU'S covers the curriculum at a "
          "scale this work does not approach."),
-   ("p", "The second comparison is internal and is the one that carries the "
-         "result, because it holds everything constant except the component under "
-         "test. It is given across the five configurations of Table III and the "
-         "seven topics of Table IV, and it is not based on a single set of inputs: "
-         "77 queries in eleven languages across seven subjects, with each "
-         "configuration run over all of them."),
+   ("p", "The second comparison is internal, and it is the one that carries the "
+         "result. It holds everything constant except the component under test. "
+         "Table III gives it across five configurations and Table IV across seven "
+         "topics, and it does not rest on a single set of inputs: 77 queries, "
+         "eleven languages, seven subjects, every configuration run over all of "
+         "them."),
    ("p", "A third comparison was run and produced a negative result. Adding a "
          "cross-encoder re-ranker to the deployed configuration, over the same "
          "queries and the same candidate lists, scores 65 of 77 against 67 without "
          "it, promoting seven queries to rank one and demoting nine."),
  ]),
  ("Justification of the Results", [
-   ("p", "The lexical result is justified by the mechanism rather than by the "
-         "count. A Devanagari, Tamil or Perso-Arabic query tokenises to symbols "
-         "that do not occur in an English inverted index, so there is nothing for "
-         "the ranking function to score. That is why the interval is [0.000, "
-         "0.048] and why supplying an English rewrite lifts the same method to "
-         "55% immediately. Karpukhin et al. report dense retrieval as better than "
-         "BM25 within a language; across scripts the relationship is not better "
-         "but categorical, and the mechanism explains why."),
-   ("p", "The rewriting result is justified by where the gain lands. If rewriting "
-         "helped uniformly it would suggest a general quality effect. It does not: "
-         "the gain is concentrated on compound terms, 2 of 11 to 10 of 11 on "
-         "photosynthesis, while on the eye, whose name is ordinary vocabulary, "
-         "rewriting is worse than direct embedding at 5 of 11 against 9. That "
-         "pattern is consistent with the stated mechanism, that the rewrite "
-         "normalises a compound the embedder decomposes into the wrong "
-         "constituents, and inconsistent with a general improvement."),
+   ("p", "The lexical result is justified by its mechanism, not by its count. A "
+         "Devanagari, Tamil or Perso-Arabic query tokenises to symbols that never "
+         "occur in an English inverted index, leaving the ranking function with "
+         "nothing to score at all. Hence the interval of [0.000, 0.048]. Hence "
+         "also the jump to 55% the moment an English rewrite is supplied. "
+         "Karpukhin et al. report dense retrieval as better than BM25 within a "
+         "language; across scripts the relationship stops being one of degree, and "
+         "the mechanism is why."),
+   ("p", "The rewriting result is justified by where the gain lands rather than "
+         "by its size. A uniform improvement would point at a general quality "
+         "effect. This one is not uniform. On photosynthesis the gain runs from 2 "
+         "of 11 to 10 of 11; on the eye, whose name is ordinary vocabulary in "
+         "every one of these languages, rewriting is worse than direct embedding, "
+         "5 of 11 against 9. That pattern fits the stated mechanism, which is that "
+         "the rewrite normalises a compound the embedder had decomposed into the "
+         "wrong constituents, and fits nothing else."),
    ("p", "The grounding separation of 0.360 is justified by reproducing it "
          "outside the embedding space that produced it. BGE-M3 both retrieved "
          "these passages and scored them, so the separation could be a property of "
@@ -429,25 +437,28 @@ SECTIONS = [
          "system exists to answer."),
  ]),
  ("Conclusion", [
-   ("p", "This paper presented Shiksha Setu, a tutoring platform whose corpus, "
-         "embeddings and retrieval run on the user's own machine and whose "
-         "generation is a hosted call, with the boundary stated rather than "
-         "blurred. The evaluation rests on 155 ingested textbooks and 43,621 "
-         "indexed passages spanning all twelve classes."),
-   ("p", "Four results are reported. A lexical baseline retrieves correctly for "
-         "none of 77 cross-lingual queries, which is a structural failure rather "
-         "than a weak score. Rewriting a question into English before embedding it "
-         "gains nineteen queries over embedding it directly, 66 of 77 against 47, "
-         "and that gain is concentrated on morphologically compound terms. "
-         "Half-precision inference halves the embedding footprint to 1,083 MB at a "
-         "mean cosine fidelity of 0.999998, bringing the serving pipeline inside a "
-         "4 GB budget verified by kernel-level measurement. And ingestion detects "
-         "a legacy-font defect that renders 66% of Hindi textbooks as Latin "
-         "gibberish while reporting successful extraction."),
-   ("p", "A cross-encoder re-ranker, the standard remedy for imperfect ranking, "
-         "was measured rather than assumed and is excluded on the result: it "
-         "lowers accuracy from 67 to 65 of 77 and does not fit beside the embedder "
-         "on the target device."),
+   ("p", "This paper presented Shiksha Setu. Its corpus, its embeddings and the "
+         "whole of retrieval run on the user's own machine; generation is a hosted "
+         "call, and the boundary between the two is stated rather than blurred, "
+         "because a platform that claims to be offline while depending on a "
+         "network is making a claim a school can discover the hard way. The "
+         "evaluation rests on 155 ingested textbooks and 43,621 indexed passages "
+         "across all twelve classes."),
+   ("p", "Four results are reported. The lexical baseline retrieves correctly for "
+         "none of 77 cross-lingual queries. That is a structural failure, not a "
+         "weak score, and no larger sample rescues it. Rewriting a question into "
+         "English before embedding gains nineteen queries over embedding it "
+         "directly, 66 of 77 against 47, and the gain sits almost entirely on "
+         "morphologically compound terms. Half precision halves the embedding "
+         "footprint to 1,083 MB at a mean cosine fidelity of 0.999998, which is "
+         "what brings the serving pipeline inside 4 GB, verified at the kernel "
+         "rather than estimated. And ingestion catches a legacy-font defect that "
+         "renders 66% of Hindi textbooks as Latin gibberish while reporting that "
+         "extraction succeeded."),
+   ("p", "A cross-encoder re-ranker is the standard remedy for imperfect ranking. "
+         "It was measured rather than assumed, and it is excluded on what the "
+         "measurement returned: accuracy falls from 67 to 65 of 77, and the model "
+         "does not fit beside the embedder on the device this work targets."),
  ]),
  ("Future Work", [
    ("p", "The most consequential gap is the absence of human evaluation. A "
@@ -455,15 +466,14 @@ SECTIONS = [
          "helps a learner rather than whether it is on topic, would test the claim "
          "this system actually makes."),
    ("p", "Three narrower directions follow from the results. The grounding "
-         "negatives should be drawn from observed hallucinations rather than "
-         "constructed by mismatching, so the metric is calibrated against the "
-         "failure it is meant to catch. The query set should grow beyond 77, which "
-         "needs native speakers of eleven languages rather than compute. And the "
-         "single query that fails in every configuration, Urdu photosynthesis, "
-         "points at a class of Perso-Arabic technical vocabulary that shares no "
-         "root with either English or the Sanskrit-derived compounds the other ten "
-         "languages use; whether a targeted lexicon closes that gap is an open "
-         "question."),
+         "negatives should come from observed hallucinations rather than from "
+         "mismatching, so that the metric is calibrated against the failure it "
+         "exists to catch. The query set should grow past 77, which needs native "
+         "speakers of eleven languages and not more compute. And one query fails "
+         "in every configuration: Urdu photosynthesis. It points at a class of "
+         "Perso-Arabic technical vocabulary sharing no root with English or with "
+         "the Sanskrit-derived compounds the other ten languages use, and whether "
+         "a targeted lexicon closes that gap is open."),
  ]),
  ("References", []),
 ]
